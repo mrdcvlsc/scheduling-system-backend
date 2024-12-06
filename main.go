@@ -10,7 +10,7 @@ import (
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
-	"github.com/mrdcvlsc/scheduling-system-backend/utils"
+	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -96,7 +96,7 @@ func main() {
 
 	////////////////////////////////
 
-	utils.DisplayOutboundIP()
+	Utils.DisplayOutboundIP()
 	router.Run(fmt.Sprintf(":%s", os.Getenv("PORT")))
 
 }
