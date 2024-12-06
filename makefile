@@ -6,6 +6,3 @@ build:
 
 test:
 	go test ./...
-
-clean:
-	rm Tests/genetic-algorithm Tests/utils scheduling-system-backend
