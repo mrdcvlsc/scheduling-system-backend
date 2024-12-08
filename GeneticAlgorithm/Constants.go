@@ -12,5 +12,5 @@ const TIME_SLOTS_PER_HOUR = 2
 // represents the total number of time slots available in a single teaching day.
 const DAILY_TIME_SLOTS = DAILY_TEACHING_HOURS * TIME_SLOTS_PER_HOUR
 
-// calculates the total number of time slots available for scheduling in a week.
+// the total number of time slots available for scheduling in a week.
 const WEEKLY_TIME_SLOTS = SCHOOL_DAYS_PER_WEEK * DAILY_TIME_SLOTS

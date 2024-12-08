@@ -24,9 +24,14 @@ The position of the time slot is also fixed and will not be moved to other time 
 by the genetic algorithm if one attribute is fixed/constrained.
 */
 type TimeSlot struct {
-	subjectID    uint16
+	// this should never be zero, zero means empty, none or nothing.
+	subjectID uint16
+
+	// this should never be zero, zero means empty, none or nothing.
 	instructorID uint16
-	roomID       uint16
+
+	// this should never be zero, zero means empty, none or nothing.
+	roomID uint16
 }
 
 // ============================= CONSTRUCTOR =============================
