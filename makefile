@@ -5,4 +5,5 @@ build:
 	go build -tags netgo -ldflags '-s -w' -o app
 
 test:
+	go clean -testcache
 	go test ./...
