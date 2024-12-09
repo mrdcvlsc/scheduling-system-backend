@@ -6,4 +6,8 @@ build:
 
 test:
 	go clean -testcache
-	go test ./...
+	go test ./Tests/...
+
+testv:
+	go clean -testcache
+	go test ./Tests/... -v
