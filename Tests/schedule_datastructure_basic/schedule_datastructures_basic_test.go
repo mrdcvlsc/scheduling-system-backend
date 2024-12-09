@@ -1,4 +1,4 @@
-package main
+package schedule_datastructures_basic_test
 
 import (
 	"encoding/json"
