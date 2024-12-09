@@ -1,7 +1,7 @@
 package geneticalgorithm
 
 import (
-	"log"
+	"fmt"
 )
 
 type SectionsWeeklySchedules []WeekSchedule
@@ -14,10 +14,10 @@ func (university_schedules *SectionsWeeklySchedules) GetSectionWeeklySchedule(se
 	total_university_sections := len(*university_schedules)
 
 	if section_idx < 0 || section_idx >= total_university_sections {
-		log.Fatalf(
+		panic(fmt.Sprintf(
 			"GetSectionSchedule(section_idx = %d | min:max = 0:%d): error index out of bounds",
 			section_idx, total_university_sections,
-		)
+		))
 	}
 
 	return &(*university_schedules)[section_idx]
