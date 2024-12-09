@@ -12,22 +12,13 @@ type InstructorMonitor struct {
 	// this should never be zero, zero means empty, none or nothing.
 	InstructorID uint16
 
-	// determines if the instructor is available in the current timeslot during schedule generation.
+	// determines if the instructor is available for a certain time slot during schedule generation.
 	//
-	// if value is 1, then the instructor is available.
-	// if less than 1, the instructor is not available.
-	//
-	// This attribute should be incremented everytime we move one time slot
-	// forward during the instructor assignement phase in schedule generation.
-	// If the value is already 1 this attribute should not be incremented.
-	TimeSlotAvailability int8
+	// if value corresponding bit value for that time slot is 1, then the instructor is available.
+	// if value corresponding bit value for that time slot is 0, then the instructor is NOT available.
+	TimeSlotAvailability InstructorWeekTimeSlotAvailabilityMap
 
-	// TODO: use bitset/bitmaps for recording time slot availability of instructors.
-	// by using bitmap you can remove the instructor assignment phase that is isolated
-	// from subject assignment phase, which could lead to faster performance at the cost
-	// of slightly higer memory consumption.
-
-	// Available days, each bits represent the boolean value if the instructor
+	// DayAvailability, each bits represent the boolean value if the instructor
 	// is available.
 	//
 	// The least significant bit represent SAT then the preceding bits from
