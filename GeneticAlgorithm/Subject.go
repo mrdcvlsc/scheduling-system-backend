@@ -1,8 +1,11 @@
 package geneticalgorithm
 
+import "fmt"
+
 const CLASS_TYPE_LEC_HOURS_MASK uint8 = 0b00000111
 const CLASS_TYPE_LAB_HOURS_MASK uint8 = 0b00111000
 const CLASS_TYPE_GYM_BIT_F_MASK uint8 = 0b10000000
+const MAX_SUBJECT_HOUR_DURATION uint8 = 7
 
 type SubjectDbRecord struct {
 	// this should never be zero, zero means empty, none or nothing.
@@ -38,25 +41,58 @@ func (s *SubjectDbRecord) GetLabHours() uint8 {
 }
 
 func (s *SubjectDbRecord) GetGymHours() uint8 {
-	gym_bit_flag := (s.lec_lab_gym_hours & CLASS_TYPE_GYM_BIT_F_MASK) >> 7
-	lecHours := s.GetLecHours()
 
-	if lecHours == s.GetLabHours() && gym_bit_flag == 1 {
-		return lecHours
+	if !s.IsGymType() {
+		panic(
+			"GetGymHours(): you can not call this function if the subject is not a gym subject",
+		)
 	}
 
-	return 0
+	lecHours := s.GetLecHours()
+
+	if lecHours != s.GetLabHours() {
+		panic(
+			"GetGymHours(): the retrieved gym hours is corrupted for some reason",
+		)
+	}
+
+	return lecHours
 }
 
+// BIT FORMAT: [1-bit gym flag][1-bit unused][3-bit lab hours][3-bit lec hours]
 func (s *SubjectDbRecord) SetLecHours(hours uint8) {
-	s.lec_lab_gym_hours = ^CLASS_TYPE_LEC_HOURS_MASK | hours
+	if hours > MAX_SUBJECT_HOUR_DURATION {
+		panic(fmt.Sprintf(
+			"SetLecHours(hours = %d | min:max = 0:%d): error hours should only range from 0 to %d",
+			hours, MAX_SUBJECT_HOUR_DURATION, MAX_SUBJECT_HOUR_DURATION,
+		))
+	}
+
+	s.lec_lab_gym_hours = (s.lec_lab_gym_hours & ^CLASS_TYPE_LEC_HOURS_MASK) | hours
+	s.lec_lab_gym_hours &= ^CLASS_TYPE_GYM_BIT_F_MASK
 }
 
+// BIT FORMAT: [1-bit gym flag][1-bit unused][3-bit lab hours][3-bit lec hours]
 func (s *SubjectDbRecord) SetLabHours(hours uint8) {
-	s.lec_lab_gym_hours = ^CLASS_TYPE_LAB_HOURS_MASK | (hours << 3)
+	if hours > MAX_SUBJECT_HOUR_DURATION {
+		panic(fmt.Sprintf(
+			"SetLabHours(hours = %d | min:max = 0:%d): error hours should only range from 0 to %d",
+			hours, MAX_SUBJECT_HOUR_DURATION, MAX_SUBJECT_HOUR_DURATION,
+		))
+	}
+
+	s.lec_lab_gym_hours = (s.lec_lab_gym_hours & ^CLASS_TYPE_LAB_HOURS_MASK) | (hours << 3)
+	s.lec_lab_gym_hours &= ^CLASS_TYPE_GYM_BIT_F_MASK
 }
 
 func (s *SubjectDbRecord) SetGymHours(hours uint8) {
+	if hours > MAX_SUBJECT_HOUR_DURATION {
+		panic(fmt.Sprintf(
+			"SetGymHours(hours = %d | min:max = 0:%d): error hours should only range from 0 to %d",
+			hours, MAX_SUBJECT_HOUR_DURATION, MAX_SUBJECT_HOUR_DURATION,
+		))
+	}
+
 	s.lec_lab_gym_hours = CLASS_TYPE_GYM_BIT_F_MASK | (hours << 3) | hours
 }
 
