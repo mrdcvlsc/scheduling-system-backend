@@ -16,7 +16,7 @@ type InstructorMonitor struct {
 	//
 	// if value corresponding bit value for that time slot is 1, then the instructor is available.
 	// if value corresponding bit value for that time slot is 0, then the instructor is NOT available.
-	TimeSlotAvailability InstructorWeekTimeSlotAvailabilityMap
+	TimeSlotAvailability InstructorTimeSlotMap
 
 	// DayAvailability, each bits represent the boolean value if the instructor
 	// is available.
