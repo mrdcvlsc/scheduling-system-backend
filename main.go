@@ -85,7 +85,7 @@ func main() {
 	// maximum memory limit for multipart form file uploads
 	router.MaxMultipartMemory = 5 << 20 // 5 MiB
 
-	router.Use(static.Serve("/", static.LocalFile("./public", true)))
+	router.Use(static.Serve("/", static.LocalFile("./dist", true)))
 	router.Use(sessions.Sessions("session_id", SessionStore))
 
 	//////////////////////////////////////////////////////////////////////////
