@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"testing"
 
-	ga "github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
+	sdsa "github.com/mrdcvlsc/scheduling-system-backend/Resources/ScheduleDSA"
 )
 
 func TestGeneticAlgorithmBasics(t *testing.T) {
 	fmt.Println("Test/Dev Program for genetic algorithm scheduling")
 
-	uniSectionSchedules := ga.NewSectionsWeeklySchedules(1)
+	uniSectionSchedules := sdsa.NewUniversitySchedules(1)
 
-	uniSectionSchedules[0][0][1] = *ga.NewTimeSlot(222, 333, 444)
+	uniSectionSchedules[0][0][1] = *sdsa.NewTimeSlot(222, 333, 444)
 
 	fmt.Println("================================================================")
 	testSectionSchedule := uniSectionSchedules.GetSectionWeeklySchedule(0)

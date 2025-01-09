@@ -1,4 +1,4 @@
-package geneticalgorithm
+package scheduledsa
 
 // specifies the number of days per week the university holds classes.
 const N_WEEKLY_SCHOOL_DAYS = 6

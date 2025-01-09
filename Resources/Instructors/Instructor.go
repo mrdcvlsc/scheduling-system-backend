@@ -1,14 +1,21 @@
-package geneticalgorithm
+package instructors
 
-const DAY_MON uint8 = 1 << 5
-const DAY_TUE uint8 = 1 << 4
-const DAY_WED uint8 = 1 << 3
-const DAY_THR uint8 = 1 << 2
-const DAY_FRI uint8 = 1 << 1
-const DAY_SAT uint8 = 1
-const WHOLE_WEEK uint8 = DAY_MON | DAY_TUE | DAY_WED | DAY_THR | DAY_FRI | DAY_SAT
+type InstructorID uint16
 
-type InstructorMonitor struct {
+// type that will be use to read and save a single instructor's information
+// from and to the database.
+type InstructorDbTableItem struct {
+	InstructorID InstructorID
+	DepartmentID uint8
+
+	// BIT FORMAT: [2 bits unused][1-bit MON][1-bit TUE][1-bit WED][1-bit THR][1-bit FRI][1-bit SAT]
+	DayAvailability uint8
+	InstructorName  string
+}
+
+// the type that will be use to generate an instructor resource queue during schedule
+// generation, this type represents the structure of each items in that queue.
+type InstructorResourceItem struct {
 	// this should never be zero, zero means empty, none or nothing.
 	InstructorID uint16
 
@@ -32,9 +39,10 @@ type InstructorMonitor struct {
 	DayAvailability uint8
 }
 
-type InstructorDbRecord struct {
-	InstructorID    uint16
-	DayAvailability uint8
-	DepartmentID    uint8
-	InstructorName  string
-}
+const DAY_MON uint8 = 1 << 5
+const DAY_TUE uint8 = 1 << 4
+const DAY_WED uint8 = 1 << 3
+const DAY_THR uint8 = 1 << 2
+const DAY_FRI uint8 = 1 << 1
+const DAY_SAT uint8 = 1
+const WHOLE_WEEK uint8 = DAY_MON | DAY_TUE | DAY_WED | DAY_THR | DAY_FRI | DAY_SAT

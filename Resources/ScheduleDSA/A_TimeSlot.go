@@ -1,4 +1,4 @@
-package geneticalgorithm
+package scheduledsa
 
 import "fmt"
 

@@ -1,7 +1,9 @@
-package geneticalgorithm
+package instructors
 
 import (
 	"fmt"
+
+	sdsa "github.com/mrdcvlsc/scheduling-system-backend/Resources/ScheduleDSA"
 )
 
 // ====================================================================================
@@ -10,7 +12,7 @@ import (
 // to compute value during compile time.
 
 const BITSET_LIMB_WIDENESS = 64
-const u8BitReduce uint8 = N_WEEKLY_TIME_SLOTS % BITSET_LIMB_WIDENESS
+const u8BitReduce uint8 = sdsa.N_WEEKLY_TIME_SLOTS % BITSET_LIMB_WIDENESS
 
 // since modding by 64 will always produce results less than 64 which
 // can fit in 8 bit wide unsigned integer, we can then right away start
@@ -22,7 +24,7 @@ const u1BitReduce = (u2BitReduce >> 1) | (u2BitReduce & uint8(0b1))
 
 // ====================================================================================
 
-const INSTRUCTOR_TIME_SLOT_MAP_LIMBS = (N_WEEKLY_TIME_SLOTS / 64) + u1BitReduce
+const INSTRUCTOR_TIME_SLOT_MAP_LIMBS = (sdsa.N_WEEKLY_TIME_SLOTS / 64) + u1BitReduce
 
 // This type helps us manage the weekly availability of an instructor,
 // allowing us to keep track which time slots are available or unavailable for them.
@@ -31,21 +33,21 @@ type InstructorTimeSlotMap [INSTRUCTOR_TIME_SLOT_MAP_LIMBS]uint64
 // setting a bit to 1 means the instructor is available,
 // and 0 if not for that corresponding bit time slot.
 func (bitset *InstructorTimeSlotMap) SetAvailability(available bool, day, time_slot int) {
-	if day < 0 || day >= N_WEEKLY_SCHOOL_DAYS {
+	if day < 0 || day >= sdsa.N_WEEKLY_SCHOOL_DAYS {
 		panic(fmt.Sprintf(
 			"SetAvailability(..., day int = %d,...) : invalid argument `day`, accepted values are only 0 to %d",
-			day, N_WEEKLY_SCHOOL_DAYS-1,
+			day, sdsa.N_WEEKLY_SCHOOL_DAYS-1,
 		))
 	}
 
-	if time_slot < 0 || time_slot >= N_DAILY_TIME_SLOTS {
+	if time_slot < 0 || time_slot >= sdsa.N_DAILY_TIME_SLOTS {
 		panic(fmt.Sprintf(
 			"SetAvailability(..., time_slot int = %d) : invalid argument `time_slot`, accepted values are only 0 to %d",
-			time_slot, N_DAILY_TIME_SLOTS-1,
+			time_slot, sdsa.N_DAILY_TIME_SLOTS-1,
 		))
 	}
 
-	bit_idx := day*N_DAILY_TIME_SLOTS + time_slot
+	bit_idx := day*sdsa.N_DAILY_TIME_SLOTS + time_slot
 	limb_idx := bit_idx / BITSET_LIMB_WIDENESS
 	limb_bit_idx := bit_idx % BITSET_LIMB_WIDENESS
 
@@ -57,21 +59,21 @@ func (bitset *InstructorTimeSlotMap) SetAvailability(available bool, day, time_s
 }
 
 func (bitset *InstructorTimeSlotMap) GetAvailability(day, time_slot int) bool {
-	if day < 0 || day >= N_WEEKLY_SCHOOL_DAYS {
+	if day < 0 || day >= sdsa.N_WEEKLY_SCHOOL_DAYS {
 		panic(fmt.Sprintf(
 			"GetAvailability(..., day int = %d,...) : invalid argument `day`, accepted values are only 0 to %d",
-			day, N_WEEKLY_SCHOOL_DAYS-1,
+			day, sdsa.N_WEEKLY_SCHOOL_DAYS-1,
 		))
 	}
 
-	if time_slot < 0 || time_slot >= N_DAILY_TIME_SLOTS {
+	if time_slot < 0 || time_slot >= sdsa.N_DAILY_TIME_SLOTS {
 		panic(fmt.Sprintf(
 			"GetAvailability(..., time_slot int = %d) : invalid argument `time_slot`, accepted values are only 0 to %d",
-			time_slot, N_DAILY_TIME_SLOTS-1,
+			time_slot, sdsa.N_DAILY_TIME_SLOTS-1,
 		))
 	}
 
-	bit_idx := day*N_DAILY_TIME_SLOTS + time_slot
+	bit_idx := day*sdsa.N_DAILY_TIME_SLOTS + time_slot
 	limb_idx := bit_idx / BITSET_LIMB_WIDENESS
 	limb_bit_idx := bit_idx % BITSET_LIMB_WIDENESS
 

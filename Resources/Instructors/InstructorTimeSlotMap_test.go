@@ -1,14 +1,14 @@
-package bitset_test
+package instructors_test
 
 import (
 	"fmt"
 	"testing"
 
-	ga "github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
+	instructors "github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
 )
 
-func TestInstructorBitSetAvailabilityMap(t *testing.T) {
-	mr_instructor := ga.InstructorTimeSlotMap{}
+func TestInstructorTimeSlotMap(t *testing.T) {
+	mr_instructor := instructors.InstructorTimeSlotMap{}
 
 	cnt := 0
 	index := 0
