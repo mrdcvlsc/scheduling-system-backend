@@ -6,6 +6,11 @@ import (
 )
 
 func PrettyPrint(data interface{}) {
-	b, _ := json.MarshalIndent(data, "", "  ")
+	b, err := json.MarshalIndent(data, "", "    ")
+
+	if err != nil {
+		panic(err)
+	}
+
 	fmt.Print(string(b))
 }
