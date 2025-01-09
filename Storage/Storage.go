@@ -8,10 +8,10 @@ import (
 	c "github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 )
 
-type PersistenceRepository interface {
+type persistenceRepository interface {
 	GetAllCurriculum() []c.Curriculum
 }
 
 type PersistenceService struct {
-	Repo PersistenceRepository
+	Service persistenceRepository
 }
