@@ -5,11 +5,13 @@ import (
 	// "testing"
 
 	// storage "github.com/mrdcvlsc/scheduling-system-backend/Storage"
-	c "github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
+	curriculum "github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
+	instructor "github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
 )
 
 type persistenceRepository interface {
-	GetAllCurriculum() []c.Curriculum
+	GetAllCurriculum() []curriculum.Curriculum
+	GetAllInstructor() []instructor.Instructor
 }
 
 type PersistenceService struct {
