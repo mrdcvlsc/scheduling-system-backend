@@ -25,3 +25,6 @@ go.work.sum
 .env
 setup_env_variables.txt
 app
+
+# development sub modules
+scheduling-system-temporary-data
