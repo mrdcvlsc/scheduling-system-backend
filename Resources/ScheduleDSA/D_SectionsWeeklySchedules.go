@@ -8,21 +8,21 @@ import (
 // in the whole university.
 //
 // this is just an array of `ScheduleWeek` types.
-type SchedulesInUniversity []ScheduleWeek
+type UniTimeTables []WeekTimeTable
 
-func NewUniversitySchedules(num_of_sections uint) SchedulesInUniversity {
-	return make(SchedulesInUniversity, num_of_sections)
+func NewUniTimeTables(num_of_time_tables uint) UniTimeTables {
+	return make(UniTimeTables, num_of_time_tables)
 }
 
-func (university_schedules *SchedulesInUniversity) GetSectionWeeklySchedule(section_idx int) *ScheduleWeek {
-	total_university_sections := len(*university_schedules)
+func (uni_sched *UniTimeTables) Get(class_section_idx int) *WeekTimeTable {
+	total_university_sections := len(*uni_sched)
 
-	if section_idx < 0 || section_idx >= total_university_sections {
+	if class_section_idx < 0 || class_section_idx >= total_university_sections {
 		panic(fmt.Sprintf(
 			"GetSectionSchedule(section_idx = %d | min:max = 0:%d): error index out of bounds",
-			section_idx, total_university_sections,
+			class_section_idx, total_university_sections,
 		))
 	}
 
-	return &(*university_schedules)[section_idx]
+	return &(*uni_sched)[class_section_idx]
 }

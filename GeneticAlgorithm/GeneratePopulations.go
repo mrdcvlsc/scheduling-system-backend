@@ -4,11 +4,11 @@ import (
 	// "fmt"
 	// "testing"
 
-	sd "github.com/mrdcvlsc/scheduling-system-backend/Resources/ScheduleDSA"
+	schedule "github.com/mrdcvlsc/scheduling-system-backend/Resources/ScheduleDSA"
 	// persistence "github.com/mrdcvlsc/scheduling-system-backend/Storage"
 )
 
-func NewPopulation() sd.SchedulesInUniversity {
+func NewPopulation() schedule.UniTimeTables {
 	// TODO: get all courses curriculum in the university
 	// p := persistence.PersistenceService{Service: &persistence.JsonFilePersistence{}}
 	// TODO: get all instructor

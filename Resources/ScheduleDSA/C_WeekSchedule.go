@@ -6,10 +6,10 @@ import (
 
 // type for weekly schedule of a class / section.
 //
-// this is just an array of `ScheduleDay` types.
-type ScheduleWeek [N_WEEKLY_SCHOOL_DAYS]ScheduleDay
+// this is just an array of `Day` types.
+type WeekTimeTable [N_WEEKLY_SCHOOL_DAYS]DayTimeTable
 
-func (sections_weekly_schedules *ScheduleWeek) GetDaySchedule(day_idx int) *ScheduleDay {
+func (week *WeekTimeTable) Get(day_idx int) *DayTimeTable {
 	if day_idx < 0 || day_idx >= N_WEEKLY_SCHOOL_DAYS {
 		panic(fmt.Sprintf(
 			"GetDaySchedule(day_idx = %d | min:max = 0:%d): error index out of bounds",
@@ -17,5 +17,5 @@ func (sections_weekly_schedules *ScheduleWeek) GetDaySchedule(day_idx int) *Sche
 		))
 	}
 
-	return &(*sections_weekly_schedules)[day_idx]
+	return &(*week)[day_idx]
 }

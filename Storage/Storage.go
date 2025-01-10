@@ -11,7 +11,7 @@ import (
 
 type persistenceRepository interface {
 	GetAllCurriculum() []curriculum.Curriculum
-	GetAllInstructor() []instructor.Instructor
+	GetAllInstructors() []instructor.Instructor
 }
 
 type PersistenceService struct {
