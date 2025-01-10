@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	schedule "github.com/mrdcvlsc/scheduling-system-backend/Resources/ScheduleDSA"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/schedule"
 )
 
 func TestScheduleTypes1(t *testing.T) {

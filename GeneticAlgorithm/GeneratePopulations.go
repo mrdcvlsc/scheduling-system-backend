@@ -4,7 +4,7 @@ import (
 	// "fmt"
 	// "testing"
 
-	schedule "github.com/mrdcvlsc/scheduling-system-backend/Resources/ScheduleDSA"
+	schedule "github.com/mrdcvlsc/scheduling-system-backend/Resources/schedule"
 	// persistence "github.com/mrdcvlsc/scheduling-system-backend/Storage"
 )
 

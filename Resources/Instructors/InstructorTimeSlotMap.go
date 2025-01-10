@@ -3,7 +3,7 @@ package instructors
 import (
 	"fmt"
 
-	sdsa "github.com/mrdcvlsc/scheduling-system-backend/Resources/ScheduleDSA"
+	sdsa "github.com/mrdcvlsc/scheduling-system-backend/Resources/schedule"
 )
 
 // ====================================================================================

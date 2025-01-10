@@ -1,4 +1,4 @@
-package scheduledsa
+package schedule
 
 import "fmt"
 
