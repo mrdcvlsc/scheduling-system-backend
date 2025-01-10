@@ -36,12 +36,23 @@ type TimeSlot struct {
 
 // ============================= CONSTRUCTOR =============================
 
-func NewTimeSlot(subject_id, instructor_id, room_id uint16) *TimeSlot {
-	return &TimeSlot{
-		subjectID:    subject_id,
-		instructorID: instructor_id,
-		roomID:       room_id,
+// set methods returns error because they will be used and exposed in the api.
+
+// set all values in the timeslot
+func (time_slot *TimeSlot) Set(subject_id, instructor_id, room_id uint16) error {
+	if err := time_slot.SetSubjectID(subject_id); err != nil {
+		return err
 	}
+
+	if err := time_slot.SetInstructorID(instructor_id); err != nil {
+		return err
+	}
+
+	if err := time_slot.SetRoomID(room_id); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ============================= GET COPY WITHOUT CONSTRAIN FLAGS =============================
