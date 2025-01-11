@@ -7,13 +7,16 @@ on:
     branches: [ "master", "main", "development" ]
 
 jobs:
-  backend_build:
+  run_tests:
+
     runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
         os: [ubuntu-latest]
         go-version: [ 1.21.x ]
+
+    permissions: write-all
 
     steps:
       - uses: actions/checkout@v4
@@ -23,9 +26,21 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
 
+      - name: Check gh-cli user
+        run: gh auth status | grep Logged
+        env:
+          GITHUB_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
+
       - name: Download Test Resources
+        run: gh release --repo github.com/mrdcvlsc/scheduling-system-temporary-data download --pattern *.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
+
+      - name: View Files
+        run: ls
+
+      - name: Extract Release
         run: |
-          gh release --repo github.com/mrdcvlsc/scheduling-system-temporary-data download --pattern *.zip
           mkdir scheduling-system-temporary-data
           unzip release.zip -d ./scheduling-system-temporary-data
 
