@@ -7,10 +7,33 @@ import (
 
 	curriculum "github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	instructors "github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
+	room "github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 )
 
 // this type is for development and testing only
 type JsonFilePersistence struct{}
+
+func (s *JsonFilePersistence) GetAllRooms() []room.Room {
+	rooms_json_file := path.Join("..", "scheduling-system-temporary-data", "rooms.json")
+	rooms_byte_data, err := os.ReadFile(rooms_json_file)
+
+	if err != nil {
+		panic(err)
+	}
+
+	all_rooms := make([]room.Room, 0)
+	err = json.Unmarshal(rooms_byte_data, &all_rooms)
+
+	if err != nil {
+		panic(err)
+	}
+
+	for idx := range all_rooms {
+		all_rooms[idx].RoomID = uint16(idx + 1)
+	}
+
+	return all_rooms
+}
 
 func (s *JsonFilePersistence) GetAllInstructors() []instructors.Instructor {
 	instructors_json_file := path.Join("..", "scheduling-system-temporary-data", "instructors.json")

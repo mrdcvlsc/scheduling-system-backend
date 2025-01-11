@@ -4,19 +4,28 @@ import (
 	"fmt"
 	"testing"
 
-	p "github.com/mrdcvlsc/scheduling-system-backend/Storage"
+	storage "github.com/mrdcvlsc/scheduling-system-backend/Storage"
 	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
+var TestPersistence storage.PersistenceService
+
 func TestJsonFilePersistence_GetAllCurriculum(t *testing.T) {
-	json_persistence := p.JsonFilePersistence{}
-	curriculums := json_persistence.GetAllCurriculum()
+	TestPersistence.Service = &storage.JsonFilePersistence{}
+	curriculums := TestPersistence.Service.GetAllCurriculum()
 	Utils.PrettyPrint(curriculums)
 }
 
 func TestJsonFilePersistence_GetAllInstructor(t *testing.T) {
-	json_persistence := p.JsonFilePersistence{}
-	instructors := json_persistence.GetAllInstructors()
+	TestPersistence.Service = &storage.JsonFilePersistence{}
+	instructors := TestPersistence.Service.GetAllInstructors()
 	Utils.PrettyPrint(instructors)
 	fmt.Println("\n\nTotal Number of Instructors : ", len(instructors))
+}
+
+func TestJsonFilePersistence_GetAllRoom(t *testing.T) {
+	TestPersistence.Service = &storage.JsonFilePersistence{}
+	rooms := TestPersistence.Service.GetAllRooms()
+	Utils.PrettyPrint(rooms)
+	fmt.Println("\n\nTotal Number of Rooms : ", len(rooms))
 }
