@@ -23,5 +23,11 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
 
+      - name: Download Test Resources
+        run: |
+          gh release --repo github.com/mrdcvlsc/scheduling-system-temporary-data download --pattern *.zip
+          mkdir scheduling-system-temporary-data
+          unzip release.zip -d ./scheduling-system-temporary-data
+
       - name: Run Tests
         run: make test
