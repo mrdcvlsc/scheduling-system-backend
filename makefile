@@ -20,3 +20,7 @@ testv:
 testvs:
 	go clean -testcache
 	go test -run TestJsonFilePersistence_GetAllRoom github.com/mrdcvlsc/scheduling-system-backend/Storage -v
+
+bench:
+	go clean -testcache
+	go test ./... -bench=. -benchmem
