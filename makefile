@@ -22,5 +22,5 @@ testvs:
 	go test -run TestJsonFilePersistence_GetAllRoom github.com/mrdcvlsc/scheduling-system-backend/Storage -v
 
 bench:
-	go clean -testcache
-	go test ./... -bench=. -benchmem
+	# we need to escape the dollar sign for the command: go test -run=^$ -bench=. ./...
+	go test -run=^$$ -bench=. ./... -benchmem
