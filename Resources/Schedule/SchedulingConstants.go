@@ -1,4 +1,4 @@
-package schedule
+package Schedule
 
 // specifies the number of days per week the university holds classes.
 const N_WEEKLY_SCHOOL_DAYS = 6

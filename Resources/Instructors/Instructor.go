@@ -1,4 +1,4 @@
-package instructors
+package Instructors
 
 // type that will be use to read and save a single instructor's information from and to the database.
 type Instructor struct {

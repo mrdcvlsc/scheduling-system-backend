@@ -1,9 +1,9 @@
-package instructors
+package Instructors
 
 import (
 	"fmt"
 
-	sdsa "github.com/mrdcvlsc/scheduling-system-backend/Resources/schedule"
+	sdsa "github.com/mrdcvlsc/scheduling-system-backend/Resources/Schedule"
 )
 
 // ====================================================================================

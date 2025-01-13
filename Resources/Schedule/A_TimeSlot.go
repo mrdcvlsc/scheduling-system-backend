@@ -1,4 +1,4 @@
-package schedule
+package Schedule
 
 import "fmt"
 
@@ -22,6 +22,10 @@ genetic algorithm.
 
 The position of the time slot is also fixed and will not be moved to other time slots
 by the genetic algorithm if one attribute is fixed/constrained.
+
+NOTE TO SELF: you don't need to add another property here to determine
+if a subject is a lecture or a laboratory subject, instead you can extract
+that information from the room assigned to the time slot.
 */
 type TimeSlot struct {
 	// this should never be zero, zero means empty, none or nothing.

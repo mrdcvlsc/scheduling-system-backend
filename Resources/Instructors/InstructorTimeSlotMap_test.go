@@ -1,4 +1,4 @@
-package instructors_test
+package Instructors_test
 
 import (
 	"fmt"
