@@ -1,4 +1,4 @@
-package geneticalgorithm_test
+package Utils
 
 import (
 	"math/rand"
@@ -6,33 +6,33 @@ import (
 	"time"
 )
 
-func BenchmarkIntnDedicated(b *testing.B) {
+func BenchmarkRngIntnDedicated(b *testing.B) {
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 	for i := 0; i < b.N; i++ {
 		rng.Intn(10_000_000)
 	}
 }
 
-func BenchmarkIntnDefault(b *testing.B) {
+func BenchmarkRngIntnDefault(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		rand.Intn(10_000_000)
 	}
 }
 
-func BenchmarkInt63nDedicated(b *testing.B) {
+func BenchmarkRngInt63nDedicated(b *testing.B) {
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 	for i := 0; i < b.N; i++ {
 		rng.Int63n(10_000_000)
 	}
 }
 
-func BenchmarkInt63nDefault(b *testing.B) {
+func BenchmarkRngInt63nDefault(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		rand.Int63n(10_000_000)
 	}
 }
 
-func BenchmarkInt31nDedicated(b *testing.B) {
+func BenchmarkRngInt31nDedicated(b *testing.B) {
 	// fastest in my machine
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 	for i := 0; i < b.N; i++ {
@@ -40,7 +40,7 @@ func BenchmarkInt31nDedicated(b *testing.B) {
 	}
 }
 
-func BenchmarkInt31nDefault(b *testing.B) {
+func BenchmarkRngInt31nDefault(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		rand.Int31n(10_000_000)
 	}
