@@ -19,7 +19,7 @@ testv:
 
 testvs:
 	go clean -testcache
-	go test -run TestJsonFilePersistence_GetAllRoom github.com/mrdcvlsc/scheduling-system-backend/Storage -v
+	go clean -testcache && go test -run TestNewPopulation ./GeneticAlgorithm -v
 
 bench:
 	# we need to escape the dollar sign for the command: go test -run=^$ -bench=. ./...
