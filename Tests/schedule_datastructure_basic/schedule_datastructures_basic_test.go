@@ -3,12 +3,12 @@ package schedule_datastructures_basic_test
 import (
 	"testing"
 
-	"github.com/mrdcvlsc/scheduling-system-backend/Resources/schedule"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Schedule"
 )
 
 func TestScheduleTypes1(t *testing.T) {
 
-	universitySchedules := schedule.NewUniTimeTables(1)
+	universitySchedules := Schedule.NewUniTimeTables(1)
 
 	universitySchedules[0][0][1].Set(222, 333, 444)
 
@@ -105,7 +105,7 @@ func TestScheduleTypes1(t *testing.T) {
 
 func TestScheduleTypes1_5(t *testing.T) {
 
-	universitySchedules := schedule.NewUniTimeTables(1)
+	universitySchedules := Schedule.NewUniTimeTables(1)
 
 	universitySchedules[0][0][1].SetSubjectID(222)
 	universitySchedules[0][0][1].SetInstructorID(333)
@@ -204,7 +204,7 @@ func TestScheduleTypes1_5(t *testing.T) {
 
 func TestScheduleTypes2(t *testing.T) {
 
-	universitySchedules := schedule.NewUniTimeTables(1)
+	universitySchedules := Schedule.NewUniTimeTables(1)
 
 	universitySchedules.Get(0).Get(0).Get(1).Set(222, 333, 444)
 
