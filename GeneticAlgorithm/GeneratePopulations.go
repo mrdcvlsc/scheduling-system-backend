@@ -91,6 +91,11 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 	for _, curriculum := range all_curriculums {
 		for _, year_level := range curriculum.YearLevels {
+
+			if !year_level.IsActive {
+				continue
+			}
+
 			for semester_idx, semester := range year_level.Semesters {
 
 				if selected_semester != semester_idx {
