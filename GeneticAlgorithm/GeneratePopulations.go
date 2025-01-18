@@ -1,13 +1,16 @@
 package geneticalgorithm
 
 import (
+	"fmt"
 	"math/rand"
+	"sort"
 	"time"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Schedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/Storage"
+	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
 const (
@@ -24,33 +27,30 @@ const (
 
 func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTables, error) {
 
-	// test.
 	persistence := Storage.PersistenceService{Service: &Storage.JsonFilePersistence{}}
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 
-	// process rooms
-
-	// department_rooms = Map of rooms => [Key:DepartmentId][Key:RoomType]
-	department_rooms := make(map[uint16]map[uint16][]Rooms.Room)
+	// list_of_all_rooms[Key:DepartmentId][Key:RoomType] => list of rooms
+	list_of_all_rooms := make(map[uint16]map[uint16][]Rooms.Room)
 
 	{
 		all_rooms := persistence.Service.GetAllRooms()
 
 		for _, room := range all_rooms {
-			_, dept_key_exist := department_rooms[room.DepartmentID]
+			_, dept_key_exist := list_of_all_rooms[room.DepartmentID]
 
 			if !dept_key_exist {
-				department_rooms[room.DepartmentID] = make(map[uint16][]Rooms.Room)
+				list_of_all_rooms[room.DepartmentID] = make(map[uint16][]Rooms.Room)
 			}
 
-			_, roomtype_key_exist := department_rooms[room.DepartmentID][room.RoomType]
+			_, roomtype_key_exist := list_of_all_rooms[room.DepartmentID][room.RoomType]
 
 			if !roomtype_key_exist {
-				department_rooms[room.DepartmentID][room.RoomType] = make([]Rooms.Room, 1, 8)
-				department_rooms[room.DepartmentID][room.RoomType][0] = room
+				list_of_all_rooms[room.DepartmentID][room.RoomType] = make([]Rooms.Room, 1, 8)
+				list_of_all_rooms[room.DepartmentID][room.RoomType][0] = room
 			} else {
-				department_rooms[room.DepartmentID][room.RoomType] = append(
-					department_rooms[room.DepartmentID][room.RoomType], room,
+				list_of_all_rooms[room.DepartmentID][room.RoomType] = append(
+					list_of_all_rooms[room.DepartmentID][room.RoomType], room,
 				)
 			}
 		}
@@ -58,21 +58,21 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 	// process instructors
 
-	// department_instructors = Map of instructors => [Key:DepartmentId]
-	department_instructors := make(map[uint16][]Instructors.Instructor)
+	// list_of_all_instructors = Map of instructors => [Key:DepartmentId]
+	list_of_all_instructors := make(map[uint16][]Instructors.Instructor)
 
 	{
 		all_instructors := persistence.Service.GetAllInstructors()
 
 		for _, instructor := range all_instructors {
-			_, exist := department_instructors[instructor.DepartmentID]
+			_, exist := list_of_all_instructors[instructor.DepartmentID]
 
 			if !exist {
-				department_instructors[instructor.DepartmentID] = make([]Instructors.Instructor, 1, 8)
-				department_instructors[instructor.DepartmentID][0] = instructor
+				list_of_all_instructors[instructor.DepartmentID] = make([]Instructors.Instructor, 1, 8)
+				list_of_all_instructors[instructor.DepartmentID][0] = instructor
 			} else {
-				department_instructors[instructor.DepartmentID] = append(
-					department_instructors[instructor.DepartmentID], instructor,
+				list_of_all_instructors[instructor.DepartmentID] = append(
+					list_of_all_instructors[instructor.DepartmentID], instructor,
 				)
 			}
 		}
@@ -84,12 +84,16 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 	// Utils.PrettyPrint(department_rooms)
 	// fmt.Print("\n\n")
 
-	total_number_of_sections := 0
+	counted_sections := 0
 	individual := make(Schedule.UniTimeTables, 0, 64)
 
 	all_curriculums := persistence.Service.GetAllCurriculum()
 
 	for _, curriculum := range all_curriculums {
+
+		dept_rooms := list_of_all_rooms[curriculum.DepartmentID]
+		dept_teachers := list_of_all_instructors[curriculum.DepartmentID]
+
 		for _, year_level := range curriculum.YearLevels {
 
 			if !year_level.IsActive {
@@ -102,27 +106,29 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 					continue
 				}
 
-				total_number_of_sections += semester.Sections
+				counted_sections += semester.Sections
 
 				for section := 0; section < semester.Sections; section++ {
 
-					// shuffle the subjects
-					rng.Shuffle(len(semester.Subjects), func(i, j int) {
-						semester.Subjects[i], semester.Subjects[j] = semester.Subjects[j], semester.Subjects[i]
-					})
-
-					// TODO: add a property in the instructor struct that will record the
-					// total number of subjects that instructor will teach.
+					// TODO: fix shuffle the subjects, repeating values and overwriting others
+					// rng.Shuffle(len(semester.Subjects), func(i, j int) {
+					// 	semester.Subjects[i], semester.Subjects[j] = semester.Subjects[j], semester.Subjects[i]
+					// })
 
 					// TODO: replace instructor slice shuffle with sort instead
 
-					// shuffle instructors / maybe change to sort based on current numbers of subject to teach, prioritize the lowest
-					rng.Shuffle(len(department_instructors[curriculum.DepartmentID]), func(i, j int) {
-						department_instructors[curriculum.DepartmentID][i], department_instructors[curriculum.DepartmentID][j] = department_instructors[curriculum.DepartmentID][j], department_instructors[curriculum.DepartmentID][i]
+					// TODO: fix shuffle instructors, repeating values and overwriting others
+					// rng.Shuffle(len(dept_teachers), func(i, j int) {
+					// 	dept_teachers[i], dept_teachers[j] = dept_teachers[j], dept_teachers[i]
+					// })
+
+					// sort the instructors based on the number of subjects they are assigned
+					sort.Slice(dept_teachers, func(i, j int) bool {
+						return dept_teachers[i].AssignedSubjects < dept_teachers[j].AssignedSubjects
 					})
 
-					// shuffle rooms
-					for _, rooms_group_by_type := range department_rooms[curriculum.DepartmentID] {
+					// shuffle the rooms
+					for _, rooms_group_by_type := range dept_rooms {
 						rng.Shuffle(len(rooms_group_by_type), func(i, j int) {
 							rooms_group_by_type[i], rooms_group_by_type[j] = rooms_group_by_type[j], rooms_group_by_type[i]
 						})
@@ -140,21 +146,23 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 					for _, subject := range semester.Subjects {
 
-						var selected_instructor Instructors.Instructor
+						var selected_instructor *Instructors.Instructor
 
 						for class_type := 0; class_type < 2; class_type++ {
 
-							var class_hour int
+							var subject_hours int
 
 							if class_type == 0 {
-								class_hour = int(subject.LecHours)
+								subject_hours = int(subject.LecHours)
 							} else {
-								class_hour = int(subject.LabHours)
+								subject_hours = int(subject.LabHours)
 							}
 
-							if class_hour == 0 {
+							if subject_hours == 0 {
 								continue
 							}
+
+							subject_total_time_slots := subject_hours * Schedule.N_HOUR_TIME_SLOTS
 
 							// class_type == 0 == lecture
 							// class_type == 1 == laboratory
@@ -165,27 +173,84 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 								day_sched := week_time_table.Get(day)
 
-								for time_slot := 0; time_slot < Schedule.N_DAILY_TIME_SLOTS; time_slot++ {
+								for time_slot := 0; time_slot < (Schedule.N_DAILY_TIME_SLOTS - subject_total_time_slots); time_slot++ {
 
 									// assign a subject to a time slot
 
-									if !day_sched.Availability(time_slot, class_hour) {
+									if !day_sched.Availability(time_slot, subject_total_time_slots) {
 										continue
 									}
 
-									// TODO: check if there is already an assigned instructor for the subject.
-									//
-									// IF NONE: iterate over all of the sorted instructors to find which
-									// one is available, if there is no instructor available for the current
-									// time slot, continue to the next iteration of the time slot loop.
-									//
-									// ELSE: if there is already a selected instructor but that instructor
-									// is not available for the current time slot, continue to the next
-									// iteration of the time slot loop.
+									// check if there is already an assigned instructor for the subject.
+									if selected_instructor == nil {
+										// IF NONE: iterate over all of the sorted instructors to find which
+										// one is available, if there is no instructor available for the current
+										// time slot, continue to the next iteration of the time slot loop.
+										found_instructor_after_iter := 0
+										for instructor_idx := range dept_teachers {
 
-									// TODO: if this is the last time slot and there is still no
-									// instructor available, throw an error saying there is not
-									// enough instructors.
+											is_available_instructor := true
+
+											for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
+												is_available_instructor = is_available_instructor && dept_teachers[instructor_idx].TimeSlotAvailability.GetAvailability(day, instructor_time_slot)
+											}
+
+											if is_available_instructor {
+												selected_instructor = &dept_teachers[instructor_idx]
+
+												for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
+													selected_instructor.TimeSlotAvailability.SetAvailability(false, day, instructor_time_slot)
+
+													// temporary assign subject used for instructor assignment developement : start
+
+													day_sched.Get(instructor_time_slot).SetSubjectID(subject.ID)
+													day_sched.Get(instructor_time_slot).SetInstructorID(selected_instructor.InstructorID)
+
+													// TODO: fix shuffle the subjects, repeating values and overwriting others
+													// rng.Shuffle(len(semester.Subjects), func(i, j int) {
+													// 	semester.Subjects[i], semester.Subjects[j] = semester.Subjects[j], semester.Subjects[i]
+													// })
+
+													// TODO: fix shuffle instructors, repeating values and overwriting others
+													// rng.Shuffle(len(dept_teachers), func(i, j int) {
+													// 	dept_teachers[i], dept_teachers[j] = dept_teachers[j], dept_teachers[i]
+													// })
+
+													// temporary assign subject used for instructor assignment developement : end
+												}
+
+												fmt.Printf(
+													"[%s]-[%s]-Section:[%d] | [%s][hours(%d):%d] : day(%d):timeslot(%d) | Instructor : (%s %s %s) found after %d iterations\n",
+													curriculum.CurriculumCode, year_level.Name, section, subject.Code, subject_hours, class_type, day, time_slot, selected_instructor.FirstName, selected_instructor.MiddleInitial, selected_instructor.LastName, found_instructor_after_iter,
+												)
+
+												day = 999
+												break
+											}
+
+											found_instructor_after_iter++
+										}
+
+										if (selected_instructor == nil) && (time_slot == (Schedule.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day == (Schedule.N_WEEKLY_SCHOOL_DAYS - 1)) {
+											// TODO: if this is the last time slot and there is still no
+											// instructor available, throw an error saying there is not
+											// enough instructors, true error handling not panic.
+
+											fmt.Printf("\n\n!Panic At The Disco:\n\n")
+											Utils.PrettyPrint(dept_teachers)
+
+											panic(fmt.Sprintf(
+												"Not Enough Instructors after %d sections for %s %s section-%d, instructor iteration %d",
+												counted_sections, curriculum.CurriculumCode, year_level.Name, section, found_instructor_after_iter,
+											))
+										}
+
+									} else {
+										// ELSE: if there is already a selected instructor but that instructor
+										// is not available for the current time slot, continue to the next
+										// iteration of the time slot loop.
+										continue
+									}
 
 									// TODO: iterate over all of sorted rooms to find which one is
 									// available, if there is no room available for the current time
@@ -198,11 +263,6 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 									// and rooms that are available for a specific subject and time slot,
 									// then assign the selected subject, instructor and room to the time slot.
 								}
-							}
-
-							if selected_instructor.InstructorID == 0 {
-								// select an instructor if there is no one selected yet
-
 							}
 						}
 					}
