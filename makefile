@@ -6,6 +6,7 @@ build:
 
 devr:
 	gh release --repo github.com/mrdcvlsc/scheduling-system-temporary-data download --pattern *.zip --clobber
+	rm -rf scheduling-system-temporary-data
 	mkdir scheduling-system-temporary-data
 	unzip release.zip -d ./scheduling-system-temporary-data
 

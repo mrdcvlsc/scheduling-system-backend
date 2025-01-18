@@ -8,17 +8,20 @@ type Instructor struct {
 	MiddleInitial string `json:"MiddleInitial"`
 	LastName      string `json:"LastName"`
 
+	// the total number of assigned subjects to teach.
+	AssignedSubjects int
+
 	// AvailableDay, each bits represent the boolean value if the instructor
 	// is available.
 	//
-	// The least significant bit represent SAT then the preceding bits from
+	// The least significant bit represent MON then the preceding bits from
 	// the least significant to the most significant bits are:
 	//
-	// FRI, THR, WED, TUE and MON.
+	// TUE, WED, THR, FRI and SAT.
 	//
 	// The first 2 most significant bits are unused.
 	//
-	// BIT FORMAT: [2 bits unused][1-bit MON][1-bit TUE][1-bit WED][1-bit THR][1-bit FRI][1-bit SAT]
+	// BIT FORMAT: [2-bits unused][1-bit SAT][1-bit FRI][1-bit THR][1-bit WED][1-bit TUE][1-bit MON]
 	AvailableDay uint8 `json:"AvailableDay"`
 
 	// determines if the instructor is available for a certain time slot during schedule generation.
@@ -34,4 +37,5 @@ const DAY_WED uint8 = 1 << 3
 const DAY_THR uint8 = 1 << 2
 const DAY_FRI uint8 = 1 << 1
 const DAY_SAT uint8 = 1
+
 const WHOLE_WEEK uint8 = DAY_MON | DAY_TUE | DAY_WED | DAY_THR | DAY_FRI | DAY_SAT
