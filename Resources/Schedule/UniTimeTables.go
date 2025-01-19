@@ -38,7 +38,8 @@ func (uni_sched *UniTimeTables) Validate() []error {
 
 			instructor_counter := make(map[uint16][]uint16)
 
-			// TODO: enable after room assigning is implemented.
+			// TODO: enable the code below after room assigning is implemented.
+
 			// room_counter := make(map[uint16]int)
 
 			for section_idx := 0; section_idx < len(*uni_sched); section_idx++ {
@@ -47,7 +48,8 @@ func (uni_sched *UniTimeTables) Validate() []error {
 
 				instructor_id := (*uni_sched)[section_idx][day][time_slot].instructorID
 
-				// TODO: enable after room assigning is implemented.
+				// TODO: enable the code below after room assigning is implemented.
+
 				// room_id := (*uni_sched)[section_idx][day][time_slot].roomID
 
 				if subject_id == 0 && instructor_id != 0 {
@@ -69,7 +71,8 @@ func (uni_sched *UniTimeTables) Validate() []error {
 					))
 				}
 
-				// TODO: enable after room assigning is implemented.
+				// TODO: enable the code below after room assigning is implemented.
+
 				// if subject_id == 0 && room_id != 0 {
 				// 	err_json := &UniRoomValidationError{
 				// 		Msg:                 "a room was assigned, but no subject was scheduled for the time slot.",
@@ -98,7 +101,8 @@ func (uni_sched *UniTimeTables) Validate() []error {
 					instructor_counter[instructor_id] = append(instructor_counter[instructor_id], uint16(section_idx))
 				}
 
-				// TODO: enable after room assigning is implemented.
+				// TODO: enable the code below after room assigning is implemented.
+
 				// if room_id > 0 {
 				// 	_, exist := room_counter[room_id]
 
@@ -129,7 +133,8 @@ func (uni_sched *UniTimeTables) Validate() []error {
 				}
 			}
 
-			// TODO: enable after room assigning is implemented.
+			// TODO: enable the code below after room assigning is implemented.
+
 			// for k, v := range room_counter {
 			// 	if len(v) > 1 {
 
