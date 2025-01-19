@@ -265,6 +265,7 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 									for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
 										selected_instructor.TimeSlotAvailability.SetAvailability(false, day, instructor_time_slot)
 
+										// HINT : this might be the final loop where the subjects, instructors and rooms will be assigned.
 										day_sched.Get(instructor_time_slot).SetSubjectID(subject.ID)
 										day_sched.Get(instructor_time_slot).SetInstructorID(selected_instructor.InstructorID)
 
