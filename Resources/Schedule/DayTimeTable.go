@@ -13,7 +13,7 @@ func (day *DayTimeTable) Get(time_slot_idx int) *TimeSlot {
 	if time_slot_idx < 0 || time_slot_idx >= N_DAILY_TIME_SLOTS {
 		panic(fmt.Sprintf(
 			"GetTimeSlot(time_slot_idx = %d | min:max = 0:%d): error index out of bounds",
-			time_slot_idx, N_DAILY_TIME_SLOTS,
+			time_slot_idx, (N_DAILY_TIME_SLOTS - 1),
 		))
 	}
 
@@ -24,7 +24,7 @@ func (day *DayTimeTable) Availability(time_slot_idx, time_slot_size int) bool {
 	if time_slot_idx < 0 || time_slot_idx >= N_DAILY_TIME_SLOTS {
 		panic(fmt.Sprintf(
 			"GetTimeSlot(time_slot_idx = %d | min:max = 0:%d): error `time_slot_idx` out of bounds",
-			time_slot_idx, N_DAILY_TIME_SLOTS,
+			time_slot_idx, (N_DAILY_TIME_SLOTS - 1),
 		))
 	}
 
