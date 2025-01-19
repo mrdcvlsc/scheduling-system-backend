@@ -110,23 +110,6 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 				for section := 0; section < semester.Sections; section++ {
 
-					// TODO: fix shuffle the subjects, repeating values and overwriting others
-					// rng.Shuffle(len(semester.Subjects), func(i, j int) {
-					// 	semester.Subjects[i], semester.Subjects[j] = semester.Subjects[j], semester.Subjects[i]
-					// })
-
-					// TODO: replace instructor slice shuffle with sort instead
-
-					// TODO: fix shuffle instructors, repeating values and overwriting others
-					// rng.Shuffle(len(dept_teachers), func(i, j int) {
-					// 	dept_teachers[i], dept_teachers[j] = dept_teachers[j], dept_teachers[i]
-					// })
-
-					// sort the instructors based on the number of subjects they are assigned
-					sort.Slice(dept_teachers, func(i, j int) bool {
-						return dept_teachers[i].AssignedSubjects < dept_teachers[j].AssignedSubjects
-					})
-
 					// shuffle the rooms
 					for _, rooms_group_by_type := range dept_rooms {
 						rng.Shuffle(len(rooms_group_by_type), func(i, j int) {
@@ -143,6 +126,11 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 					// but I believe this still can be optimize in the future if we wanted to.
 
 					// or just create another implementation for inidividual generation.
+
+					// shuffle the subjects
+					rng.Shuffle(len(semester.Subjects), func(i, j int) {
+						semester.Subjects[i], semester.Subjects[j] = semester.Subjects[j], semester.Subjects[i]
+					})
 
 					for _, subject := range semester.Subjects {
 
@@ -183,6 +171,17 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 									// check if there is already an assigned instructor for the subject.
 									if selected_instructor == nil {
+
+										// shuffle instructors
+										rng.Shuffle(len(dept_teachers), func(i, j int) {
+											dept_teachers[i], dept_teachers[j] = dept_teachers[j], dept_teachers[i]
+										})
+
+										// sort the instructors based on the number of subjects they are assigned
+										sort.Slice(dept_teachers, func(i, j int) bool {
+											return dept_teachers[i].TotalTeachingHours < dept_teachers[j].TotalTeachingHours
+										})
+
 										// IF NONE: iterate over all of the sorted instructors to find which
 										// one is available, if there is no instructor available for the current
 										// time slot, continue to the next iteration of the time slot loop.
@@ -206,23 +205,20 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 													day_sched.Get(instructor_time_slot).SetSubjectID(subject.ID)
 													day_sched.Get(instructor_time_slot).SetInstructorID(selected_instructor.InstructorID)
 
-													// TODO: fix shuffle the subjects, repeating values and overwriting others
-													// rng.Shuffle(len(semester.Subjects), func(i, j int) {
-													// 	semester.Subjects[i], semester.Subjects[j] = semester.Subjects[j], semester.Subjects[i]
-													// })
-
-													// TODO: fix shuffle instructors, repeating values and overwriting others
-													// rng.Shuffle(len(dept_teachers), func(i, j int) {
-													// 	dept_teachers[i], dept_teachers[j] = dept_teachers[j], dept_teachers[i]
-													// })
-
 													// temporary assign subject used for instructor assignment developement : end
 												}
 
-												fmt.Printf(
-													"[%s]-[%s]-Section:[%d] | [%s][hours(%d):%d] : day(%d):timeslot(%d) | Instructor : (%s %s %s) found after %d iterations\n",
-													curriculum.CurriculumCode, year_level.Name, section, subject.Code, subject_hours, class_type, day, time_slot, selected_instructor.FirstName, selected_instructor.MiddleInitial, selected_instructor.LastName, found_instructor_after_iter,
-												)
+												// temporary write assignment data to instructor - this should be done only after all rooms are slected (developement) : start
+
+												selected_instructor.AssignedSubjects++
+												selected_instructor.TotalTeachingHours += subject_hours
+
+												// temporary write assignment data to instructor - this should be done only after all rooms are slected (developement) : start
+
+												// fmt.Printf(
+												// 	"[%s]-[%s]-Section:[%d] | [%s][hours(%d):%d] : day(%d):timeslot(%d) | Instructor : (%s %s %s) found after %d iterations\n",
+												// 	curriculum.CurriculumCode, year_level.Name, section, subject.Code, subject_hours, class_type, day, time_slot, selected_instructor.FirstName, selected_instructor.MiddleInitial, selected_instructor.LastName, found_instructor_after_iter,
+												// )
 
 												day = 999
 												break
@@ -272,6 +268,24 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 					individual = append(individual, week_time_table)
 				}
 			}
+		}
+
+		// sort the instructors based on the number of subjects they are assigned
+		sort.Slice(dept_teachers, func(i, j int) bool {
+			return dept_teachers[i].TotalTeachingHours < dept_teachers[j].TotalTeachingHours
+		})
+
+		fmt.Print("\n\nDepartment Teachers : \n\n")
+		for _, dept_teacher_iter := range dept_teachers {
+			fmt.Printf(
+				"Assigned Subjects : %d = %d hours | %s %s. %s | %d\n",
+				dept_teacher_iter.AssignedSubjects,
+				dept_teacher_iter.TotalTeachingHours,
+				dept_teacher_iter.FirstName,
+				dept_teacher_iter.MiddleInitial,
+				dept_teacher_iter.LastName,
+				curriculum.DepartmentID,
+			)
 		}
 	}
 
