@@ -4,6 +4,14 @@ build_dev:
 build:
 	go build -tags netgo -ldflags '-s -w' -o app
 
+uml: project_uml.puml
+	@echo UML already generated
+
+project_uml.puml:
+	@echo Generating UML...
+	@echo using: https://github.com/jfeliu007/goplantuml
+	@goplantuml -recursive -show-aggregations -aggregate-private-members  ~/Repo/scheduling-system-backend > project_uml.puml
+
 devr:
 	gh release --repo github.com/mrdcvlsc/scheduling-system-temporary-data download --pattern *.zip --clobber
 	rm -rf scheduling-system-temporary-data

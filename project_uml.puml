@@ -1,0 +1,155 @@
+@startuml
+namespace Instructors {
+    class Instructor << (S,Aquamarine) >> {
+        + InstructorID uint16
+        + DepartmentID uint16
+        + FirstName string
+        + MiddleInitial string
+        + LastName string
+        + AssignedSubjects int
+        + TotalTeachingHours int
+        + AvailableDay uint8
+        + TimeSlotAvailability InstructorTimeSlotMap
+
+    }
+    class InstructorTimeSlotMap << (S,Aquamarine) >> {
+        + SetAvailability(available bool, day int, time_slot int) 
+        + GetAvailability(day int, time_slot int) bool
+
+    }
+    class Instructors.InstructorTimeSlotMap << (T, #FF7700) >>  {
+    }
+}
+
+
+"Instructors.Instructor" o-- "Instructors.InstructorTimeSlotMap"
+
+namespace Rooms {
+    class Room << (S,Aquamarine) >> {
+        + RoomID uint16
+        + DepartmentID uint16
+        + Capacity uint16
+        + RoomType uint16
+        + Name string
+        + TimeSlotAllocCount [][]uint8
+
+    }
+}
+
+
+
+namespace Schedule {
+    class DayTimeTable << (S,Aquamarine) >> {
+        + Get(time_slot_idx int) *TimeSlot
+        + Availability(time_slot_idx int, time_slot_size int) bool
+
+    }
+    class Schedule.DayTimeTable << (T, #FF7700) >>  {
+    }
+    class Schedule.UniTimeTables << (T, #FF7700) >>  {
+    }
+    class Schedule.WeekTimeTable << (T, #FF7700) >>  {
+    }
+    class TimeSlot << (S,Aquamarine) >> {
+        - subjectID uint16
+        - instructorID uint16
+        - roomID uint16
+
+        + Set(subject_id uint16, instructor_id uint16, room_id uint16) error
+        + CopyWithoutFlags() TimeSlot
+        + GetSubjectID() uint16
+        + GetInstructorID() uint16
+        + GetRoomID() uint16
+        + SetSubjectID(subject_id uint16) error
+        + SetInstructorID(instructor_id uint16) error
+        + SetRoomID(room_id uint16) error
+        + IsConstSubjectID() bool
+        + IsConstInstructorID() bool
+        + IsConstRoomID() bool
+        + ToggleCFlagSubjectID() 
+        + ToggleCFlagInstructorID() 
+        + ToggleCFlagRoomID() 
+
+    }
+    class UniTimeTables << (S,Aquamarine) >> {
+        + Get(class_section_idx int) *WeekTimeTable
+
+    }
+    class WeekTimeTable << (S,Aquamarine) >> {
+        + Get(day_idx int) *DayTimeTable
+
+    }
+}
+
+
+
+namespace Storage {
+    class JsonFilePersistence << (S,Aquamarine) >> {
+        + GetAllRooms() []Rooms.Room
+        + GetAllInstructors() []Instructors.Instructor
+        + GetAllCurriculum() []Curriculum.Curriculum
+
+    }
+    class PersistenceService << (S,Aquamarine) >> {
+        + Service persistenceRepository
+
+    }
+    interface persistenceRepository  {
+        + GetAllCurriculum() []Curriculum.Curriculum
+        + GetAllInstructors() []Instructors.Instructor
+        + GetAllRooms() []Rooms.Room
+
+    }
+}
+
+"Storage.persistenceRepository" <|-- "Storage.JsonFilePersistence"
+
+"Storage.PersistenceService" o-- "Storage.persistenceRepository"
+
+namespace curriculum {
+    class Curriculum << (S,Aquamarine) >> {
+        + CurriculumID uint16
+        + CurriculumName string
+        + CurriculumCode string
+        + DepartmentID uint16
+        + YearLevels []YearLevel
+
+    }
+    class Semester << (S,Aquamarine) >> {
+        + Name string
+        + Sections int
+        + Subjects []Subject
+
+    }
+    class Subject << (S,Aquamarine) >> {
+        + ID uint16
+        + Code string
+        + Name string
+        + LecHours uint8
+        + LabHours uint8
+        + BitFlags uint16
+        + DesignatedInstructorsID []uint16
+
+        + Serialize() uint32
+        + Deserialize(serialized_data uint32) 
+        + IsGymType() bool
+
+    }
+    class YearLevel << (S,Aquamarine) >> {
+        + Name string
+        + IsActive bool
+        + Semesters []Semester
+
+    }
+}
+
+
+"curriculum.Curriculum" o-- "curriculum.YearLevel"
+"curriculum.Semester" o-- "curriculum.Subject"
+"curriculum.YearLevel" o-- "curriculum.Semester"
+
+"Schedule.[]DayTimeTable" #.. "Schedule.WeekTimeTable"
+"Schedule.[]TimeSlot" #.. "Schedule.DayTimeTable"
+"Schedule.[]WeekTimeTable" #.. "Schedule.UniTimeTables"
+"__builtin__.[]uint64" #.. "Instructors.InstructorTimeSlotMap"
+@enduml
