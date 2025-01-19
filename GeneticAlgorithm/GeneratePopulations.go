@@ -30,7 +30,6 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 	persistence := Storage.PersistenceService{Service: &Storage.JsonFilePersistence{}}
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 
-	// list_of_all_rooms[Key:DepartmentId][Key:RoomType] => list of rooms
 	list_of_all_rooms := make(map[uint16]map[uint16][]Rooms.Room)
 
 	{
@@ -56,9 +55,6 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 		}
 	}
 
-	// process instructors
-
-	// list_of_all_instructors = Map of instructors => [Key:DepartmentId]
 	list_of_all_instructors := make(map[uint16][]Instructors.Instructor)
 
 	{
@@ -78,12 +74,6 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 		}
 	}
 
-	// generate time tables
-
-	// fmt.Println("department_rooms Map:")
-	// Utils.PrettyPrint(department_rooms)
-	// fmt.Print("\n\n")
-
 	counted_sections := 0
 	individual := make(Schedule.UniTimeTables, 0, 64)
 
@@ -97,44 +87,52 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 		for _, year_level := range curriculum.YearLevels {
 
 			if !year_level.IsActive {
-				continue
+				continue // skip inactive year levels
 			}
 
 			for semester_idx, semester := range year_level.Semesters {
 
 				if selected_semester != semester_idx {
-					continue
+					continue // skip not selected semesters
 				}
 
 				counted_sections += semester.Sections
 
+				// generate week time table for each sections
+
 				for section := 0; section < semester.Sections; section++ {
 
+					week_time_table := Schedule.WeekTimeTable{}
+
 					// shuffle the rooms
+
 					for _, rooms_group_by_type := range dept_rooms {
 						rng.Shuffle(len(rooms_group_by_type), func(i, j int) {
 							rooms_group_by_type[i], rooms_group_by_type[j] = rooms_group_by_type[j], rooms_group_by_type[i]
 						})
 					}
 
-					week_time_table := Schedule.WeekTimeTable{}
-
-					// front compressed distribution : start
-
-					// for now the this is a brute force implementation, yet it is still enough
-					// considering the current low numbers of courses, instructors, rooms and sections.
-					// but I believe this still can be optimize in the future if we wanted to.
-
-					// or just create another implementation for inidividual generation.
-
 					// shuffle the subjects
+
 					rng.Shuffle(len(semester.Subjects), func(i, j int) {
 						semester.Subjects[i], semester.Subjects[j] = semester.Subjects[j], semester.Subjects[i]
 					})
 
+					// front compressed distribution : start
+					//
+					// for now the this is a brute force implementation, yet it is still enough
+					// considering the current low numbers of courses, instructors, rooms and sections.
+					// but I believe this still can be optimize in the future if we wanted to.
+					//
+					// or just create another implementation for inidividual generation.
+
+					// iterate over the subjects
+
 					for _, subject := range semester.Subjects {
 
 						var selected_instructor *Instructors.Instructor
+
+						// iterate over the class type of the subject lec = 0 or lab = 1
 
 						for class_type := 0; class_type < 2; class_type++ {
 
@@ -147,13 +145,10 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 							}
 
 							if subject_hours == 0 {
-								continue
+								continue // skip subject class type if there is no contact hours
 							}
 
 							subject_total_time_slots := subject_hours * Schedule.N_HOUR_TIME_SLOTS
-
-							// class_type == 0 == lecture
-							// class_type == 1 == laboratory
 
 							// search an available time slot for the current subject
 
@@ -163,13 +158,19 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 								for time_slot := 0; time_slot < (Schedule.N_DAILY_TIME_SLOTS - subject_total_time_slots); time_slot++ {
 
-									// assign a subject to a time slot
-
 									if !day_sched.Availability(time_slot, subject_total_time_slots) {
-										continue
+										continue // if the current time slot is not available go to the next
 									}
 
-									// check if there is already an assigned instructor for the subject.
+									/////////////////////////////////////////////////////////////////////////////////
+									//                 FIND AVAILABLE INSTRUCTOR FOR THE TIME SLOT
+									/////////////////////////////////////////////////////////////////////////////////
+
+									// if the time slot is available proceed to assign an available instructor,
+									// check if there is already an assigned instructor for the current subject
+
+									instructor_search_iteration := 0
+
 									if selected_instructor == nil {
 
 										// shuffle instructors
@@ -185,7 +186,7 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 										// IF NONE: iterate over all of the sorted instructors to find which
 										// one is available, if there is no instructor available for the current
 										// time slot, continue to the next iteration of the time slot loop.
-										found_instructor_after_iter := 0
+
 										for instructor_idx := range dept_teachers {
 
 											is_available_instructor := true
@@ -194,40 +195,16 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 												is_available_instructor = is_available_instructor && dept_teachers[instructor_idx].TimeSlotAvailability.GetAvailability(day, instructor_time_slot)
 											}
 
+											instructor_search_iteration++
+
 											if is_available_instructor {
 												selected_instructor = &dept_teachers[instructor_idx]
-
-												for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
-													selected_instructor.TimeSlotAvailability.SetAvailability(false, day, instructor_time_slot)
-
-													// temporary assign subject used for instructor assignment developement : start
-
-													day_sched.Get(instructor_time_slot).SetSubjectID(subject.ID)
-													day_sched.Get(instructor_time_slot).SetInstructorID(selected_instructor.InstructorID)
-
-													// temporary assign subject used for instructor assignment developement : end
-												}
-
-												// temporary write assignment data to instructor - this should be done only after all rooms are slected (developement) : start
-
-												selected_instructor.AssignedSubjects++
-												selected_instructor.TotalTeachingHours += subject_hours
-
-												// temporary write assignment data to instructor - this should be done only after all rooms are slected (developement) : start
-
-												// fmt.Printf(
-												// 	"[%s]-[%s]-Section:[%d] | [%s][hours(%d):%d] : day(%d):timeslot(%d) | Instructor : (%s %s %s) found after %d iterations\n",
-												// 	curriculum.CurriculumCode, year_level.Name, section, subject.Code, subject_hours, class_type, day, time_slot, selected_instructor.FirstName, selected_instructor.MiddleInitial, selected_instructor.LastName, found_instructor_after_iter,
-												// )
-
-												day = 999
 												break
 											}
-
-											found_instructor_after_iter++
 										}
 
 										if (selected_instructor == nil) && (time_slot == (Schedule.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day == (Schedule.N_WEEKLY_SCHOOL_DAYS - 1)) {
+
 											// TODO: if this is the last time slot and there is still no
 											// instructor available, throw an error saying there is not
 											// enough instructors, true error handling not panic.
@@ -237,16 +214,70 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 											panic(fmt.Sprintf(
 												"Not Enough Instructors after %d sections for %s %s section-%d, instructor iteration %d",
-												counted_sections, curriculum.CurriculumCode, year_level.Name, section, found_instructor_after_iter,
+												counted_sections, curriculum.CurriculumCode, year_level.Name, section, instructor_search_iteration,
 											))
 										}
 
+										if selected_instructor == nil {
+											continue // find another time slot if no instructor is available
+										}
+
 									} else {
-										// ELSE: if there is already a selected instructor but that instructor
-										// is not available for the current time slot, continue to the next
-										// iteration of the time slot loop.
-										continue
+
+										is_available_instructor := true
+
+										for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
+											is_available_instructor = is_available_instructor && selected_instructor.TimeSlotAvailability.GetAvailability(day, instructor_time_slot)
+										}
+
+										if !is_available_instructor {
+											// if there is already a selected instructor but that instructor
+											// is not available for the current time slot, continue to the
+											// next iteration of the time slot loop.
+											continue
+										}
 									}
+
+									/////////////////////////////////////////////////////////////////////////////////
+									//                 FIND AVAILABLE ROOM FOR THE TIME SLOT
+									/////////////////////////////////////////////////////////////////////////////////
+
+									/////////////////////////////////////////////////////////////////////////////////
+									//                 ASSING AVAILABLE INSTRUCTOR FOR THE TIME SLOT
+									/////////////////////////////////////////////////////////////////////////////////
+
+									fmt.Printf(
+										"[%s]-[%s]-Section:[%d] | [%s][hours(%d):%d] : day(%d):timeslot(%d) | Instructor : (%s %s %s) found after %d iterations\n",
+										curriculum.CurriculumCode,
+										year_level.Name,
+										section,
+										subject.Code,
+										subject_hours,
+										class_type,
+										day,
+										time_slot,
+										selected_instructor.FirstName,
+										selected_instructor.MiddleInitial,
+										selected_instructor.LastName,
+										instructor_search_iteration,
+									)
+
+									for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
+										selected_instructor.TimeSlotAvailability.SetAvailability(false, day, instructor_time_slot)
+
+										day_sched.Get(instructor_time_slot).SetSubjectID(subject.ID)
+										day_sched.Get(instructor_time_slot).SetInstructorID(selected_instructor.InstructorID)
+
+									}
+
+									selected_instructor.AssignedSubjects++
+									selected_instructor.TotalTeachingHours += subject_hours
+
+									// temporary write assignment data to instructor - this should be done only after all rooms are slected (developement) : start
+
+									/////////////////////////////////////////////////////////////////////////////////
+									//                 ASSIGN AVAILABLE ROOM FOR THE TIME SLOT
+									/////////////////////////////////////////////////////////////////////////////////
 
 									// TODO: iterate over all of sorted rooms to find which one is
 									// available, if there is no room available for the current time
@@ -258,6 +289,13 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 									// TODO: after all of the checks and searches, if there are instructors
 									// and rooms that are available for a specific subject and time slot,
 									// then assign the selected subject, instructor and room to the time slot.
+
+									/////////////////////////////////////////////////////////////////////////////////
+									//                 BREAK day AND time_slot LOOP
+									/////////////////////////////////////////////////////////////////////////////////
+
+									day = 9999
+									time_slot = 9999
 								}
 							}
 						}
@@ -275,18 +313,18 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 			return dept_teachers[i].TotalTeachingHours < dept_teachers[j].TotalTeachingHours
 		})
 
-		fmt.Print("\n\nDepartment Teachers : \n\n")
-		for _, dept_teacher_iter := range dept_teachers {
-			fmt.Printf(
-				"Assigned Subjects : %d = %d hours | %s %s. %s | %d\n",
-				dept_teacher_iter.AssignedSubjects,
-				dept_teacher_iter.TotalTeachingHours,
-				dept_teacher_iter.FirstName,
-				dept_teacher_iter.MiddleInitial,
-				dept_teacher_iter.LastName,
-				curriculum.DepartmentID,
-			)
-		}
+		// fmt.Print("\n\nDepartment Teachers : \n\n")
+		// for _, dept_teacher_iter := range dept_teachers {
+		// 	fmt.Printf(
+		// 		"Assigned Subjects : %d = %d hours | %s %s. %s | %d\n",
+		// 		dept_teacher_iter.AssignedSubjects,
+		// 		dept_teacher_iter.TotalTeachingHours,
+		// 		dept_teacher_iter.FirstName,
+		// 		dept_teacher_iter.MiddleInitial,
+		// 		dept_teacher_iter.LastName,
+		// 		curriculum.DepartmentID,
+		// 	)
+		// }
 	}
 
 	// fmt.Println("Total Number of Sections : ", total_number_of_sections)

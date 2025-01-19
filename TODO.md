@@ -1,26 +1,26 @@
 # TODO List
 
-1. File: [./GeneticAlgorithm/GeneratePopulations.go](./GeneticAlgorithm/GeneratePopulations.go), Line: 231
+1. File: [./GeneticAlgorithm/GeneratePopulations.go](./GeneticAlgorithm/GeneratePopulations.go), Line: 208
 
     if this is the last time slot and there is still no instructor available, throw an error saying there is not enough instructors, true error handling not panic.
 
-2. File: [./GeneticAlgorithm/GeneratePopulations.go](./GeneticAlgorithm/GeneratePopulations.go), Line: 251
+2. File: [./GeneticAlgorithm/GeneratePopulations.go](./GeneticAlgorithm/GeneratePopulations.go), Line: 282
 
     iterate over all of sorted rooms to find which one is available, if there is no room available for the current time slot, continue to the next iteration of the loop.
 
-3. File: [./GeneticAlgorithm/GeneratePopulations.go](./GeneticAlgorithm/GeneratePopulations.go), Line: 255
+3. File: [./GeneticAlgorithm/GeneratePopulations.go](./GeneticAlgorithm/GeneratePopulations.go), Line: 286
 
     if this is the last time slot and there is still no room available, throw an error saying there is not enough room.
 
-4. File: [./GeneticAlgorithm/GeneratePopulations.go](./GeneticAlgorithm/GeneratePopulations.go), Line: 258
+4. File: [./GeneticAlgorithm/GeneratePopulations.go](./GeneticAlgorithm/GeneratePopulations.go), Line: 289
 
     after all of the checks and searches, if there are instructors and rooms that are available for a specific subject and time slot, then assign the selected subject, instructor and room to the time slot.
 
-5. File: [./GeneticAlgorithm/GeneratePopulations.go](./GeneticAlgorithm/GeneratePopulations.go), Line: 294
+5. File: [./GeneticAlgorithm/GeneratePopulations.go](./GeneticAlgorithm/GeneratePopulations.go), Line: 332
 
     during the first schedule generation throw error if there is not enough instructors
 
-6. File: [./GeneticAlgorithm/GeneratePopulations.go](./GeneticAlgorithm/GeneratePopulations.go), Line: 296
+6. File: [./GeneticAlgorithm/GeneratePopulations.go](./GeneticAlgorithm/GeneratePopulations.go), Line: 334
 
     during the first schedule generation throw error if there is not enough rooms
 

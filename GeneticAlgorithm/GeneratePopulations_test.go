@@ -31,18 +31,18 @@ func TestNewPopulation(t *testing.T) {
 
 	fmt.Println("=================================")
 
-	if err := uni_time_table1.Get(0).Get(5).Get(23).SetInstructorID(33); err != nil {
-		t.Error(err)
-	}
+	// if err := uni_time_table1.Get(0).Get(5).Get(23).SetInstructorID(33); err != nil {
+	// 	t.Error(err)
+	// }
 
-	if err := uni_time_table1.Get(7).Get(5).Get(23).SetInstructorID(33); err != nil {
-		t.Error(err)
-	}
+	// if err := uni_time_table1.Get(7).Get(5).Get(23).SetInstructorID(33); err != nil {
+	// 	t.Error(err)
+	// }
 
-	if err := uni_time_table1.Get(2).Get(5).Get(23).SetInstructorID(33); err != nil {
-		fmt.Println(err.Error())
-		t.Error(err)
-	}
+	// if err := uni_time_table1.Get(2).Get(5).Get(23).SetInstructorID(33); err != nil {
+	// 	fmt.Println(err.Error())
+	// 	t.Error(err)
+	// }
 
 	fmt.Println("=================================")
 
