@@ -27,9 +27,11 @@ testv:
 	go test ./... -v
 
 testvs:
-	go clean -testcache
 	go clean -testcache && go test -run TestNewPopulation ./GeneticAlgorithm -v
 
 bench:
 	# we need to escape the dollar sign for the command: go test -run=^$ -bench=. ./...
 	go test -run=^$$ -bench=. ./... -benchmem
+
+todo:
+	python todo.py
