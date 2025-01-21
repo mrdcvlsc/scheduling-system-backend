@@ -1,4 +1,4 @@
-package curriculum
+package Curriculum
 
 type Curriculum struct {
 	CurriculumID   uint16      // unique number even if for example we have Computer Science (OLD) and Computer Science (New)

@@ -5,15 +5,15 @@ import (
 	"os"
 	"path"
 
-	curriculum "github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
-	instructors "github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
-	room "github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 )
 
 // this type is for development and testing only
 type JsonFilePersistence struct{}
 
-func (s *JsonFilePersistence) GetAllRooms() []room.Room {
+func (s *JsonFilePersistence) GetAllRooms() []Rooms.Room {
 	rooms_json_file := path.Join("..", "scheduling-system-temporary-data", "rooms.json")
 	rooms_byte_data, err := os.ReadFile(rooms_json_file)
 
@@ -21,7 +21,7 @@ func (s *JsonFilePersistence) GetAllRooms() []room.Room {
 		panic(err)
 	}
 
-	all_rooms := make([]room.Room, 0)
+	all_rooms := make([]Rooms.Room, 0)
 	err = json.Unmarshal(rooms_byte_data, &all_rooms)
 
 	if err != nil {
@@ -35,7 +35,7 @@ func (s *JsonFilePersistence) GetAllRooms() []room.Room {
 	return all_rooms
 }
 
-func (s *JsonFilePersistence) GetAllInstructors() []instructors.Instructor {
+func (s *JsonFilePersistence) GetAllInstructors() []Instructors.Instructor {
 	instructors_json_file := path.Join("..", "scheduling-system-temporary-data", "instructors.json")
 	instructors_byte_data, err := os.ReadFile(instructors_json_file)
 
@@ -43,7 +43,7 @@ func (s *JsonFilePersistence) GetAllInstructors() []instructors.Instructor {
 		panic(err)
 	}
 
-	all_instructors := make([]instructors.Instructor, 0)
+	all_instructors := make([]Instructors.Instructor, 0)
 	err = json.Unmarshal(instructors_byte_data, &all_instructors)
 
 	if err != nil {
@@ -57,31 +57,17 @@ func (s *JsonFilePersistence) GetAllInstructors() []instructors.Instructor {
 	return all_instructors
 }
 
-func (s *JsonFilePersistence) GetAllCurriculum() []curriculum.Curriculum {
+func (s *JsonFilePersistence) GetAllCurriculum() []Curriculum.Curriculum {
 
 	// map for getting subject id using subject code
 	subject_code_map_id := make(map[string]uint16)
 
-	// read all subject from all-subjects.json file
-
-	subjects_json_file := path.Join("..", "scheduling-system-temporary-data", "all-subjects.json")
-	subjects_byte_data, err := os.ReadFile(subjects_json_file)
-
-	if err != nil {
-		panic(err)
-	}
-
-	subject_data := []curriculum.Subject{}
-	err = json.Unmarshal(subjects_byte_data, &subject_data)
+	subject_data := s.GetAllSubjects()
 
 	// get the ID of each subject code
 
 	for i, subject := range subject_data {
 		subject_code_map_id[subject.Code] = uint16(i + 1)
-	}
-
-	if err != nil {
-		panic(err)
 	}
 
 	// read all curriculum json files
@@ -93,10 +79,10 @@ func (s *JsonFilePersistence) GetAllCurriculum() []curriculum.Curriculum {
 		panic(curriculum_read_err)
 	}
 
-	all_curriculums := make([]curriculum.Curriculum, 0)
+	all_curriculums := make([]Curriculum.Curriculum, 0)
 
 	for i, json_file := range curriculum_json_files {
-		curriculum_data := &curriculum.Curriculum{}
+		curriculum_data := &Curriculum.Curriculum{}
 		curriculum_data.CurriculumID = uint16(i + 1)
 
 		json_file_path := path.Join(curriculum_json_folder, json_file.Name())
@@ -123,4 +109,28 @@ func (s *JsonFilePersistence) GetAllCurriculum() []curriculum.Curriculum {
 	}
 
 	return all_curriculums
+}
+
+func (s *JsonFilePersistence) GetAllSubjects() []Curriculum.Subject {
+	// read all subject from all-subjects.json file
+
+	subjects_json_file := path.Join("..", "scheduling-system-temporary-data", "all-subjects.json")
+	subjects_byte_data, err := os.ReadFile(subjects_json_file)
+
+	if err != nil {
+		panic(err)
+	}
+
+	subject_data := []Curriculum.Subject{}
+	err = json.Unmarshal(subjects_byte_data, &subject_data)
+
+	if err != nil {
+		panic(err)
+	}
+
+	for i := range subject_data {
+		subject_data[i].ID = uint16(i + 1)
+	}
+
+	return subject_data
 }

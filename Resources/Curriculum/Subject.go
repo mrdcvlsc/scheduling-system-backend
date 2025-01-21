@@ -1,4 +1,4 @@
-package curriculum
+package Curriculum
 
 const LEC_HOURS_BIT_MASK uint32 = 0b11111111
 const LAB_HOURS_BIT_MASK uint32 = 0b11111111 << 8

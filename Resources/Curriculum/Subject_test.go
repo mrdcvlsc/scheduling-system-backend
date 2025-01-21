@@ -1,4 +1,4 @@
-package curriculum_test
+package Curriculum_test
 
 import (
 	"testing"
