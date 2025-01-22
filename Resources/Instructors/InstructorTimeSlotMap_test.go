@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"testing"
 
-	instructors "github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
 )
 
 func TestInstructorTimeSlotMap(t *testing.T) {
-	mr_instructor := instructors.InstructorTimeSlotMap{}
+	mr_instructor := Instructors.InstructorTimeSlotMap{}
 
 	cnt := 0
 	index := 0

@@ -3,13 +3,14 @@ package Schedule_test
 import (
 	"testing"
 
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Schedule"
 )
 
 func Test_DayTimeTable_Availability(t *testing.T) {
-	for time_slot_size := 1; time_slot_size <= (9 * Schedule.N_HOUR_TIME_SLOTS); time_slot_size++ {
+	for time_slot_size := 1; time_slot_size <= (9 * Const.N_HOUR_TIME_SLOTS); time_slot_size++ {
 
-		for start_time_slot := 0; start_time_slot < (Schedule.N_DAILY_TIME_SLOTS - time_slot_size + 1); start_time_slot++ {
+		for start_time_slot := 0; start_time_slot < (Const.N_DAILY_TIME_SLOTS - time_slot_size + 1); start_time_slot++ {
 
 			day_time_table := Schedule.DayTimeTable{}
 
@@ -17,7 +18,7 @@ func Test_DayTimeTable_Availability(t *testing.T) {
 				day_time_table[(start_time_slot + i)].SetSubjectID(1)
 			}
 
-			for time_slots := 0; time_slots < (Schedule.N_DAILY_TIME_SLOTS - time_slot_size); time_slots++ {
+			for time_slots := 0; time_slots < (Const.N_DAILY_TIME_SLOTS - time_slot_size); time_slots++ {
 				curr_start_time_slot := time_slots
 				curr_end_time_slot := time_slots + time_slot_size - 1
 

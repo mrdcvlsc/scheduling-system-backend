@@ -6,6 +6,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Schedule"
@@ -148,15 +149,15 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 								continue // skip subject class type if there is no contact hours
 							}
 
-							subject_total_time_slots := subject_hours * Schedule.N_HOUR_TIME_SLOTS
+							subject_total_time_slots := subject_hours * Const.N_HOUR_TIME_SLOTS
 
 							// search an available time slot for the current subject
 
-							for day := 0; day < Schedule.N_WEEKLY_SCHOOL_DAYS; day++ {
+							for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
 
 								day_sched := week_time_table.Get(day)
 
-								for time_slot := 0; time_slot < (Schedule.N_DAILY_TIME_SLOTS - subject_total_time_slots); time_slot++ {
+								for time_slot := 0; time_slot < (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots); time_slot++ {
 
 									if !day_sched.Availability(time_slot, subject_total_time_slots) {
 										continue // if the current time slot is not available go to the next
@@ -203,7 +204,7 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 											}
 										}
 
-										if (selected_instructor == nil) && (time_slot == (Schedule.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day == (Schedule.N_WEEKLY_SCHOOL_DAYS - 1)) {
+										if (selected_instructor == nil) && (time_slot == (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day == (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
 
 											// TODO: if this is the last time slot and there is still no
 											// instructor available, throw an error saying there is not

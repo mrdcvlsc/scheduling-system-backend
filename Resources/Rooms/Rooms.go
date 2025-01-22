@@ -1,14 +1,12 @@
 package Rooms
 
-import (
-	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Schedule"
-)
+import "github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 
 // the maximum room capacity.
 const MAX_ROOM_CAPACITY int = 15 // = 0b1111 (4 bits only)
 
 // TODO: (we only need 4 bits to store up to 15 hours) - Test with array dim : [6][24]
-const TIME_SLOT_CLASS_COUNTER_SIZE int = (Schedule.N_DAILY_TIME_SLOTS * Schedule.N_WEEKLY_SCHOOL_DAYS) / 2
+const TIME_SLOT_CLASS_COUNTER_SIZE int = (Const.N_DAILY_TIME_SLOTS * Const.N_WEEKLY_SCHOOL_DAYS) / 2
 
 type Room struct {
 	RoomID             uint16
@@ -21,7 +19,7 @@ type Room struct {
 
 // set the current number of classes or sections allocated in the room for a specific time slot.
 func (room *Room) SetTimeSlotClassCount(day, time_slot int, class_count uint8) {
-	idx_2D_to_1D := (day * Schedule.N_DAILY_TIME_SLOTS) + time_slot
+	idx_2D_to_1D := (day * Const.N_DAILY_TIME_SLOTS) + time_slot
 
 	// in one byte or uint8 we can use the two set of 4-bits (higher and lower) to store two class or
 	// section count for a specific time slot, hence we divide by the number of bits of uint8 to 2.
@@ -37,16 +35,16 @@ func (room *Room) SetTimeSlotClassCount(day, time_slot int, class_count uint8) {
 // warning incrementing until the max room capacity 15 would overflow the whole
 // uint8 which cause serialized data corruption due to overflow of the uint8 type.
 func (room *Room) IncTimeSlotClassCount(day, time_slot int) {
-	idx_2D_to_1D := (day * Schedule.N_DAILY_TIME_SLOTS) + time_slot
+	idx_2D_to_1D := (day * Const.N_DAILY_TIME_SLOTS) + time_slot
 	limb_idx := idx_2D_to_1D / 2
 	shift_multiplier := idx_2D_to_1D % 2
 
-	room.timeSlotClassCount[limb_idx] += 0b1 << (4 * shift_multiplier)
+	room.timeSlotClassCount[limb_idx] += (0b1 << (4 * shift_multiplier))
 }
 
 // get the current number of classes or sections allocated in the room for a specific time slot.
 func (room *Room) GetTimeSlotClassCount(day, time_slot int) uint8 {
-	idx_2D_to_1D := (day * Schedule.N_DAILY_TIME_SLOTS) + time_slot
+	idx_2D_to_1D := (day * Const.N_DAILY_TIME_SLOTS) + time_slot
 	limb_idx := idx_2D_to_1D / 2
 	shift_multiplier := idx_2D_to_1D % 2
 

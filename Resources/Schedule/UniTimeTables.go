@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
+	"github.com/mrdcvlsc/scheduling-system-backend/Storage"
 )
 
 // The type that represent all of the weekly schedules of each classes / sections
@@ -33,8 +36,8 @@ func (uni_sched *UniTimeTables) Validate() []error {
 	list_of_errors := make([]error, 0, 16)
 
 	// vertical checks
-	for day := 0; day < N_WEEKLY_SCHOOL_DAYS; day++ {
-		for time_slot := 0; time_slot < N_DAILY_TIME_SLOTS; time_slot++ {
+	for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
+		for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
 
 			instructor_counter := make(map[uint16][]uint16)
 
@@ -156,6 +159,19 @@ func (uni_sched *UniTimeTables) Validate() []error {
 			// }
 		}
 	}
+
+	persistence := Storage.PersistenceService{&Storage.JsonFilePersistence{}}
+	persistence.Service.GetAllRooms()
+
+	// for _, curriculum_items := range persistence.Service.GetAllCurriculum() {
+	// 	for _, year_level := range curriculum_items.YearLevels {
+	// 		for _, semester := range year_level.Semesters {
+	// 			for _, subject := range semester.Subjects {
+
+	// 			}
+	// 		}
+	// 	}
+	// }
 
 	// TODO: implement horizontal checks
 
