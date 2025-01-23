@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
+	"github.com/mrdcvlsc/scheduling-system-backend/Storage"
+	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
 // The type that represent all of the weekly schedules of each classes / sections
@@ -31,9 +33,25 @@ func (uni_sched *UniTimeTables) Get(class_section_idx int) *WeekTimeTable {
 	return &(*uni_sched)[class_section_idx]
 }
 
+type room_count_and_capacity struct {
+	OverlappingSections []uint16
+	Capacity            uint16
+}
+
 func (uni_sched *UniTimeTables) Validate() []error {
 
 	list_of_errors := make([]error, 0, 16)
+
+	persistence := Storage.PersistenceService{Service: &Storage.JsonFilePersistence{}}
+	all_rooms := persistence.Service.GetAllRooms()
+
+	Utils.PrettyPrint(all_rooms)
+
+	map_room_id_and_capacity := make(map[uint16]uint16)
+
+	for _, room := range all_rooms {
+		map_room_id_and_capacity[room.RoomID] = room.Capacity
+	}
 
 	/////////////////////////////////////////////////////////////////////////////////
 	//                             VERTICAL CHECKS
@@ -46,7 +64,7 @@ func (uni_sched *UniTimeTables) Validate() []error {
 
 			// TODO: enable the code below after room assigning is implemented.
 
-			// room_counter := make(map[uint16]int)
+			room_counter := make(map[uint16]*room_count_and_capacity)
 
 			for section_idx := 0; section_idx < len(*uni_sched); section_idx++ {
 
@@ -56,7 +74,7 @@ func (uni_sched *UniTimeTables) Validate() []error {
 
 				// TODO: enable the code below after room assigning is implemented.
 
-				// room_id := (*uni_sched)[section_idx][day][time_slot].roomID
+				room_id := (*uni_sched)[section_idx][day][time_slot].roomID
 
 				if subject_id == 0 && instructor_id != 0 {
 					err_json := &UniInstructorValidationError{
@@ -79,24 +97,27 @@ func (uni_sched *UniTimeTables) Validate() []error {
 
 				// TODO: enable the code below after room assigning is implemented.
 
-				// if subject_id == 0 && room_id != 0 {
-				// 	err_json := &UniRoomValidationError{
-				// 		Msg:                 "a room was assigned, but no subject was scheduled for the time slot.",
-				// 		Day:                 day,
-				// 		TimeSlot:            time_slot,
-				// 		RooomID:             room_id,
-				// 		OverlappingSections: nil,
-				// 	}
+				if subject_id == 0 && room_id != 0 {
+					err_json := &UniRoomValidationError{
+						Msg:                 "a room was assigned, but no subject was scheduled for the time slot.",
+						Day:                 day,
+						TimeSlot:            time_slot,
+						RooomID:             room_id,
+						OverlappingSections: nil,
+					}
 
-				// 	json_err_str, err := json.Marshal(err_json)
-				// 	if err != nil {
-				// 		panic(err)
-				// 	}
+					json_err_str, err := json.Marshal(err_json)
+					if err != nil {
+						panic(err)
+					}
 
-				// 	list_of_errors = append(list_of_errors, fmt.Errorf("%s", json_err_str))
-				// }
+					list_of_errors = append(list_of_errors, fmt.Errorf("%s",
+						strings.Replace(string(json_err_str), `,"OverlappingSections":null`, "", 1),
+					))
+				}
 
 				// if there is an instructor assigned to a time slot add it to counter.
+
 				if instructor_id > 0 {
 					_, exist := instructor_counter[instructor_id]
 
@@ -109,15 +130,16 @@ func (uni_sched *UniTimeTables) Validate() []error {
 
 				// TODO: enable the code below after room assigning is implemented.
 
-				// if room_id > 0 {
-				// 	_, exist := room_counter[room_id]
+				if room_id > 0 {
+					_, exist := room_counter[room_id]
 
-				// 	if !exist {
-				// 		room_counter[room_id] = make([]uint16, 0, 4)
-				// 	}
+					if !exist {
+						room_counter[room_id] = &room_count_and_capacity{}
+						room_counter[room_id].Capacity = map_room_id_and_capacity[room_id]
+					}
 
-				// 	room_counter[room_id] = append(room_counter[room_id], uint16(section_idx))
-				// }
+					room_counter[room_id].OverlappingSections = append(room_counter[room_id].OverlappingSections, uint16(section_idx))
+				}
 			}
 
 			for k, v := range instructor_counter {
@@ -141,25 +163,25 @@ func (uni_sched *UniTimeTables) Validate() []error {
 
 			// TODO: enable the code below after room assigning is implemented.
 
-			// for k, v := range room_counter {
-			// 	if len(v) > 1 {
+			for k, v := range room_counter {
+				if len(v.OverlappingSections) > int(v.Capacity) {
 
-			// 		err_json := &UniRoomValidationError{
-			// 			Msg:                 "overlapping room time slot",
-			// 			Day:                 day,
-			// 			TimeSlot:            time_slot,
-			// 			RooomID:             k,
-			// 			OverlappingSections: v,
-			// 		}
+					err_json := &UniRoomValidationError{
+						Msg:                 "overlapping room time slot",
+						Day:                 day,
+						TimeSlot:            time_slot,
+						RooomID:             k,
+						OverlappingSections: v.OverlappingSections,
+					}
 
-			// 		json_err_str, err := json.Marshal(err_json)
-			// 		if err != nil {
-			// 			panic(err)
-			// 		}
+					json_err_str, err := json.Marshal(err_json)
+					if err != nil {
+						panic(err)
+					}
 
-			// 		list_of_errors = append(list_of_errors, fmt.Errorf("%s", json_err_str))
-			// 	}
-			// }
+					list_of_errors = append(list_of_errors, fmt.Errorf("%s", json_err_str))
+				}
+			}
 		}
 	}
 
