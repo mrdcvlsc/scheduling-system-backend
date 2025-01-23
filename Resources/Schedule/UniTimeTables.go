@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
-	"github.com/mrdcvlsc/scheduling-system-backend/Storage"
 )
 
 // The type that represent all of the weekly schedules of each classes / sections
@@ -33,9 +32,13 @@ func (uni_sched *UniTimeTables) Get(class_section_idx int) *WeekTimeTable {
 }
 
 func (uni_sched *UniTimeTables) Validate() []error {
+
 	list_of_errors := make([]error, 0, 16)
 
-	// vertical checks
+	/////////////////////////////////////////////////////////////////////////////////
+	//                             VERTICAL CHECKS
+	/////////////////////////////////////////////////////////////////////////////////
+
 	for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
 		for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
 
@@ -160,20 +163,39 @@ func (uni_sched *UniTimeTables) Validate() []error {
 		}
 	}
 
-	persistence := Storage.PersistenceService{&Storage.JsonFilePersistence{}}
-	persistence.Service.GetAllRooms()
+	/////////////////////////////////////////////////////////////////////////////////
+	//                            HORIZONTAL CHECKS
+	/////////////////////////////////////////////////////////////////////////////////
 
-	// for _, curriculum_items := range persistence.Service.GetAllCurriculum() {
-	// 	for _, year_level := range curriculum_items.YearLevels {
-	// 		for _, semester := range year_level.Semesters {
-	// 			for _, subject := range semester.Subjects {
+	// TODO: implement horizontal checks - incomplete code below
 
-	// 			}
+	// persistence := Storage.PersistenceService{Service: &Storage.JsonFilePersistence{}}
+
+	// subjects := persistence.Service.GetAllSubjects()
+	// map_id_subjects := make(map[uint16]Curriculum.Subject)
+
+	// for _, subject := range subjects {
+	// 	map_id_subjects[subject.ID] = subject
+	// }
+
+	// rooms := persistence.Service.GetAllRooms()
+	// map_id_rooms := make(map[uint16]Rooms.Room)
+
+	// for _, room := range rooms {
+	// 	map_id_rooms[room.RoomID] = room
+	// }
+
+	// for section_idx := 0; section_idx < len(*uni_sched); section_idx++ {
+	// 	for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
+	// 		for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
+	// 			subject_id := (*uni_sched)[section_idx][day][time_slot].subjectID
+
+	// 			instructor_id := (*uni_sched)[section_idx][day][time_slot].instructorID
+
+	// 			room_id := (*uni_sched)[section_idx][day][time_slot].roomID
 	// 		}
 	// 	}
 	// }
-
-	// TODO: implement horizontal checks
 
 	return list_of_errors
 }
