@@ -10,12 +10,16 @@ const TIME_SLOT_CLASS_COUNTER_SIZE int = (Const.N_DAILY_TIME_SLOTS * Const.N_WEE
 
 type Room struct {
 	RoomID             uint16
-	DepartmentID       uint16                              `json:"DepartmentID"`
-	Capacity           uint16                              `json:"Capacity"` // maximum numbers of classes or sections a room can hold in a single time slot.
-	RoomType           uint16                              `json:"RoomType"` // determines the room type.
+	DepartmentID       uint16                              `json:"DepartmentID"` // a room that have a 0 department ID are rooms that are for every departments
+	Capacity           uint16                              `json:"Capacity"`     // maximum numbers of classes or sections a room can hold in a single time slot (max value = MAX_ROOM_CAPACITY).
+	RoomType           uint16                              `json:"RoomType"`     // determines the room type: 0 => lec, 1 => lab, 2 => gym.
 	Name               string                              `json:"Name"`
 	timeSlotClassCount [TIME_SLOT_CLASS_COUNTER_SIZE]uint8 // records the numbers of classes or sections allocated in the room for a specific timeslot
 }
+
+const ROOM_TYPE_LEC uint16 = 0
+const ROOM_TYPE_LAB uint16 = 1
+const ROOM_TYPE_GYM uint16 = 2
 
 // set the current number of classes or sections allocated in the room for a specific time slot.
 func (room *Room) SetTimeSlotClassCount(day, time_slot int, class_count uint8) {
