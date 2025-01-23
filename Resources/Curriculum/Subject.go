@@ -13,8 +13,8 @@ type Subject struct {
 	LecHours uint8  `json:"LecHours"`
 	LabHours uint8  `json:"LabHours"`
 
-	// [15-bit unused][1-bit is gym boolean]
-	BitFlags uint16
+	// [15-bit unused][1-bit is gym boolean] - use to store other information about a subject, for now its only use case is to determine if a subject is a gym subject
+	BitFlags uint16 `json:"BitFlags"`
 
 	// if there are no designated instructor IDs here, the algorithm
 	// will assign random instructors from the department.
@@ -22,7 +22,7 @@ type Subject struct {
 	// if there are some designated instructor IDs here, the algorithm
 	// will immediately assign the instructor to the allocated subject
 	// time slot, in the InstructorMonitor
-	DesignatedInstructorsID []uint16
+	DesignatedInstructors []uint16 `json:"DesignatedInstructorsID"`
 }
 
 // [16-bit flags hrs][8-bit lab hrs][8-bit lec hrs]
