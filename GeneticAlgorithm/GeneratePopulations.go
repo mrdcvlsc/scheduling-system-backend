@@ -11,7 +11,6 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Schedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/Storage"
-	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
 const (
@@ -137,6 +136,8 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 						for class_type := 0; class_type < 2; class_type++ {
 
+							var selected_room *Rooms.Room
+
 							var subject_hours int
 
 							if class_type == 0 {
@@ -172,46 +173,51 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 									instructor_search_iteration := 0
 
-									if selected_instructor == nil {
+									// shuffle instructors
 
-										// shuffle instructors
-										rng.Shuffle(len(dept_teachers), func(i, j int) {
-											dept_teachers[i], dept_teachers[j] = dept_teachers[j], dept_teachers[i]
-										})
+									rng.Shuffle(len(dept_teachers), func(i, j int) {
+										dept_teachers[i], dept_teachers[j] = dept_teachers[j], dept_teachers[i]
+									})
 
-										// sort the instructors based on the number of subjects they are assigned
-										sort.Slice(dept_teachers, func(i, j int) bool {
-											return dept_teachers[i].TotalTeachingHours < dept_teachers[j].TotalTeachingHours
-										})
+									// sort the instructors based on the number of subjects they are assigned
 
-										// IF NONE: iterate over all of the sorted instructors to find which
-										// one is available, if there is no instructor available for the current
-										// time slot, continue to the next iteration of the time slot loop.
+									sort.Slice(dept_teachers, func(i, j int) bool {
+										return dept_teachers[i].TotalTeachingHours < dept_teachers[j].TotalTeachingHours
+									})
 
-										for instructor_idx := range dept_teachers {
+									// fmt.Printf("instructor & room searching for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
 
-											is_available_instructor := true
+									for instructor_idx := range dept_teachers {
+
+										is_available_instructor := true
+
+										if selected_instructor == nil {
+
+											// fmt.Printf("searching the available time slot for the iterated instructor [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
+
+											// IF NONE: iterate over all of the sorted instructors to find which
+											// one is available, if there is no instructor available for the current
+											// time slot, continue to the next iteration of the time slot loop.
 
 											for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
 												is_available_instructor = is_available_instructor && dept_teachers[instructor_idx].TimeSlotAvailability.GetAvailability(day, instructor_time_slot)
 											}
 
-											instructor_search_iteration++
+										} else {
+											// fmt.Printf("searching the available time slot for the selected instructor [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
 
-											if is_available_instructor {
-												selected_instructor = &dept_teachers[instructor_idx]
-												break
+											for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
+												is_available_instructor = is_available_instructor && selected_instructor.TimeSlotAvailability.GetAvailability(day, instructor_time_slot)
 											}
 										}
 
-										if (selected_instructor == nil) && (time_slot == (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day == (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
+										instructor_search_iteration++
+
+										if !is_available_instructor && (time_slot >= (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
 
 											// TODO: if this is the last time slot and there is still no
 											// instructor available, throw an error saying there is not
 											// enough instructors, true error handling not panic.
-
-											fmt.Printf("\n\n!Panic At The Disco:\n\n")
-											Utils.PrettyPrint(dept_teachers)
 
 											panic(fmt.Sprintf(
 												"Not Enough Instructors after %d sections for %s %s section-%d, instructor iteration %d",
@@ -219,78 +225,149 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 											))
 										}
 
-										if selected_instructor == nil {
-											continue // find another time slot if no instructor is available
-										}
-
-									} else {
-
-										is_available_instructor := true
-
-										for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
-											is_available_instructor = is_available_instructor && selected_instructor.TimeSlotAvailability.GetAvailability(day, instructor_time_slot)
-										}
-
 										if !is_available_instructor {
-											// if there is already a selected instructor but that instructor
-											// is not available for the current time slot, continue to the
-											// next iteration of the time slot loop.
-											continue
+											// fmt.Printf("No instructor found available for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
+											continue // find another instructor if not available for the time slot
 										}
+
+										// fmt.Printf("instructor found available for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
+
+										/////////////////////////////////////////////////////////////////////////////////
+										//                 FIND AVAILABLE ROOM FOR THE TIME SLOT
+										/////////////////////////////////////////////////////////////////////////////////
+
+										room_search_iteration := 0
+										room_type := uint16(class_type)
+
+										// shuffle rooms
+
+										rng.Shuffle(len(dept_rooms[room_type]), func(i, j int) {
+											dept_rooms[room_type][i], dept_rooms[room_type][j] = dept_rooms[room_type][j], dept_rooms[room_type][i]
+										})
+
+										// sort the rooms based on the number of class or sections assigned to it on a specific time slot.
+
+										sort.Slice(dept_rooms[room_type], func(i, j int) bool {
+											return dept_rooms[room_type][i].GetTimeSlotClassCount(day, time_slot) < dept_rooms[room_type][j].GetTimeSlotClassCount(day, time_slot)
+										})
+
+										is_available_room := true
+
+										if subject.IsGymType() {
+											// fmt.Printf("searching available gym rooms for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
+
+											// search available gym for physical education subjects
+
+											gym := list_of_all_rooms[0][2]
+
+											for room_idx := range gym {
+
+												for room_time_slot := time_slot; room_time_slot < (time_slot + subject_total_time_slots); room_time_slot++ {
+													is_available_room = is_available_room && gym[room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(gym[room_idx].Capacity)
+												}
+
+												if !is_available_room {
+													continue
+												}
+
+												// fmt.Printf("selecting the available gym for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
+												selected_room = &gym[room_idx]
+												break
+											}
+										} else {
+
+											// fmt.Printf("searching available room[type:%d] for the time slot [d:%d, ts:%d]...\n", room_type, day, time_slot) // DEBUG PRINTS
+
+											// search for department specific rooms that are available
+
+											for room_idx := range dept_rooms[room_type] {
+
+												for room_time_slot := time_slot; room_time_slot < (time_slot + subject_total_time_slots); room_time_slot++ {
+													is_available_room = is_available_room && dept_rooms[room_type][room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(dept_rooms[room_type][room_idx].Capacity)
+												}
+
+												if !is_available_room {
+													continue
+												}
+
+												// fmt.Printf("selecting the available room[type:%d] for the time slot [d:%d, ts:%d]...\n", room_type, day, time_slot) // DEBUG PRINTS
+												selected_room = &dept_rooms[room_type][room_idx]
+												break
+											}
+
+											// TODO: [implement below] search for general rooms that are available (consult first)
+
+											// TODO: [implement below] search available lab room for lecture subjects (consult first)
+										}
+
+										room_search_iteration++
+
+										if !is_available_room && (time_slot >= (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
+
+											// TODO: if this is the last time slot and there is still no
+											// instructor available, throw an error saying there is not
+											// enough instructors, true error handling not panic.
+
+											panic(fmt.Sprintf(
+												"Not Enough Rooms after %d sections for %s %s section-%d, instructor iteration %d",
+												counted_sections, curriculum.CurriculumCode, year_level.Name, section, instructor_search_iteration,
+											))
+										}
+
+										if !is_available_room {
+											// fmt.Printf("No room found for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
+											continue // find another instructor or time slot
+										}
+
+										// fmt.Printf("room found for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
+
+										// the instructor loop will not reach here if there are no available instructors and rooms found
+
+										if selected_instructor == nil {
+											// fmt.Printf("selecting the instructor found for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
+											selected_instructor = &dept_teachers[instructor_idx]
+										}
+
+										break
 									}
 
-									/////////////////////////////////////////////////////////////////////////////////
-									//                 FIND AVAILABLE ROOM FOR THE TIME SLOT
-									/////////////////////////////////////////////////////////////////////////////////
+									if selected_instructor == nil || selected_room == nil {
+										continue
+									}
 
 									/////////////////////////////////////////////////////////////////////////////////
 									//                 ASSING AVAILABLE INSTRUCTOR FOR THE TIME SLOT
 									/////////////////////////////////////////////////////////////////////////////////
 
-									fmt.Printf(
-										"[%s]-[%s]-Section:[%d] | [%s][hours(%d):%d] : day(%d):timeslot(%d) | Instructor : (%s %s %s) found after %d iterations\n",
-										curriculum.CurriculumCode,
-										year_level.Name,
-										section,
-										subject.Code,
-										subject_hours,
-										class_type,
-										day,
-										time_slot,
-										selected_instructor.FirstName,
-										selected_instructor.MiddleInitial,
-										selected_instructor.LastName,
-										instructor_search_iteration,
-									)
+									// fmt.Printf( // DEBUG PRINTS
+									// "[%s]-[%s]-Section:[%d] | [%s][hours(%d):%d] : day(%d):timeslot(%d) | Instructor : (%s %s %s) found after %d iterations\n", // DEBUG PRINTS
+									// curriculum.CurriculumCode,         // DEBUG PRINTS
+									// year_level.Name,                   // DEBUG PRINTS
+									// section,                           // DEBUG PRINTS
+									// subject.Code,                      // DEBUG PRINTS
+									// subject_hours,                     // DEBUG PRINTS
+									// class_type,                        // DEBUG PRINTS
+									// day,                               // DEBUG PRINTS
+									// time_slot,                         // DEBUG PRINTS
+									// selected_instructor.FirstName,     // DEBUG PRINTS
+									// selected_instructor.MiddleInitial, // DEBUG PRINTS
+									// selected_instructor.LastName,      // DEBUG PRINTS
+									// instructor_search_iteration,       // DEBUG PRINTS
+									// ) // DEBUG PRINTS
 
-									for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
-										selected_instructor.TimeSlotAvailability.SetAvailability(false, day, instructor_time_slot)
+									// fmt.Printf("ONE SUBJECT FINISHED: assigning subject, instructor and room for the time slot [d:%d, ts:%d]...\n\n", day, time_slot) // DEBUG PRINTS
 
-										// HINT : this might be the final loop where the subjects, instructors and rooms will be assigned.
-										day_sched.Get(instructor_time_slot).SetSubjectID(subject.ID)
-										day_sched.Get(instructor_time_slot).SetInstructorID(selected_instructor.InstructorID)
+									for selected_time_slot := time_slot; selected_time_slot < (time_slot + subject_total_time_slots); selected_time_slot++ {
+										selected_instructor.TimeSlotAvailability.SetAvailability(false, day, selected_time_slot)
+										selected_room.IncTimeSlotClassCount(day, selected_time_slot)
 
+										day_sched.Get(selected_time_slot).SetSubjectID(subject.ID)
+										day_sched.Get(selected_time_slot).SetInstructorID(selected_instructor.InstructorID)
+										day_sched.Get(selected_time_slot).SetRoomID(selected_room.RoomID)
 									}
 
 									selected_instructor.AssignedSubjects++
 									selected_instructor.TotalTeachingHours += subject_hours
-
-									// temporary write assignment data to instructor - this should be done only after all rooms are slected (developement) : start
-
-									/////////////////////////////////////////////////////////////////////////////////
-									//                 ASSIGN AVAILABLE ROOM FOR THE TIME SLOT
-									/////////////////////////////////////////////////////////////////////////////////
-
-									// TODO: iterate over all of sorted rooms to find which one is
-									// available, if there is no room available for the current time
-									// slot, continue to the next iteration of the loop.
-
-									// TODO: if this is the last time slot and there is still no
-									// room available, throw an error saying there is not enough room.
-
-									// TODO: after all of the checks and searches, if there are instructors
-									// and rooms that are available for a specific subject and time slot,
-									// then assign the selected subject, instructor and room to the time slot.
 
 									/////////////////////////////////////////////////////////////////////////////////
 									//                 BREAK day AND time_slot LOOP
@@ -314,19 +391,6 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 		sort.Slice(dept_teachers, func(i, j int) bool {
 			return dept_teachers[i].TotalTeachingHours < dept_teachers[j].TotalTeachingHours
 		})
-
-		// fmt.Print("\n\nDepartment Teachers : \n\n")
-		// for _, dept_teacher_iter := range dept_teachers {
-		// 	fmt.Printf(
-		// 		"Assigned Subjects : %d = %d hours | %s %s. %s | %d\n",
-		// 		dept_teacher_iter.AssignedSubjects,
-		// 		dept_teacher_iter.TotalTeachingHours,
-		// 		dept_teacher_iter.FirstName,
-		// 		dept_teacher_iter.MiddleInitial,
-		// 		dept_teacher_iter.LastName,
-		// 		curriculum.DepartmentID,
-		// 	)
-		// }
 	}
 
 	// fmt.Println("Total Number of Sections : ", total_number_of_sections)
