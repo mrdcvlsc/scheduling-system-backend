@@ -7,7 +7,6 @@ import (
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 	"github.com/mrdcvlsc/scheduling-system-backend/Storage"
-	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
 // The type that represent all of the weekly schedules of each classes / sections
@@ -43,9 +42,12 @@ func (uni_sched *UniTimeTables) Validate() []error {
 	list_of_errors := make([]error, 0, 16)
 
 	persistence := Storage.PersistenceService{Service: &Storage.JsonFilePersistence{}}
-	all_rooms := persistence.Service.GetAllRooms()
+	all_rooms, err_all_rooms := persistence.Service.GetAllRooms()
 
-	Utils.PrettyPrint(all_rooms)
+	if err_all_rooms != nil {
+		list_of_errors = append(list_of_errors, err_all_rooms)
+		return list_of_errors
+	}
 
 	map_room_id_and_capacity := make(map[uint16]uint16)
 
