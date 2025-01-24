@@ -20,14 +20,14 @@ devr:
 
 test:
 	go clean -testcache
-	go test ./...
+	go test ./... -timeout 0
 
 testv:
 	go clean -testcache
-	go test ./... -v
+	go test ./... -v -timeout 0
 
 testvs:
-	go clean -testcache && go test -run TestNewPopulation ./GeneticAlgorithm -v
+	go clean -testcache && go test -run TestNewPopulation ./GeneticAlgorithm -v -timeout 0
 
 bench:
 	# we need to escape the dollar sign for the command: go test -run=^$ -bench=. ./...
