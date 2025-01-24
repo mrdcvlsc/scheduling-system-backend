@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Departments"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Schedule"
@@ -33,7 +34,11 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 	list_of_all_rooms := make(map[uint16]map[uint16][]Rooms.Room)
 
 	{
-		all_rooms := persistence.Service.GetAllRooms()
+		all_rooms, err_all_rooms := persistence.Service.GetAllRooms()
+
+		if err_all_rooms != nil {
+			return nil, err_all_rooms
+		}
 
 		for _, room := range all_rooms {
 			_, dept_key_exist := list_of_all_rooms[room.DepartmentID]
@@ -58,7 +63,11 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 	list_of_all_instructors := make(map[uint16][]Instructors.Instructor)
 
 	{
-		all_instructors := persistence.Service.GetAllInstructors()
+		all_instructors, err_all_instructors := persistence.Service.GetAllInstructors()
+
+		if err_all_instructors != nil {
+			return nil, err_all_instructors
+		}
 
 		for _, instructor := range all_instructors {
 			_, exist := list_of_all_instructors[instructor.DepartmentID]
@@ -74,10 +83,28 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 		}
 	}
 
+	map_department_id := make(map[uint16]Departments.Department)
+
+	{
+		all_departments, err_map_department_id := persistence.Service.GetAllDepartments()
+
+		if err_map_department_id != nil {
+			return nil, err_map_department_id
+		}
+
+		for _, department := range all_departments {
+			map_department_id[department.DepartmentID] = department
+		}
+	}
+
 	counted_sections := 0
 	individual := make(Schedule.UniTimeTables, 0, 64)
 
-	all_curriculums := persistence.Service.GetAllCurriculum()
+	all_curriculums, err_all_curriculums := persistence.Service.GetAllCurriculum()
+
+	if err_all_curriculums != nil {
+		return nil, err_all_curriculums
+	}
 
 	for _, curriculum := range all_curriculums {
 
@@ -95,8 +122,6 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 				if selected_semester != semester_idx {
 					continue // skip not selected semesters
 				}
-
-				counted_sections += semester.Sections
 
 				// generate week time table for each sections
 
@@ -214,15 +239,10 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 										instructor_search_iteration++
 
 										if !is_available_instructor && (time_slot >= (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
-
-											// TODO: if this is the last time slot and there is still no
-											// instructor available, throw an error saying there is not
-											// enough instructors, true error handling not panic.
-
-											panic(fmt.Sprintf(
-												"Not Enough Instructors after %d sections for %s %s section-%d, instructor iteration %d",
-												counted_sections, curriculum.CurriculumCode, year_level.Name, section, instructor_search_iteration,
-											))
+											return nil, fmt.Errorf(
+												"not enough instructors in %s for %s %s section[%d] after generating schedules for %d other sections",
+												map_department_id[curriculum.DepartmentID].Name, curriculum.CurriculumCode, year_level.Name, section, counted_sections,
+											)
 										}
 
 										if !is_available_instructor {
@@ -303,15 +323,10 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 										room_search_iteration++
 
 										if !is_available_room && (time_slot >= (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
-
-											// TODO: if this is the last time slot and there is still no
-											// instructor available, throw an error saying there is not
-											// enough instructors, true error handling not panic.
-
-											panic(fmt.Sprintf(
-												"Not Enough Rooms after %d sections for %s %s section-%d, instructor iteration %d",
-												counted_sections, curriculum.CurriculumCode, year_level.Name, section, instructor_search_iteration,
-											))
+											return nil, fmt.Errorf(
+												"not enough rooms in %s for %s %s section[%d] after generating schedules for %d other sections",
+												map_department_id[curriculum.DepartmentID].Name, curriculum.CurriculumCode, year_level.Name, section, counted_sections,
+											)
 										}
 
 										if !is_available_room {
@@ -383,6 +398,7 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 					// front compressed distribution : end
 
 					individual = append(individual, week_time_table)
+					counted_sections++
 				}
 			}
 		}
