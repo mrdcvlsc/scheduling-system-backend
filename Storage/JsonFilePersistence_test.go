@@ -13,7 +13,11 @@ var TestPersistence Storage.PersistenceService
 
 func TestJsonFilePersistence_GetAllSubjects(t *testing.T) {
 	TestPersistence.Service = &Storage.JsonFilePersistence{}
-	subjects := TestPersistence.Service.GetAllSubjects()
+	subjects, err := TestPersistence.Service.GetAllSubjects()
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	for _, subject := range subjects {
 		if strings.Contains(subject.Code, "FITT") {
@@ -27,12 +31,23 @@ func TestJsonFilePersistence_GetAllSubjects(t *testing.T) {
 		}
 	}
 
-	Utils.PrettyPrint(subjects)
+	empty_strings := Utils.CheckForEmptyStrings(subjects, "subjects")
+
+	if len(empty_strings) > 0 {
+		for _, err := range empty_strings {
+			t.Error("empty string :", err)
+			fmt.Println()
+		}
+	}
 }
 
 func TestJsonFilePersistence_GetAllCurriculum(t *testing.T) {
 	TestPersistence.Service = &Storage.JsonFilePersistence{}
-	curriculums := TestPersistence.Service.GetAllCurriculum()
+	curriculums, err := TestPersistence.Service.GetAllCurriculum()
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	for _, curriculum := range curriculums {
 		for _, year_level := range curriculum.YearLevels {
@@ -52,19 +67,72 @@ func TestJsonFilePersistence_GetAllCurriculum(t *testing.T) {
 		}
 	}
 
-	Utils.PrettyPrint(curriculums)
+	empty_strings := Utils.CheckForEmptyStrings(curriculums, "curriculums")
+
+	if len(empty_strings) > 0 {
+		for _, err := range empty_strings {
+			t.Error("empty string :", err)
+			fmt.Println()
+		}
+	}
 }
 
 func TestJsonFilePersistence_GetAllInstructor(t *testing.T) {
 	TestPersistence.Service = &Storage.JsonFilePersistence{}
-	instructors := TestPersistence.Service.GetAllInstructors()
-	Utils.PrettyPrint(instructors)
+	instructors, err := TestPersistence.Service.GetAllInstructors()
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	empty_strings := Utils.CheckForEmptyStrings(instructors, "instructors")
+
+	if len(empty_strings) > 0 {
+		for _, err := range empty_strings {
+			t.Error("empty string :", err)
+			fmt.Println()
+		}
+	}
+
 	fmt.Println("\n\nTotal Number of Instructors : ", len(instructors))
 }
 
 func TestJsonFilePersistence_GetAllRoom(t *testing.T) {
 	TestPersistence.Service = &Storage.JsonFilePersistence{}
-	rooms := TestPersistence.Service.GetAllRooms()
-	Utils.PrettyPrint(rooms)
+	rooms, err := TestPersistence.Service.GetAllRooms()
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	empty_strings := Utils.CheckForEmptyStrings(rooms, "rooms")
+
+	if len(empty_strings) > 0 {
+		for _, err := range empty_strings {
+			t.Error("empty string :", err)
+			fmt.Println()
+		}
+	}
+
 	fmt.Println("\n\nTotal Number of Rooms : ", len(rooms))
+}
+
+func TestJsonFilePersistence_GetDepartments(t *testing.T) {
+	TestPersistence.Service = &Storage.JsonFilePersistence{}
+	departments, err := TestPersistence.Service.GetAllDepartments()
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	empty_strings := Utils.CheckForEmptyStrings(departments, "departments")
+
+	if len(empty_strings) > 0 {
+		for _, err := range empty_strings {
+			t.Error("empty string :", err)
+			fmt.Println()
+		}
+	}
+
+	fmt.Println("\n\nTotal Number of Rooms : ", len(departments))
 }
