@@ -1,0 +1,355 @@
+package geneticalgorithm
+
+import (
+	"fmt"
+	"math"
+
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Departments"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
+	"github.com/mrdcvlsc/scheduling-system-backend/Storage"
+	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
+)
+
+func generate_map_list_of_all_rooms(persistence *Storage.PersistenceService) (map[uint16]map[uint16][]Rooms.Room, error) {
+
+	list_of_all_rooms := make(map[uint16]map[uint16][]Rooms.Room)
+
+	all_rooms, err := persistence.Service.GetAllRooms()
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, room := range all_rooms {
+		_, dept_key_exist := list_of_all_rooms[room.DepartmentID]
+
+		if !dept_key_exist {
+			list_of_all_rooms[room.DepartmentID] = make(map[uint16][]Rooms.Room)
+		}
+
+		_, roomtype_key_exist := list_of_all_rooms[room.DepartmentID][room.RoomType]
+
+		if !roomtype_key_exist {
+			list_of_all_rooms[room.DepartmentID][room.RoomType] = make([]Rooms.Room, 1, 8)
+			list_of_all_rooms[room.DepartmentID][room.RoomType][0] = room
+		} else {
+			list_of_all_rooms[room.DepartmentID][room.RoomType] = append(
+				list_of_all_rooms[room.DepartmentID][room.RoomType], room,
+			)
+		}
+	}
+
+	return list_of_all_rooms, nil
+}
+
+func generate_map_list_instructors(persistence *Storage.PersistenceService) (map[uint16][]Instructors.Instructor, error) {
+	list_of_all_instructors := make(map[uint16][]Instructors.Instructor)
+
+	all_instructors, err := persistence.Service.GetAllInstructors()
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, instructor := range all_instructors {
+		_, exist := list_of_all_instructors[instructor.DepartmentID]
+
+		if !exist {
+			list_of_all_instructors[instructor.DepartmentID] = make([]Instructors.Instructor, 1, 8)
+			list_of_all_instructors[instructor.DepartmentID][0] = instructor
+		} else {
+			list_of_all_instructors[instructor.DepartmentID] = append(
+				list_of_all_instructors[instructor.DepartmentID], instructor,
+			)
+		}
+	}
+
+	return list_of_all_instructors, nil
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+//              CHECK IF THERE IS ENOUGH INSTRUCTORS FOR THE SCHEDULES
+////////////////////////////////////////////////////////////////////////////////////
+
+// The minimum recommended difference between the total available room hours in a department
+// and the total lecture hours (or the total laboratory hours) for all subjects in the department.
+// This ensures that schedules can be generated with minimal risk of resource shortages.
+//
+// Tested Values :
+//
+// * MIN_SUBJECT_ROOM_HOUR_BUFFER = 200, MIN_SUBJECT_INSTRUCTOR_HOUR_BUFFER = 300
+//
+// : 1024 generations => 65% - 68% valid schedules.
+const MIN_SUBJECT_ROOM_HOUR_BUFFER int = 200
+
+// The minimum recommended difference between the total available instructor hours in a department
+// and the total lecture and laboratory hours combined for all subjects in the department.
+// This ensures that schedules can be generated with minimal risk of resource shortages.
+const MIN_SUBJECT_INSTRUCTOR_HOUR_BUFFER int = 350
+
+type Totals struct {
+	DepartmentID uint16
+	SectionCount int
+
+	LecRoomHours int
+	LabRoomHours int
+	GymRoomHours int
+
+	InstructorHours float64
+	InstructorCount int
+
+	SubjectLecHours int
+	SubjectLabHours int
+	SubjectGymHours int
+
+	RoomCapacity int
+
+	Semester       int
+	DepartmentName string
+}
+
+func EstimateResourceAvailability(selected_semester, distribution_type int) []error {
+	persistence := Storage.PersistenceService{Service: &Storage.JsonFilePersistence{}}
+
+	curriculums, err_curriculum := persistence.Service.GetAllCurriculum()
+
+	map_department_id := make(map[uint16]Departments.Department)
+
+	{
+		all_departments, err_map_department_id := persistence.Service.GetAllDepartments()
+
+		if err_map_department_id != nil {
+			err_list := make([]error, 0, 2)
+			err_list = append(err_list, err_map_department_id)
+			return err_list
+		}
+
+		for _, department := range all_departments {
+			map_department_id[department.DepartmentID] = department
+		}
+	}
+
+	if err_curriculum != nil {
+		list_of_returned_errors := make([]error, 0, 2)
+		list_of_returned_errors = append(list_of_returned_errors, err_curriculum)
+		return list_of_returned_errors
+	}
+
+	instructors, err_instructor := persistence.Service.GetAllInstructors()
+
+	if err_instructor != nil {
+		list_of_returned_errors := make([]error, 0, 2)
+		list_of_returned_errors = append(list_of_returned_errors, err_instructor)
+		return list_of_returned_errors
+	}
+
+	rooms, err_room := persistence.Service.GetAllRooms()
+
+	if err_room != nil {
+		list_of_returned_errors := make([]error, 0, 2)
+		list_of_returned_errors = append(list_of_returned_errors, err_room)
+		return list_of_returned_errors
+	}
+
+	totals := make(map[uint16]*Totals)
+
+	for _, room := range rooms {
+		_, ok := totals[room.DepartmentID]
+
+		if !ok {
+			if room.RoomType == Rooms.ROOM_TYPE_LEC {
+				totals[room.DepartmentID] = &Totals{
+					LecRoomHours: Const.N_WEEKLY_SCHOOL_DAYS * Const.N_DAILY_SCHOOL_HOURS * int(room.Capacity),
+					RoomCapacity: int(room.Capacity),
+				}
+			} else if room.RoomType == Rooms.ROOM_TYPE_LAB {
+				totals[room.DepartmentID] = &Totals{
+					LabRoomHours: Const.N_WEEKLY_SCHOOL_DAYS * Const.N_DAILY_SCHOOL_HOURS * int(room.Capacity),
+					RoomCapacity: int(room.Capacity),
+				}
+			} else if room.RoomType == Rooms.ROOM_TYPE_GYM {
+				totals[room.DepartmentID] = &Totals{
+					GymRoomHours: Const.N_WEEKLY_SCHOOL_DAYS * Const.N_DAILY_SCHOOL_HOURS * int(room.Capacity),
+					RoomCapacity: int(room.Capacity),
+				}
+			}
+		} else {
+			if room.RoomType == Rooms.ROOM_TYPE_LEC {
+				totals[room.DepartmentID].LecRoomHours += (Const.N_WEEKLY_SCHOOL_DAYS * Const.N_DAILY_SCHOOL_HOURS * int(room.Capacity))
+			} else if room.RoomType == Rooms.ROOM_TYPE_LAB {
+				totals[room.DepartmentID].LabRoomHours += (Const.N_WEEKLY_SCHOOL_DAYS * Const.N_DAILY_SCHOOL_HOURS * int(room.Capacity))
+			} else if room.RoomType == Rooms.ROOM_TYPE_GYM {
+				totals[room.DepartmentID].GymRoomHours += (Const.N_WEEKLY_SCHOOL_DAYS * Const.N_DAILY_SCHOOL_HOURS * int(room.Capacity))
+			}
+			totals[room.DepartmentID].RoomCapacity += int(room.Capacity)
+		}
+	}
+
+	for _, instructor := range instructors {
+
+		_, ok := totals[instructor.DepartmentID]
+
+		if !ok {
+			totals[instructor.DepartmentID] = &Totals{
+				InstructorCount: 1,
+			}
+		} else {
+			totals[instructor.DepartmentID].InstructorCount++
+		}
+
+		for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
+			for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
+				if instructor.TimeSlotAvailability.GetAvailability(day, time_slot) {
+					_, ok := totals[instructor.DepartmentID]
+
+					if !ok {
+						totals[instructor.DepartmentID] = &Totals{
+							InstructorHours: 1.0 / Const.N_HOUR_TIME_SLOTS,
+						}
+					} else {
+						totals[instructor.DepartmentID].InstructorHours += (1.0 / Const.N_HOUR_TIME_SLOTS)
+					}
+				}
+			}
+		}
+	}
+
+	for _, curriculum := range curriculums {
+		for _, year_level := range curriculum.YearLevels {
+			for semester_idx, semester := range year_level.Semesters {
+				if semester_idx == selected_semester {
+
+					total_lec_hours_for_course_level := 0
+					total_lab_hours_for_course_level := 0
+					total_gym_hours_for_course_level := 0
+
+					for _, subject := range semester.Subjects {
+						if !subject.IsGymType() {
+							total_lec_hours_for_course_level += int(subject.LecHours)
+						} else {
+							total_gym_hours_for_course_level += int(subject.LecHours)
+						}
+
+						total_lab_hours_for_course_level += int(subject.LabHours)
+					}
+
+					total_lec_hours_for_course_level *= semester.Sections
+					total_lab_hours_for_course_level *= semester.Sections
+					total_gym_hours_for_course_level *= semester.Sections
+
+					_, ok := totals[curriculum.DepartmentID]
+
+					if !ok {
+						totals[curriculum.DepartmentID] = &Totals{
+							DepartmentID:    curriculum.DepartmentID,
+							Semester:        semester_idx,
+							SubjectLecHours: total_lec_hours_for_course_level,
+							SubjectLabHours: total_lab_hours_for_course_level,
+							SubjectGymHours: total_gym_hours_for_course_level,
+							SectionCount:    semester.Sections,
+						}
+					} else {
+						totals[curriculum.DepartmentID].DepartmentID = curriculum.DepartmentID
+						totals[curriculum.DepartmentID].Semester = semester_idx
+						totals[curriculum.DepartmentID].SubjectLecHours += total_lec_hours_for_course_level
+						totals[curriculum.DepartmentID].SubjectLabHours += total_lab_hours_for_course_level
+						totals[curriculum.DepartmentID].SubjectGymHours += total_gym_hours_for_course_level
+						totals[curriculum.DepartmentID].SectionCount += semester.Sections
+					}
+
+					if len(totals[curriculum.DepartmentID].DepartmentName) == 0 {
+						totals[curriculum.DepartmentID].DepartmentName = map_department_id[curriculum.DepartmentID].Name
+					}
+				}
+			}
+		}
+	}
+
+	Utils.PrettyPrint(totals)
+
+	list_of_returned_errors := make([]error, 0, 8)
+
+	for k, v := range totals {
+		if k != 0 && (v.SubjectLecHours > 0 || v.SubjectLabHours > 0 || v.SubjectGymHours > 0) {
+
+			if (v.SubjectLecHours + MIN_SUBJECT_ROOM_HOUR_BUFFER) > v.LecRoomHours {
+				recommended_room_hours := v.SubjectLecHours + MIN_SUBJECT_ROOM_HOUR_BUFFER
+				needed_hours := (recommended_room_hours - v.LecRoomHours)
+
+				rooms_to_add := needed_hours / (Const.N_DAILY_SCHOOL_HOURS * Const.N_WEEKLY_SCHOOL_DAYS)
+
+				if (needed_hours % (Const.N_DAILY_SCHOOL_HOURS * Const.N_WEEKLY_SCHOOL_DAYS)) > 0 {
+					rooms_to_add++
+				}
+
+				list_of_returned_errors = append(list_of_returned_errors,
+					fmt.Errorf(`{"Msg":`+
+						`"not enough lecture rooms for the '%s', need %d more capacity for lecture subjects"}`,
+						v.DepartmentName, rooms_to_add,
+					),
+				)
+			}
+
+			if (v.SubjectLabHours + MIN_SUBJECT_ROOM_HOUR_BUFFER) > v.LabRoomHours {
+				recommended_room_hours := v.SubjectLabHours + MIN_SUBJECT_ROOM_HOUR_BUFFER
+				needed_hours := (recommended_room_hours - v.LabRoomHours)
+
+				rooms_to_add := needed_hours / (Const.N_DAILY_SCHOOL_HOURS * Const.N_WEEKLY_SCHOOL_DAYS)
+
+				if (needed_hours % (Const.N_DAILY_SCHOOL_HOURS * Const.N_WEEKLY_SCHOOL_DAYS)) > 0 {
+					rooms_to_add++
+				}
+
+				list_of_returned_errors = append(list_of_returned_errors,
+					fmt.Errorf(`{"Msg":`+
+						`"not enough laboratory rooms for the '%s', need %d more capacity for laboratory subjects"}`,
+						v.DepartmentName, rooms_to_add,
+					),
+				)
+			}
+
+			if (v.SubjectGymHours + MIN_SUBJECT_ROOM_HOUR_BUFFER) > totals[0].GymRoomHours {
+				recommended_room_hours := v.SubjectGymHours + MIN_SUBJECT_ROOM_HOUR_BUFFER
+				needed_hours := (recommended_room_hours - totals[0].GymRoomHours)
+
+				rooms_to_add := needed_hours / (Const.N_DAILY_SCHOOL_HOURS * Const.N_WEEKLY_SCHOOL_DAYS)
+
+				if (needed_hours % (Const.N_DAILY_SCHOOL_HOURS * Const.N_WEEKLY_SCHOOL_DAYS)) > 0 {
+					rooms_to_add++
+				}
+
+				list_of_returned_errors = append(list_of_returned_errors,
+					fmt.Errorf(`{"Msg":`+
+						`"not enough gym capacity, need %d more capacity for gym subjects"}`,
+						rooms_to_add,
+					),
+				)
+			}
+
+			if (v.SubjectLecHours + v.SubjectLabHours + MIN_SUBJECT_INSTRUCTOR_HOUR_BUFFER) > int(math.Round(v.InstructorHours)) {
+				recommended_instructor_hours := v.SubjectLecHours + v.SubjectLabHours + MIN_SUBJECT_INSTRUCTOR_HOUR_BUFFER
+				needed_hours := (recommended_instructor_hours - int(math.Floor(v.InstructorHours)))
+
+				needed_full_time_instructor := needed_hours / (Const.N_DAILY_SCHOOL_HOURS * Const.N_WEEKLY_SCHOOL_DAYS)
+
+				if (needed_hours % (Const.N_DAILY_SCHOOL_HOURS * Const.N_WEEKLY_SCHOOL_DAYS)) > 0 {
+					needed_full_time_instructor++
+				}
+
+				list_of_returned_errors = append(list_of_returned_errors,
+					fmt.Errorf(`{"Msg":`+
+						`"not enough instructors for the '%s', need %d more full time instructors, `+
+						`to fill up the missing %d hours of duty, or encourage existing multiple `+
+						`instructors to extend their work time"`,
+						v.DepartmentName, needed_full_time_instructor, needed_hours,
+					),
+				)
+			}
+
+		}
+	}
+
+	return list_of_returned_errors
+}
