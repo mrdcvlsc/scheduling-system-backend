@@ -26,6 +26,19 @@ const (
 	DIST_BACK_LOOSE       int = 3
 )
 
+// Generate individual university schedules.
+//
+// Different return types:
+//
+// (nil, error) - if this function returns a (nil, error) that would mean there is an
+// error that prevented the function to read the required data resources.
+//
+// (slice, error) - if this function returns a (slice, error) that would mean that it produced one
+// invalid section schedule due to not having enough resources available during
+// the schedule generation configuration.
+//
+// (slice, nil) - if this function returns a (slice, nil), that would mean it
+// successfully generated a valid university schedules.
 func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTables, error) {
 
 	persistence := Storage.PersistenceService{Service: &Storage.JsonFilePersistence{}}
@@ -239,7 +252,7 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 										instructor_search_iteration++
 
 										if !is_available_instructor && (time_slot >= (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
-											return nil, fmt.Errorf(
+											return individual, fmt.Errorf(
 												"not enough instructors in %s for %s %s section[%d] after generating schedules for %d other sections",
 												map_department_id[curriculum.DepartmentID].Name, curriculum.CurriculumCode, year_level.Name, section, counted_sections,
 											)
@@ -323,7 +336,7 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 										room_search_iteration++
 
 										if !is_available_room && (time_slot >= (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
-											return nil, fmt.Errorf(
+											return individual, fmt.Errorf(
 												"not enough rooms in %s for %s %s section[%d] after generating schedules for %d other sections",
 												map_department_id[curriculum.DepartmentID].Name, curriculum.CurriculumCode, year_level.Name, section, counted_sections,
 											)
