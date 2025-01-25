@@ -48,14 +48,22 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 			fmt.Printf("Generating schedules (%d)...\n", (i + 1))
 		}
 
-		unit_scheds_first_sem, err := GA.NewIndividual(GA.TERM_1ST_SEMESTER, 0)
+		university_schedules, err := GA.NewIndividual(target_semester, 0)
 
 		if err != nil {
 			t.Log(err)
 			generation_error_list = append(generation_error_list, err)
 		}
 
-		err_validation := unit_scheds_first_sem.Validate()
+		if university_schedules == nil {
+			t.Fatalf("returned a nil university schedule : loop iteration %d\n", i)
+		}
+
+		if university_schedules.IsEmpty() {
+			t.Fatalf("returned an empty university schedule : loop iteration %d\n", i)
+		}
+
+		err_validation := university_schedules.Validate()
 
 		if err_validation != nil {
 			for e := range err_validation {
