@@ -38,11 +38,12 @@ type room_count_and_capacity struct {
 }
 
 func (uni_sched *UniTimeTables) IsEmpty() bool {
-	empty_subject_count := 0
 
 	if len(*uni_sched) == 0 {
 		return true
 	}
+
+	empty_subject_count := 0
 
 	for _, section_sched := range *uni_sched {
 		for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
@@ -54,7 +55,7 @@ func (uni_sched *UniTimeTables) IsEmpty() bool {
 		}
 	}
 
-	return empty_subject_count == Const.N_WEEKLY_TIME_SLOTS
+	return empty_subject_count == (Const.N_WEEKLY_TIME_SLOTS * len(*uni_sched))
 }
 
 func (uni_sched *UniTimeTables) Validate() []error {
