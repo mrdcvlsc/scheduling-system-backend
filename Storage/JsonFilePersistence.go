@@ -9,13 +9,20 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Departments"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
+	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
 // this type is for development and testing only
 type JsonFilePersistence struct{}
 
 func (s *JsonFilePersistence) GetAllRooms() ([]Rooms.Room, error) {
-	rooms_json_file := path.Join("..", "scheduling-system-temporary-data", "rooms.json")
+
+	projectRoot, err_find_root := Utils.FindProjectRoot()
+	if err_find_root != nil {
+		return nil, err_find_root
+	}
+
+	rooms_json_file := path.Join(projectRoot, "scheduling-system-temporary-data", "rooms.json")
 	rooms_byte_data, err := os.ReadFile(rooms_json_file)
 
 	if err != nil {
@@ -37,7 +44,13 @@ func (s *JsonFilePersistence) GetAllRooms() ([]Rooms.Room, error) {
 }
 
 func (s *JsonFilePersistence) GetAllInstructors() ([]Instructors.Instructor, error) {
-	instructors_json_file := path.Join("..", "scheduling-system-temporary-data", "instructors.json")
+
+	projectRoot, err_find_root := Utils.FindProjectRoot()
+	if err_find_root != nil {
+		return nil, err_find_root
+	}
+
+	instructors_json_file := path.Join(projectRoot, "scheduling-system-temporary-data", "instructors.json")
 	instructors_byte_data, err := os.ReadFile(instructors_json_file)
 
 	if err != nil {
@@ -77,7 +90,12 @@ func (s *JsonFilePersistence) GetAllCurriculum() ([]Curriculum.Curriculum, error
 
 	// read all curriculum json files
 
-	curriculum_json_folder := path.Join("..", "scheduling-system-temporary-data", "curriculums")
+	projectRoot, err_find_root := Utils.FindProjectRoot()
+	if err_find_root != nil {
+		return nil, err_find_root
+	}
+
+	curriculum_json_folder := path.Join(projectRoot, "scheduling-system-temporary-data", "curriculums")
 	curriculum_json_files, curriculum_read_err := os.ReadDir(curriculum_json_folder)
 
 	if curriculum_read_err != nil {
@@ -117,9 +135,13 @@ func (s *JsonFilePersistence) GetAllCurriculum() ([]Curriculum.Curriculum, error
 }
 
 func (s *JsonFilePersistence) GetAllSubjects() ([]Curriculum.Subject, error) {
-	// read all subject from all-subjects.json file
 
-	subjects_json_file := path.Join("..", "scheduling-system-temporary-data", "all-subjects.json")
+	projectRoot, err_find_root := Utils.FindProjectRoot()
+	if err_find_root != nil {
+		return nil, err_find_root
+	}
+
+	subjects_json_file := path.Join(projectRoot, "scheduling-system-temporary-data", "all-subjects.json")
 	subjects_byte_data, err := os.ReadFile(subjects_json_file)
 
 	if err != nil {
@@ -141,7 +163,13 @@ func (s *JsonFilePersistence) GetAllSubjects() ([]Curriculum.Subject, error) {
 }
 
 func (s *JsonFilePersistence) GetAllDepartments() ([]Departments.Department, error) {
-	departments_json_file := path.Join("..", "scheduling-system-temporary-data", "departments.json")
+
+	projectRoot, err_find_root := Utils.FindProjectRoot()
+	if err_find_root != nil {
+		return nil, err_find_root
+	}
+
+	departments_json_file := path.Join(projectRoot, "scheduling-system-temporary-data", "departments.json")
 	departments_byte_data, err := os.ReadFile(departments_json_file)
 
 	if err != nil {
