@@ -119,6 +119,8 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 		return nil, err_all_curriculums
 	}
 
+	// the curriculums should always have the same order.
+
 	for _, curriculum := range all_curriculums {
 
 		dept_rooms := list_of_all_rooms[curriculum.DepartmentID]
@@ -421,12 +423,6 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 			return dept_teachers[i].TotalTeachingHours < dept_teachers[j].TotalTeachingHours
 		})
 	}
-
-	// fmt.Println("Total Number of Sections : ", total_number_of_sections)
-
-	// TODO: during the first schedule generation throw error if there is not enough instructors
-
-	// TODO: during the first schedule generation throw error if there is not enough rooms
 
 	return individual, nil
 }

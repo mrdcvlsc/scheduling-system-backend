@@ -5,7 +5,7 @@ import "github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 // the maximum room capacity.
 const MAX_ROOM_CAPACITY int = 15 // = 0b1111 (4 bits only)
 
-// TODO: (we only need 4 bits to store up to 15 hours) - Test with array dim : [6][24]
+// we only need 4 bits to store up to 15 hours
 const TIME_SLOT_CLASS_COUNTER_SIZE int = (Const.N_DAILY_TIME_SLOTS * Const.N_WEEKLY_SCHOOL_DAYS) / 2
 
 type Room struct {
