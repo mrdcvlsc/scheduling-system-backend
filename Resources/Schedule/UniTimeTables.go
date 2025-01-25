@@ -1,6 +1,7 @@
 package Schedule
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -30,6 +31,50 @@ func (uni_sched *UniTimeTables) Get(class_section_idx int) *WeekTimeTable {
 	}
 
 	return &(*uni_sched)[class_section_idx]
+}
+
+const TIME_SLOT_BYTE_SIZE int = 6 // 3 uint16 = 6 bytes.
+
+func SerializeUniversitySchedule(uni_sched *UniTimeTables) []byte {
+	serialized_data := make([]byte, (len(*uni_sched) * Const.N_WEEKLY_TIME_SLOTS * TIME_SLOT_BYTE_SIZE))
+
+	for section_idx := 0; section_idx < len(*uni_sched); section_idx++ {
+		for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
+			for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
+				idx_2D_to_1D := (day * Const.N_DAILY_TIME_SLOTS) + time_slot
+				serialized_time_slot_idx := (section_idx*Const.N_WEEKLY_TIME_SLOTS + idx_2D_to_1D) * TIME_SLOT_BYTE_SIZE
+
+				binary.LittleEndian.PutUint16(serialized_data[serialized_time_slot_idx:serialized_time_slot_idx+2], (*uni_sched)[section_idx][day][time_slot].subjectID)
+				binary.LittleEndian.PutUint16(serialized_data[serialized_time_slot_idx+2:serialized_time_slot_idx+4], (*uni_sched)[section_idx][day][time_slot].instructorID)
+				binary.LittleEndian.PutUint16(serialized_data[serialized_time_slot_idx+4:serialized_time_slot_idx+6], (*uni_sched)[section_idx][day][time_slot].roomID)
+			}
+		}
+	}
+
+	return serialized_data
+}
+
+func DeserializeUniversitySchedule(serialized_data []byte) *UniTimeTables {
+	uni_sched := make(UniTimeTables, (len(serialized_data) / (Const.N_WEEKLY_TIME_SLOTS * TIME_SLOT_BYTE_SIZE)))
+
+	for section_idx := 0; section_idx < len(uni_sched); section_idx++ {
+		for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
+			for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
+				idx_2D_to_1D := (day * Const.N_DAILY_TIME_SLOTS) + time_slot
+				serialized_time_slot_idx := (section_idx*Const.N_WEEKLY_TIME_SLOTS + idx_2D_to_1D) * TIME_SLOT_BYTE_SIZE
+
+				serialized_subject_id := serialized_data[serialized_time_slot_idx : serialized_time_slot_idx+2]
+				serialized_instructor_id := serialized_data[serialized_time_slot_idx+2 : serialized_time_slot_idx+4]
+				serialized_room_id := serialized_data[serialized_time_slot_idx+4 : serialized_time_slot_idx+6]
+
+				uni_sched[section_idx][day][time_slot].subjectID = binary.LittleEndian.Uint16(serialized_subject_id)
+				uni_sched[section_idx][day][time_slot].instructorID = binary.LittleEndian.Uint16(serialized_instructor_id)
+				uni_sched[section_idx][day][time_slot].roomID = binary.LittleEndian.Uint16(serialized_room_id)
+			}
+		}
+	}
+
+	return &uni_sched
 }
 
 type room_count_and_capacity struct {
