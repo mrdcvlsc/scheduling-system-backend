@@ -41,13 +41,13 @@ const (
 // successfully generated a valid university schedules.
 func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTables, error) {
 
-	persistence := Storage.PersistenceService{Service: &Storage.JsonFilePersistence{}}
+	persistence := Storage.PersistenceService{ReaderService: &Storage.JsonFilePersistence{}}
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 
 	list_of_all_rooms := make(map[uint16]map[uint16][]Rooms.Room)
 
 	{
-		all_rooms, err_all_rooms := persistence.Service.GetAllRooms()
+		all_rooms, err_all_rooms := persistence.ReaderService.GetAllRooms()
 
 		if err_all_rooms != nil {
 			return nil, err_all_rooms
@@ -76,7 +76,7 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 	list_of_all_instructors := make(map[uint16][]Instructors.Instructor)
 
 	{
-		all_instructors, err_all_instructors := persistence.Service.GetAllInstructors()
+		all_instructors, err_all_instructors := persistence.ReaderService.GetAllInstructors()
 
 		if err_all_instructors != nil {
 			return nil, err_all_instructors
@@ -99,7 +99,7 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 	map_department_id := make(map[uint16]Departments.Department)
 
 	{
-		all_departments, err_map_department_id := persistence.Service.GetAllDepartments()
+		all_departments, err_map_department_id := persistence.ReaderService.GetAllDepartments()
 
 		if err_map_department_id != nil {
 			return nil, err_map_department_id
@@ -113,7 +113,7 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 	counted_sections := 0
 	individual := make(Schedule.UniTimeTables, 0, 64)
 
-	all_curriculums, err_all_curriculums := persistence.Service.GetAllCurriculum()
+	all_curriculums, err_all_curriculums := persistence.ReaderService.GetAllCurriculum()
 
 	if err_all_curriculums != nil {
 		return nil, err_all_curriculums
@@ -253,10 +253,10 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 										instructor_search_iteration++
 
-										if !is_available_instructor && (time_slot >= (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
+										if (!is_available_instructor && (instructor_idx == len(dept_teachers)-1)) && (time_slot >= (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
 											return individual, fmt.Errorf(
-												"not enough instructors in %s for %s %s section[%d] after generating schedules for %d other sections",
-												map_department_id[curriculum.DepartmentID].Name, curriculum.CurriculumCode, year_level.Name, section, counted_sections,
+												"not enough instructors in %s for %s %s %s section[%d] after generating schedules for %d other sections",
+												map_department_id[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section, counted_sections,
 											)
 										}
 
@@ -339,8 +339,8 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 										if !is_available_room && (time_slot >= (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
 											return individual, fmt.Errorf(
-												"not enough rooms in %s for %s %s section[%d] after generating schedules for %d other sections",
-												map_department_id[curriculum.DepartmentID].Name, curriculum.CurriculumCode, year_level.Name, section, counted_sections,
+												"not enough rooms in %s for %s %s %s section[%d] after generating schedules for %d other sections",
+												map_department_id[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section, counted_sections,
 											)
 										}
 

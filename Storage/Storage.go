@@ -11,7 +11,7 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 )
 
-type persistenceRepository interface {
+type readerRepository interface {
 	GetAllSubjects() ([]Curriculum.Subject, error)
 	GetAllCurriculum() ([]Curriculum.Curriculum, error)
 	GetAllDepartments() ([]Departments.Department, error)
@@ -19,6 +19,11 @@ type persistenceRepository interface {
 	GetAllRooms() ([]Rooms.Room, error)
 }
 
+type writerRepository interface {
+	SaveSchedules() error
+}
+
 type PersistenceService struct {
-	Service persistenceRepository
+	ReaderService readerRepository
+	WriterService writerRepository
 }

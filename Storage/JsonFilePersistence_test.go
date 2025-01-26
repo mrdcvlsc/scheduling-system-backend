@@ -12,8 +12,8 @@ import (
 var TestPersistence Storage.PersistenceService
 
 func TestJsonFilePersistence_GetAllSubjects(t *testing.T) {
-	TestPersistence.Service = &Storage.JsonFilePersistence{}
-	subjects, err := TestPersistence.Service.GetAllSubjects()
+	TestPersistence.ReaderService = &Storage.JsonFilePersistence{}
+	subjects, err := TestPersistence.ReaderService.GetAllSubjects()
 
 	if err != nil {
 		t.Error(err)
@@ -42,8 +42,8 @@ func TestJsonFilePersistence_GetAllSubjects(t *testing.T) {
 }
 
 func TestJsonFilePersistence_GetAllCurriculum(t *testing.T) {
-	TestPersistence.Service = &Storage.JsonFilePersistence{}
-	curriculums, err := TestPersistence.Service.GetAllCurriculum()
+	TestPersistence.ReaderService = &Storage.JsonFilePersistence{}
+	curriculums, err := TestPersistence.ReaderService.GetAllCurriculum()
 
 	if err != nil {
 		t.Error(err)
@@ -78,8 +78,8 @@ func TestJsonFilePersistence_GetAllCurriculum(t *testing.T) {
 }
 
 func TestJsonFilePersistence_GetAllInstructor(t *testing.T) {
-	TestPersistence.Service = &Storage.JsonFilePersistence{}
-	instructors, err := TestPersistence.Service.GetAllInstructors()
+	TestPersistence.ReaderService = &Storage.JsonFilePersistence{}
+	instructors, err := TestPersistence.ReaderService.GetAllInstructors()
 
 	if err != nil {
 		t.Error(err)
@@ -98,8 +98,8 @@ func TestJsonFilePersistence_GetAllInstructor(t *testing.T) {
 }
 
 func TestJsonFilePersistence_GetAllRoom(t *testing.T) {
-	TestPersistence.Service = &Storage.JsonFilePersistence{}
-	rooms, err := TestPersistence.Service.GetAllRooms()
+	TestPersistence.ReaderService = &Storage.JsonFilePersistence{}
+	rooms, err := TestPersistence.ReaderService.GetAllRooms()
 
 	if err != nil {
 		t.Error(err)
@@ -118,8 +118,8 @@ func TestJsonFilePersistence_GetAllRoom(t *testing.T) {
 }
 
 func TestJsonFilePersistence_GetDepartments(t *testing.T) {
-	TestPersistence.Service = &Storage.JsonFilePersistence{}
-	departments, err := TestPersistence.Service.GetAllDepartments()
+	TestPersistence.ReaderService = &Storage.JsonFilePersistence{}
+	departments, err := TestPersistence.ReaderService.GetAllDepartments()
 
 	if err != nil {
 		t.Error(err)

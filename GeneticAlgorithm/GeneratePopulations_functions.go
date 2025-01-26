@@ -16,7 +16,7 @@ func generate_map_list_of_all_rooms(persistence *Storage.PersistenceService) (ma
 
 	list_of_all_rooms := make(map[uint16]map[uint16][]Rooms.Room)
 
-	all_rooms, err := persistence.Service.GetAllRooms()
+	all_rooms, err := persistence.ReaderService.GetAllRooms()
 
 	if err != nil {
 		return nil, err
@@ -47,7 +47,7 @@ func generate_map_list_of_all_rooms(persistence *Storage.PersistenceService) (ma
 func generate_map_list_instructors(persistence *Storage.PersistenceService) (map[uint16][]Instructors.Instructor, error) {
 	list_of_all_instructors := make(map[uint16][]Instructors.Instructor)
 
-	all_instructors, err := persistence.Service.GetAllInstructors()
+	all_instructors, err := persistence.ReaderService.GetAllInstructors()
 
 	if err != nil {
 		return nil, err
@@ -82,12 +82,12 @@ func generate_map_list_instructors(persistence *Storage.PersistenceService) (map
 // * MIN_SUBJECT_ROOM_HOUR_BUFFER = 200, MIN_SUBJECT_INSTRUCTOR_HOUR_BUFFER = 300
 //
 // : 1024 generations => 65% - 68% valid schedules.
-const MIN_SUBJECT_ROOM_HOUR_BUFFER int = 200
+const MIN_SUBJECT_ROOM_HOUR_BUFFER int = 128
 
 // The minimum recommended difference between the total available instructor hours in a department
 // and the total lecture and laboratory hours combined for all subjects in the department.
 // This ensures that schedules can be generated with minimal risk of resource shortages.
-const MIN_SUBJECT_INSTRUCTOR_HOUR_BUFFER int = 350
+const MIN_SUBJECT_INSTRUCTOR_HOUR_BUFFER int = 256
 
 type Totals struct {
 	DepartmentID uint16
@@ -111,14 +111,14 @@ type Totals struct {
 }
 
 func EstimateResourceAvailability(selected_semester, distribution_type int) []error {
-	persistence := Storage.PersistenceService{Service: &Storage.JsonFilePersistence{}}
+	persistence := Storage.PersistenceService{ReaderService: &Storage.JsonFilePersistence{}}
 
-	curriculums, err_curriculum := persistence.Service.GetAllCurriculum()
+	curriculums, err_curriculum := persistence.ReaderService.GetAllCurriculum()
 
 	map_department_id := make(map[uint16]Departments.Department)
 
 	{
-		all_departments, err_map_department_id := persistence.Service.GetAllDepartments()
+		all_departments, err_map_department_id := persistence.ReaderService.GetAllDepartments()
 
 		if err_map_department_id != nil {
 			err_list := make([]error, 0, 2)
@@ -137,7 +137,7 @@ func EstimateResourceAvailability(selected_semester, distribution_type int) []er
 		return list_of_returned_errors
 	}
 
-	instructors, err_instructor := persistence.Service.GetAllInstructors()
+	instructors, err_instructor := persistence.ReaderService.GetAllInstructors()
 
 	if err_instructor != nil {
 		list_of_returned_errors := make([]error, 0, 2)
@@ -145,7 +145,7 @@ func EstimateResourceAvailability(selected_semester, distribution_type int) []er
 		return list_of_returned_errors
 	}
 
-	rooms, err_room := persistence.Service.GetAllRooms()
+	rooms, err_room := persistence.ReaderService.GetAllRooms()
 
 	if err_room != nil {
 		list_of_returned_errors := make([]error, 0, 2)
