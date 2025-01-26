@@ -1,4 +1,57 @@
 @startuml
+namespace Curriculum {
+    class Curriculum << (S,Aquamarine) >> {
+        + CurriculumID uint16
+        + CurriculumName string
+        + CurriculumCode string
+        + DepartmentID uint16
+        + YearLevels []YearLevel
+
+    }
+    class Semester << (S,Aquamarine) >> {
+        + Name string
+        + Sections int
+        + Subjects []Subject
+
+    }
+    class Subject << (S,Aquamarine) >> {
+        + ID uint16
+        + Code string
+        + Name string
+        + LecHours uint8
+        + LabHours uint8
+        + BitFlags uint16
+        + DesignatedInstructors []uint16
+
+        + Serialize() uint32
+        + Deserialize(serialized_data uint32) 
+        + IsGymType() bool
+
+    }
+    class YearLevel << (S,Aquamarine) >> {
+        + Name string
+        + IsActive bool
+        + Semesters []Semester
+
+    }
+}
+
+
+"Curriculum.Curriculum""uses" o-- "Curriculum.YearLevel"
+"Curriculum.Semester""uses" o-- "Curriculum.Subject"
+"Curriculum.YearLevel""uses" o-- "Curriculum.Semester"
+
+namespace Departments {
+    class Department << (S,Aquamarine) >> {
+        + DepartmentID uint16
+        + Code string
+        + Name string
+
+    }
+}
+
+
+
 namespace Instructors {
     class Instructor << (S,Aquamarine) >> {
         + InstructorID uint16
@@ -22,16 +75,21 @@ namespace Instructors {
 }
 
 
-"Instructors.Instructor" o-- "Instructors.InstructorTimeSlotMap"
+"Instructors.Instructor""uses" o-- "Instructors.InstructorTimeSlotMap"
 
 namespace Rooms {
     class Room << (S,Aquamarine) >> {
+        - timeSlotClassCount []uint8
+
         + RoomID uint16
         + DepartmentID uint16
         + Capacity uint16
         + RoomType uint16
         + Name string
-        + TimeSlotAllocCount [][]uint8
+
+        + SetTimeSlotClassCount(day int, time_slot int, class_count uint8) 
+        + IncTimeSlotClassCount(day int, time_slot int) 
+        + GetTimeSlotClassCount(day int, time_slot int) uint8
 
     }
 }
@@ -71,12 +129,35 @@ namespace Schedule {
         + ToggleCFlagRoomID() 
 
     }
+    class UniInstructorValidationError << (S,Aquamarine) >> {
+        + Msg string
+        + Day int
+        + TimeSlot int
+        + InstructorID uint16
+        + OverlappingSections []uint16
+
+    }
+    class UniRoomValidationError << (S,Aquamarine) >> {
+        + Msg string
+        + Day int
+        + TimeSlot int
+        + RooomID uint16
+        + OverlappingSections []uint16
+
+    }
     class UniTimeTables << (S,Aquamarine) >> {
         + Get(class_section_idx int) *WeekTimeTable
+        + IsEmpty() bool
+        + Validate() []error
 
     }
     class WeekTimeTable << (S,Aquamarine) >> {
         + Get(day_idx int) *DayTimeTable
+
+    }
+    class room_count_and_capacity << (S,Aquamarine) >> {
+        + OverlappingSections []uint16
+        + Capacity uint16
 
     }
 }
@@ -85,71 +166,60 @@ namespace Schedule {
 
 namespace Storage {
     class JsonFilePersistence << (S,Aquamarine) >> {
-        + GetAllRooms() []Rooms.Room
-        + GetAllInstructors() []Instructors.Instructor
-        + GetAllCurriculum() []Curriculum.Curriculum
+        + GetAllRooms() ([]Rooms.Room, error)
+        + GetAllInstructors() ([]Instructors.Instructor, error)
+        + GetAllCurriculum() ([]Curriculum.Curriculum, error)
+        + GetAllSubjects() ([]Curriculum.Subject, error)
+        + GetAllDepartments() ([]Departments.Department, error)
 
     }
     class PersistenceService << (S,Aquamarine) >> {
-        + Service persistenceRepository
+        + ReaderService readerRepository
+        + WriterService writerRepository
 
     }
-    interface persistenceRepository  {
-        + GetAllCurriculum() []Curriculum.Curriculum
-        + GetAllInstructors() []Instructors.Instructor
-        + GetAllRooms() []Rooms.Room
+    interface readerRepository  {
+        + GetAllSubjects() ([]Curriculum.Subject, error)
+        + GetAllCurriculum() ([]Curriculum.Curriculum, error)
+        + GetAllDepartments() ([]Departments.Department, error)
+        + GetAllInstructors() ([]Instructors.Instructor, error)
+        + GetAllRooms() ([]Rooms.Room, error)
+
+    }
+    interface writerRepository  {
+        + SaveSchedules() error
 
     }
 }
 
-"Storage.persistenceRepository" <|-- "Storage.JsonFilePersistence"
+"Storage.readerRepository" <|-- "implements""Storage.JsonFilePersistence"
 
-"Storage.PersistenceService" o-- "Storage.persistenceRepository"
+"Storage.PersistenceService""uses" o-- "Storage.readerRepository"
+"Storage.PersistenceService""uses" o-- "Storage.writerRepository"
 
-namespace curriculum {
-    class Curriculum << (S,Aquamarine) >> {
-        + CurriculumID uint16
-        + CurriculumName string
-        + CurriculumCode string
+namespace geneticalgorithm {
+    class Totals << (S,Aquamarine) >> {
         + DepartmentID uint16
-        + YearLevels []YearLevel
-
-    }
-    class Semester << (S,Aquamarine) >> {
-        + Name string
-        + Sections int
-        + Subjects []Subject
-
-    }
-    class Subject << (S,Aquamarine) >> {
-        + ID uint16
-        + Code string
-        + Name string
-        + LecHours uint8
-        + LabHours uint8
-        + BitFlags uint16
-        + DesignatedInstructorsID []uint16
-
-        + Serialize() uint32
-        + Deserialize(serialized_data uint32) 
-        + IsGymType() bool
-
-    }
-    class YearLevel << (S,Aquamarine) >> {
-        + Name string
-        + IsActive bool
-        + Semesters []Semester
+        + SectionCount int
+        + LecRoomHours int
+        + LabRoomHours int
+        + GymRoomHours int
+        + InstructorHours float64
+        + InstructorCount int
+        + SubjectLecHours int
+        + SubjectLabHours int
+        + SubjectGymHours int
+        + RoomCapacity int
+        + Semester int
+        + DepartmentName string
 
     }
 }
 
 
-"curriculum.Curriculum" o-- "curriculum.YearLevel"
-"curriculum.Semester" o-- "curriculum.Subject"
-"curriculum.YearLevel" o-- "curriculum.Semester"
 
-"Schedule.[]DayTimeTable" #.. "Schedule.WeekTimeTable"
-"Schedule.[]TimeSlot" #.. "Schedule.DayTimeTable"
-"Schedule.[]WeekTimeTable" #.. "Schedule.UniTimeTables"
-"__builtin__.[]uint64" #.. "Instructors.InstructorTimeSlotMap"
+"Schedule.[]DayTimeTable" #.. "alias of""Schedule.WeekTimeTable"
+"Schedule.[]TimeSlot" #.. "alias of""Schedule.DayTimeTable"
+"Schedule.[]WeekTimeTable" #.. "alias of""Schedule.UniTimeTables"
+"__builtin__.[]uint64" #.. "alias of""Instructors.InstructorTimeSlotMap"
 @enduml
