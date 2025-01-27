@@ -82,12 +82,12 @@ func generate_map_list_instructors(persistence *Storage.PersistenceService) (map
 // * MIN_SUBJECT_ROOM_HOUR_BUFFER = 200, MIN_SUBJECT_INSTRUCTOR_HOUR_BUFFER = 300
 //
 // : 1024 generations => 65% - 68% valid schedules.
-const MIN_SUBJECT_ROOM_HOUR_BUFFER int = 128
+const MIN_SUBJECT_ROOM_HOUR_BUFFER int = 150
 
 // The minimum recommended difference between the total available instructor hours in a department
 // and the total lecture and laboratory hours combined for all subjects in the department.
 // This ensures that schedules can be generated with minimal risk of resource shortages.
-const MIN_SUBJECT_INSTRUCTOR_HOUR_BUFFER int = 256
+const MIN_SUBJECT_INSTRUCTOR_HOUR_BUFFER int = 192
 
 type Totals struct {
 	DepartmentID uint16
@@ -108,6 +108,7 @@ type Totals struct {
 
 	Semester       int
 	DepartmentName string
+	Courses        int
 }
 
 func EstimateResourceAvailability(selected_semester, distribution_type int) []error {
@@ -217,6 +218,23 @@ func EstimateResourceAvailability(selected_semester, distribution_type int) []er
 	}
 
 	for _, curriculum := range curriculums {
+
+		_, ok := totals[curriculum.DepartmentID]
+
+		if !ok {
+			totals[curriculum.DepartmentID] = &Totals{
+				DepartmentID: curriculum.DepartmentID,
+				Courses:      1,
+			}
+		} else {
+			totals[curriculum.DepartmentID].DepartmentID = curriculum.DepartmentID
+			totals[curriculum.DepartmentID].Courses++
+
+			if len(totals[curriculum.DepartmentID].DepartmentName) == 0 {
+				totals[curriculum.DepartmentID].DepartmentName = map_department_id[curriculum.DepartmentID].Name
+			}
+		}
+
 		for _, year_level := range curriculum.YearLevels {
 			for semester_idx, semester := range year_level.Semesters {
 				if semester_idx == selected_semester {
@@ -239,29 +257,11 @@ func EstimateResourceAvailability(selected_semester, distribution_type int) []er
 					total_lab_hours_for_course_level *= semester.Sections
 					total_gym_hours_for_course_level *= semester.Sections
 
-					_, ok := totals[curriculum.DepartmentID]
-
-					if !ok {
-						totals[curriculum.DepartmentID] = &Totals{
-							DepartmentID:    curriculum.DepartmentID,
-							Semester:        semester_idx,
-							SubjectLecHours: total_lec_hours_for_course_level,
-							SubjectLabHours: total_lab_hours_for_course_level,
-							SubjectGymHours: total_gym_hours_for_course_level,
-							SectionCount:    semester.Sections,
-						}
-					} else {
-						totals[curriculum.DepartmentID].DepartmentID = curriculum.DepartmentID
-						totals[curriculum.DepartmentID].Semester = semester_idx
-						totals[curriculum.DepartmentID].SubjectLecHours += total_lec_hours_for_course_level
-						totals[curriculum.DepartmentID].SubjectLabHours += total_lab_hours_for_course_level
-						totals[curriculum.DepartmentID].SubjectGymHours += total_gym_hours_for_course_level
-						totals[curriculum.DepartmentID].SectionCount += semester.Sections
-					}
-
-					if len(totals[curriculum.DepartmentID].DepartmentName) == 0 {
-						totals[curriculum.DepartmentID].DepartmentName = map_department_id[curriculum.DepartmentID].Name
-					}
+					totals[curriculum.DepartmentID].Semester = semester_idx
+					totals[curriculum.DepartmentID].SubjectLecHours += total_lec_hours_for_course_level
+					totals[curriculum.DepartmentID].SubjectLabHours += total_lab_hours_for_course_level
+					totals[curriculum.DepartmentID].SubjectGymHours += total_gym_hours_for_course_level
+					totals[curriculum.DepartmentID].SectionCount += semester.Sections
 				}
 			}
 		}
