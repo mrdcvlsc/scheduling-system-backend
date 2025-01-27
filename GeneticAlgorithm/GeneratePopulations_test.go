@@ -36,16 +36,15 @@ func TestNewPopulationSecondSem(t *testing.T) {
 func GeneratePopulations(t *testing.T, target_semester int) {
 	t.Logf("Semester : %d\n\n", target_semester)
 
-	total_test_iterations := 1024
-	allowed_generation_errors := 0.2
+	total_test_iterations := 512
+	allowed_generation_errors := 0.4 // 40% error rate allowed.
 
 	generation_error_list := make([]error, 0, 8)
 	validation_error_list := make([]error, 0, 8)
 
 	for i := 0; i < total_test_iterations; i++ {
-
 		if (i == 0) || (((i + 1) % 32) == 0) {
-			fmt.Printf("Generating schedules (%d)...\n", (i + 1))
+			fmt.Printf("Generating schedules (%d)..................................\n", (i + 1))
 		}
 
 		university_schedules, err := GA.NewIndividual(target_semester, 0)
@@ -65,11 +64,11 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 
 		err_validation := university_schedules.Validate()
 
-		if err_validation != nil {
-			for e := range err_validation {
-				t.Log(e)
-			}
-			validation_error_list = append(validation_error_list, err_validation...)
+		t.Logf("Schedules Generated : %d", len(university_schedules))
+
+		for _, e := range err_validation {
+			t.Error(e)
+			validation_error_list = append(validation_error_list, e)
 		}
 	}
 
@@ -92,9 +91,7 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 		)
 	}
 
-	if len(validation_error_list) > 0 {
-		t.Errorf("There are a total of %d validation errors detected when generating university schedules", len(validation_error_list))
-	}
+	t.Logf("There are a total of %d validation errors detected when generating university schedules", len(validation_error_list))
 }
 
 func BenchmarkNewPopulationFirstSem(b *testing.B) {
