@@ -26,6 +26,8 @@ const (
 	DIST_BACK_LOOSE       int = 3
 )
 
+const MAX_SECTION_SCHEDULE_GENERATION_RETRY int = 50
+
 // Generate individual university schedules.
 //
 // Different return types:
@@ -140,7 +142,11 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 				// generate week time table for each sections
 
-				for section := 0; section < semester.Sections; section++ {
+				section_generation_retries := 0
+				var section int
+
+			section_loop:
+				for section = 0; section < semester.Sections; section++ {
 
 					week_time_table := Schedule.WeekTimeTable{}
 
@@ -174,7 +180,11 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 						// iterate over the class type of the subject lec = 0 or lab = 1
 
-						for class_type := 0; class_type < 2; class_type++ {
+						rand_class_type := int(rng.Int31n(2))
+
+						for class_type_iter := 0; class_type_iter < 2; class_type_iter++ {
+
+							class_type := (rand_class_type + class_type_iter) % 2
 
 							var selected_room *Rooms.Room
 
@@ -254,9 +264,16 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 										instructor_search_iteration++
 
 										if (!is_available_instructor && (instructor_idx == len(dept_teachers)-1)) && (time_slot >= (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
+
+											if section_generation_retries < MAX_SECTION_SCHEDULE_GENERATION_RETRY {
+												section_generation_retries++
+												section--
+												continue section_loop
+											}
+
 											return individual, fmt.Errorf(
-												"not enough instructors in %s for %s %s %s section[%d] after generating schedules for %d other sections",
-												map_department_id[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section, counted_sections,
+												"not enough instructors (%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
+												instructor_idx, map_department_id[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section, counted_sections,
 											)
 										}
 
@@ -338,9 +355,16 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 										room_search_iteration++
 
 										if !is_available_room && (time_slot >= (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
+
+											if section_generation_retries < MAX_SECTION_SCHEDULE_GENERATION_RETRY {
+												section_generation_retries++
+												section--
+												continue section_loop
+											}
+
 											return individual, fmt.Errorf(
-												"not enough rooms in %s for %s %s %s section[%d] after generating schedules for %d other sections",
-												map_department_id[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section, counted_sections,
+												"not enough rooms (type:%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
+												room_type, map_department_id[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section, counted_sections,
 											)
 										}
 
@@ -403,6 +427,7 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 									//                 BREAK day AND time_slot LOOP
 									/////////////////////////////////////////////////////////////////////////////////
 
+									section_generation_retries = 0
 									day = 9999
 									time_slot = 9999
 								}
