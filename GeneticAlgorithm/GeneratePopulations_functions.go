@@ -69,6 +69,22 @@ func generate_map_list_instructors(persistence *Storage.PersistenceService) (map
 	return list_of_all_instructors, nil
 }
 
+func generate_map_department_id(persistence *Storage.PersistenceService) (map[uint16]Departments.Department, error) {
+	map_department_id := make(map[uint16]Departments.Department)
+
+	all_departments, err_map_department_id := persistence.ReaderService.GetAllDepartments()
+
+	if err_map_department_id != nil {
+		return nil, err_map_department_id
+	}
+
+	for _, department := range all_departments {
+		map_department_id[department.DepartmentID] = department
+	}
+
+	return map_department_id, nil
+}
+
 ////////////////////////////////////////////////////////////////////////////////////
 //              CHECK IF THERE IS ENOUGH INSTRUCTORS FOR THE SCHEDULES
 ////////////////////////////////////////////////////////////////////////////////////
@@ -105,10 +121,14 @@ type Totals struct {
 	SubjectGymHours int
 
 	RoomCapacity int
+	RoomLabCount int
+	RoomLecCount int
 
-	Semester       int
-	DepartmentName string
-	Courses        int
+	Semester        int
+	DepartmentName  string
+	Courses         int
+	LecSubjectCount int
+	LabSubjectCount int
 }
 
 func EstimateResourceAvailability(selected_semester, distribution_type int) []error {
@@ -164,11 +184,13 @@ func EstimateResourceAvailability(selected_semester, distribution_type int) []er
 				totals[room.DepartmentID] = &Totals{
 					LecRoomHours: Const.N_WEEKLY_SCHOOL_DAYS * Const.N_DAILY_SCHOOL_HOURS * int(room.Capacity),
 					RoomCapacity: int(room.Capacity),
+					RoomLecCount: 1,
 				}
 			} else if room.RoomType == Rooms.ROOM_TYPE_LAB {
 				totals[room.DepartmentID] = &Totals{
 					LabRoomHours: Const.N_WEEKLY_SCHOOL_DAYS * Const.N_DAILY_SCHOOL_HOURS * int(room.Capacity),
 					RoomCapacity: int(room.Capacity),
+					RoomLabCount: 1,
 				}
 			} else if room.RoomType == Rooms.ROOM_TYPE_GYM {
 				totals[room.DepartmentID] = &Totals{
@@ -179,11 +201,14 @@ func EstimateResourceAvailability(selected_semester, distribution_type int) []er
 		} else {
 			if room.RoomType == Rooms.ROOM_TYPE_LEC {
 				totals[room.DepartmentID].LecRoomHours += (Const.N_WEEKLY_SCHOOL_DAYS * Const.N_DAILY_SCHOOL_HOURS * int(room.Capacity))
+				totals[room.DepartmentID].RoomLecCount += int(room.Capacity)
 			} else if room.RoomType == Rooms.ROOM_TYPE_LAB {
 				totals[room.DepartmentID].LabRoomHours += (Const.N_WEEKLY_SCHOOL_DAYS * Const.N_DAILY_SCHOOL_HOURS * int(room.Capacity))
+				totals[room.DepartmentID].RoomLabCount += int(room.Capacity)
 			} else if room.RoomType == Rooms.ROOM_TYPE_GYM {
 				totals[room.DepartmentID].GymRoomHours += (Const.N_WEEKLY_SCHOOL_DAYS * Const.N_DAILY_SCHOOL_HOURS * int(room.Capacity))
 			}
+
 			totals[room.DepartmentID].RoomCapacity += int(room.Capacity)
 		}
 	}
@@ -251,6 +276,15 @@ func EstimateResourceAvailability(selected_semester, distribution_type int) []er
 						}
 
 						total_lab_hours_for_course_level += int(subject.LabHours)
+
+						if subject.LecHours > 0 {
+							totals[curriculum.DepartmentID].LecSubjectCount++
+						}
+
+						if subject.LabHours > 0 {
+							totals[curriculum.DepartmentID].LabSubjectCount++
+						}
+
 					}
 
 					total_lec_hours_for_course_level *= semester.Sections
