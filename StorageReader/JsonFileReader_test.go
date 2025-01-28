@@ -1,19 +1,19 @@
-package Storage_test
+package StorageReader_test
 
 import (
 	"fmt"
 	"strings"
 	"testing"
 
-	"github.com/mrdcvlsc/scheduling-system-backend/Storage"
+	"github.com/mrdcvlsc/scheduling-system-backend/StorageReader"
 	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
-var TestPersistence Storage.PersistenceService
+var TestPersistence StorageReader.Persistence
 
 func TestJsonFilePersistence_GetAllSubjects(t *testing.T) {
-	TestPersistence.ReaderService = &Storage.JsonFilePersistence{}
-	subjects, err := TestPersistence.ReaderService.GetAllSubjects()
+	TestPersistence.Service = &StorageReader.JsonReader{}
+	subjects, err := TestPersistence.Service.GetAllSubjects()
 
 	if err != nil {
 		t.Error(err)
@@ -42,8 +42,8 @@ func TestJsonFilePersistence_GetAllSubjects(t *testing.T) {
 }
 
 func TestJsonFilePersistence_GetAllCurriculum(t *testing.T) {
-	TestPersistence.ReaderService = &Storage.JsonFilePersistence{}
-	curriculums, err := TestPersistence.ReaderService.GetAllCurriculum()
+	TestPersistence.Service = &StorageReader.JsonReader{}
+	curriculums, err := TestPersistence.Service.GetAllCurriculum()
 
 	if err != nil {
 		t.Error(err)
@@ -78,8 +78,8 @@ func TestJsonFilePersistence_GetAllCurriculum(t *testing.T) {
 }
 
 func TestJsonFilePersistence_GetAllInstructor(t *testing.T) {
-	TestPersistence.ReaderService = &Storage.JsonFilePersistence{}
-	instructors, err := TestPersistence.ReaderService.GetAllInstructors()
+	TestPersistence.Service = &StorageReader.JsonReader{}
+	instructors, err := TestPersistence.Service.GetAllInstructors()
 
 	if err != nil {
 		t.Error(err)
@@ -98,8 +98,8 @@ func TestJsonFilePersistence_GetAllInstructor(t *testing.T) {
 }
 
 func TestJsonFilePersistence_GetAllRoom(t *testing.T) {
-	TestPersistence.ReaderService = &Storage.JsonFilePersistence{}
-	rooms, err := TestPersistence.ReaderService.GetAllRooms()
+	TestPersistence.Service = &StorageReader.JsonReader{}
+	rooms, err := TestPersistence.Service.GetAllRooms()
 
 	if err != nil {
 		t.Error(err)
@@ -118,8 +118,8 @@ func TestJsonFilePersistence_GetAllRoom(t *testing.T) {
 }
 
 func TestJsonFilePersistence_GetDepartments(t *testing.T) {
-	TestPersistence.ReaderService = &Storage.JsonFilePersistence{}
-	departments, err := TestPersistence.ReaderService.GetAllDepartments()
+	TestPersistence.Service = &StorageReader.JsonReader{}
+	departments, err := TestPersistence.Service.GetAllDepartments()
 
 	if err != nil {
 		t.Error(err)

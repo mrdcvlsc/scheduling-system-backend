@@ -8,15 +8,15 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Departments"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
-	"github.com/mrdcvlsc/scheduling-system-backend/Storage"
+	"github.com/mrdcvlsc/scheduling-system-backend/StorageReader"
 	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
-func generate_map_list_of_all_rooms(persistence *Storage.PersistenceService) (map[uint16]map[uint16][]Rooms.Room, error) {
+func generate_map_list_of_all_rooms(persistence *StorageReader.Persistence) (map[uint16]map[uint16][]Rooms.Room, error) {
 
 	list_of_all_rooms := make(map[uint16]map[uint16][]Rooms.Room)
 
-	all_rooms, err := persistence.ReaderService.GetAllRooms()
+	all_rooms, err := persistence.Service.GetAllRooms()
 
 	if err != nil {
 		return nil, err
@@ -44,10 +44,10 @@ func generate_map_list_of_all_rooms(persistence *Storage.PersistenceService) (ma
 	return list_of_all_rooms, nil
 }
 
-func generate_map_list_instructors(persistence *Storage.PersistenceService) (map[uint16][]Instructors.Instructor, error) {
+func generate_map_list_instructors(persistence *StorageReader.Persistence) (map[uint16][]Instructors.Instructor, error) {
 	list_of_all_instructors := make(map[uint16][]Instructors.Instructor)
 
-	all_instructors, err := persistence.ReaderService.GetAllInstructors()
+	all_instructors, err := persistence.Service.GetAllInstructors()
 
 	if err != nil {
 		return nil, err
@@ -69,10 +69,10 @@ func generate_map_list_instructors(persistence *Storage.PersistenceService) (map
 	return list_of_all_instructors, nil
 }
 
-func generate_map_department_id(persistence *Storage.PersistenceService) (map[uint16]Departments.Department, error) {
+func generate_map_department_id(persistence *StorageReader.Persistence) (map[uint16]Departments.Department, error) {
 	map_department_id := make(map[uint16]Departments.Department)
 
-	all_departments, err_map_department_id := persistence.ReaderService.GetAllDepartments()
+	all_departments, err_map_department_id := persistence.Service.GetAllDepartments()
 
 	if err_map_department_id != nil {
 		return nil, err_map_department_id
@@ -132,14 +132,14 @@ type Totals struct {
 }
 
 func EstimateResourceAvailability(selected_semester, distribution_type int) []error {
-	persistence := Storage.PersistenceService{ReaderService: &Storage.JsonFilePersistence{}}
+	persistence := StorageReader.Persistence{Service: &StorageReader.JsonReader{}}
 
-	curriculums, err_curriculum := persistence.ReaderService.GetAllCurriculum()
+	curriculums, err_curriculum := persistence.Service.GetAllCurriculum()
 
 	map_department_id := make(map[uint16]Departments.Department)
 
 	{
-		all_departments, err_map_department_id := persistence.ReaderService.GetAllDepartments()
+		all_departments, err_map_department_id := persistence.Service.GetAllDepartments()
 
 		if err_map_department_id != nil {
 			err_list := make([]error, 0, 2)
@@ -158,7 +158,7 @@ func EstimateResourceAvailability(selected_semester, distribution_type int) []er
 		return list_of_returned_errors
 	}
 
-	instructors, err_instructor := persistence.ReaderService.GetAllInstructors()
+	instructors, err_instructor := persistence.Service.GetAllInstructors()
 
 	if err_instructor != nil {
 		list_of_returned_errors := make([]error, 0, 2)
@@ -166,7 +166,7 @@ func EstimateResourceAvailability(selected_semester, distribution_type int) []er
 		return list_of_returned_errors
 	}
 
-	rooms, err_room := persistence.ReaderService.GetAllRooms()
+	rooms, err_room := persistence.Service.GetAllRooms()
 
 	if err_room != nil {
 		list_of_returned_errors := make([]error, 0, 2)

@@ -1,10 +1,6 @@
-package Storage
+package StorageReader
 
 import (
-	// "fmt"
-	// "testing"
-
-	// storage "github.com/mrdcvlsc/scheduling-system-backend/Storage"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Departments"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
@@ -19,11 +15,6 @@ type readerRepository interface {
 	GetAllRooms() ([]Rooms.Room, error)
 }
 
-type writerRepository interface {
-	SaveSchedules() error
-}
-
-type PersistenceService struct {
-	ReaderService readerRepository
-	WriterService writerRepository
+type Persistence struct {
+	Service readerRepository
 }

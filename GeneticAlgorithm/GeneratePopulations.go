@@ -10,7 +10,7 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Schedule"
-	"github.com/mrdcvlsc/scheduling-system-backend/Storage"
+	"github.com/mrdcvlsc/scheduling-system-backend/StorageReader"
 )
 
 const (
@@ -42,7 +42,7 @@ const MAX_SECTION_SCHEDULE_GENERATION_RETRY int = 3
 // successfully generated a valid university schedules.
 func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTables, error) {
 
-	persistence := Storage.PersistenceService{ReaderService: &Storage.JsonFilePersistence{}}
+	persistence := StorageReader.Persistence{Service: &StorageReader.JsonReader{}}
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -74,7 +74,7 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 	counted_sections := 0
 	individual := make(Schedule.UniTimeTables, 0, 64)
 
-	all_curriculums, err_all_curriculums := persistence.ReaderService.GetAllCurriculum()
+	all_curriculums, err_all_curriculums := persistence.Service.GetAllCurriculum()
 
 	if err_all_curriculums != nil {
 		return nil, err_all_curriculums

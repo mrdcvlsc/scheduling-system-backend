@@ -1,4 +1,4 @@
-package Storage
+package StorageReader
 
 import (
 	"encoding/json"
@@ -13,9 +13,9 @@ import (
 )
 
 // this type is for development and testing only
-type JsonFilePersistence struct{}
+type JsonReader struct{}
 
-func (s *JsonFilePersistence) GetAllRooms() ([]Rooms.Room, error) {
+func (s *JsonReader) GetAllRooms() ([]Rooms.Room, error) {
 
 	projectRoot, err_find_root := Utils.FindProjectRoot()
 	if err_find_root != nil {
@@ -43,7 +43,7 @@ func (s *JsonFilePersistence) GetAllRooms() ([]Rooms.Room, error) {
 	return all_rooms, nil
 }
 
-func (s *JsonFilePersistence) GetAllInstructors() ([]Instructors.Instructor, error) {
+func (s *JsonReader) GetAllInstructors() ([]Instructors.Instructor, error) {
 
 	projectRoot, err_find_root := Utils.FindProjectRoot()
 	if err_find_root != nil {
@@ -71,7 +71,7 @@ func (s *JsonFilePersistence) GetAllInstructors() ([]Instructors.Instructor, err
 	return all_instructors, nil
 }
 
-func (s *JsonFilePersistence) GetAllCurriculum() ([]Curriculum.Curriculum, error) {
+func (s *JsonReader) GetAllCurriculum() ([]Curriculum.Curriculum, error) {
 
 	// map for getting subject id using subject code
 	subject_code_map_id := make(map[string]uint16)
@@ -134,7 +134,7 @@ func (s *JsonFilePersistence) GetAllCurriculum() ([]Curriculum.Curriculum, error
 	return all_curriculums, nil
 }
 
-func (s *JsonFilePersistence) GetAllSubjects() ([]Curriculum.Subject, error) {
+func (s *JsonReader) GetAllSubjects() ([]Curriculum.Subject, error) {
 
 	projectRoot, err_find_root := Utils.FindProjectRoot()
 	if err_find_root != nil {
@@ -162,7 +162,7 @@ func (s *JsonFilePersistence) GetAllSubjects() ([]Curriculum.Subject, error) {
 	return subject_data, nil
 }
 
-func (s *JsonFilePersistence) GetAllDepartments() ([]Departments.Department, error) {
+func (s *JsonReader) GetAllDepartments() ([]Departments.Department, error) {
 
 	projectRoot, err_find_root := Utils.FindProjectRoot()
 	if err_find_root != nil {
