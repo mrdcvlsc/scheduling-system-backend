@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
-	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Departments"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Schedule"
@@ -26,7 +25,7 @@ const (
 	DIST_BACK_LOOSE       int = 3
 )
 
-const MAX_SECTION_SCHEDULE_GENERATION_RETRY int = 50
+const MAX_SECTION_SCHEDULE_GENERATION_RETRY int = 3
 
 // Generate individual university schedules.
 //
@@ -46,71 +45,31 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 	persistence := Storage.PersistenceService{ReaderService: &Storage.JsonFilePersistence{}}
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 
-	list_of_all_rooms := make(map[uint16]map[uint16][]Rooms.Room)
+	////////////////////////////////////////////////////////////////////////////////////////
 
-	{
-		all_rooms, err_all_rooms := persistence.ReaderService.GetAllRooms()
+	list_of_all_rooms, err_all_rooms := generate_map_list_of_all_rooms(&persistence)
 
-		if err_all_rooms != nil {
-			return nil, err_all_rooms
-		}
-
-		for _, room := range all_rooms {
-			_, dept_key_exist := list_of_all_rooms[room.DepartmentID]
-
-			if !dept_key_exist {
-				list_of_all_rooms[room.DepartmentID] = make(map[uint16][]Rooms.Room)
-			}
-
-			_, roomtype_key_exist := list_of_all_rooms[room.DepartmentID][room.RoomType]
-
-			if !roomtype_key_exist {
-				list_of_all_rooms[room.DepartmentID][room.RoomType] = make([]Rooms.Room, 1, 8)
-				list_of_all_rooms[room.DepartmentID][room.RoomType][0] = room
-			} else {
-				list_of_all_rooms[room.DepartmentID][room.RoomType] = append(
-					list_of_all_rooms[room.DepartmentID][room.RoomType], room,
-				)
-			}
-		}
+	if err_all_rooms != nil {
+		return nil, err_all_rooms
 	}
 
-	list_of_all_instructors := make(map[uint16][]Instructors.Instructor)
+	////////////////////////////////////////////////////////////////////////////////////////
 
-	{
-		all_instructors, err_all_instructors := persistence.ReaderService.GetAllInstructors()
+	list_of_all_instructors, err_all_instructors := generate_map_list_instructors(&persistence)
 
-		if err_all_instructors != nil {
-			return nil, err_all_instructors
-		}
-
-		for _, instructor := range all_instructors {
-			_, exist := list_of_all_instructors[instructor.DepartmentID]
-
-			if !exist {
-				list_of_all_instructors[instructor.DepartmentID] = make([]Instructors.Instructor, 1, 8)
-				list_of_all_instructors[instructor.DepartmentID][0] = instructor
-			} else {
-				list_of_all_instructors[instructor.DepartmentID] = append(
-					list_of_all_instructors[instructor.DepartmentID], instructor,
-				)
-			}
-		}
+	if err_all_instructors != nil {
+		return nil, err_all_instructors
 	}
 
-	map_department_id := make(map[uint16]Departments.Department)
+	////////////////////////////////////////////////////////////////////////////////////////
 
-	{
-		all_departments, err_map_department_id := persistence.ReaderService.GetAllDepartments()
+	map_department_id, err_map_department_id := generate_map_department_id(&persistence)
 
-		if err_map_department_id != nil {
-			return nil, err_map_department_id
-		}
-
-		for _, department := range all_departments {
-			map_department_id[department.DepartmentID] = department
-		}
+	if err_map_department_id != nil {
+		return nil, err_map_department_id
 	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
 
 	counted_sections := 0
 	individual := make(Schedule.UniTimeTables, 0, 64)
@@ -363,8 +322,8 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 											}
 
 											return individual, fmt.Errorf(
-												"not enough rooms (type:%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
-												room_type, map_department_id[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section, counted_sections,
+												"not enough rooms (%d)-(type:%d) () in %s for %s %s %s section[%d] after generating schedules for %d other sections",
+												len(dept_rooms[room_type]), room_type, map_department_id[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section, counted_sections,
 											)
 										}
 
