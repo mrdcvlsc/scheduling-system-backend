@@ -236,6 +236,15 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 											)
 										}
 
+										if !is_available_instructor && selected_instructor != nil {
+
+											// TODO: debug later because even though this should speed up the algorithm,
+											// it seems that it is not happening often so it does not provide considerable
+											// amout of speed in performance.
+
+											break // immediately find other time slots if there is already a selected instructor yet is not available
+										}
+
 										if !is_available_instructor {
 											// fmt.Printf("No instructor found available for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
 											continue // find another instructor if not available for the time slot
@@ -322,7 +331,7 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 											}
 
 											return individual, fmt.Errorf(
-												"not enough rooms (%d)-(type:%d) () in %s for %s %s %s section[%d] after generating schedules for %d other sections",
+												"not enough rooms (%d)-(type:%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
 												len(dept_rooms[room_type]), room_type, map_department_id[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section, counted_sections,
 											)
 										}
