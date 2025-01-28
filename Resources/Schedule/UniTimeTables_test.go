@@ -12,6 +12,8 @@ import (
 
 func Test_UniTimeTablesSerializationAndDeserialization(t *testing.T) {
 
+	var wrote_sched Schedule.UniTimeTables
+
 	{
 		uni_sched, err := geneticalgorithm.NewIndividual(0, 0)
 
@@ -23,11 +25,13 @@ func Test_UniTimeTablesSerializationAndDeserialization(t *testing.T) {
 			t.Fatal("there was no schedule generated to be tested")
 		}
 
-		serialized_data := Schedule.SerializeUniversitySchedule(&uni_sched)
+		serialized_data := Schedule.SerializeUniversitySchedule(uni_sched)
 
 		if err := Utils.SaveToBinFile("tmp-university.schedule", serialized_data); err != nil {
 			t.Fatalf("failed to save serialized data to binary file: %v\n", err)
 		}
+
+		wrote_sched = uni_sched
 	}
 
 	{
@@ -39,11 +43,11 @@ func Test_UniTimeTablesSerializationAndDeserialization(t *testing.T) {
 
 		deserialize_data := Schedule.DeserializeUniversitySchedule(read_bytes)
 
-		for section_idx, original := range *deserialize_data {
+		for section_idx, original := range deserialize_data {
 			for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
 				for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
-					if (*deserialize_data)[section_idx][day][time_slot] != original[day][time_slot] {
-						t.Errorf("Data missmatch at time slot (day: %d, time_slot:%d)\n", day, time_slot)
+					if wrote_sched[section_idx][day][time_slot] != original[day][time_slot] {
+						t.Errorf("Data missmatch at section index %d, time slot (day: %d, time_slot:%d)\n", section_idx, day, time_slot)
 					}
 				}
 			}
