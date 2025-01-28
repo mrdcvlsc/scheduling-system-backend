@@ -6,7 +6,7 @@ import (
 
 	geneticalgorithm "github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
-	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Schedule"
+	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 

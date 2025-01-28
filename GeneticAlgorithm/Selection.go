@@ -1,1 +1,1 @@
-package geneticalgorithm
+package GeneticAlgorithm

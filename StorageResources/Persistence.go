@@ -1,4 +1,4 @@
-package StorageReader
+package StorageResources
 
 import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
@@ -16,5 +16,5 @@ type readerRepository interface {
 }
 
 type Persistence struct {
-	Service readerRepository
+	ReaderService readerRepository
 }

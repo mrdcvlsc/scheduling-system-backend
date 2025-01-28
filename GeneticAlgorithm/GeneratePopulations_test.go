@@ -1,14 +1,14 @@
-package geneticalgorithm_test
+package GeneticAlgorithm_test
 
 import (
 	"fmt"
 	"testing"
 
-	GA "github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
+	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 )
 
 func TestEstimateResourceAvailabilityFirstSem(t *testing.T) {
-	err := GA.EstimateResourceAvailability(GA.TERM_1ST_SEMESTER, 0)
+	err := GeneticAlgorithm.EstimateResourceAvailability(GeneticAlgorithm.TERM_1ST_SEMESTER, 0)
 
 	for _, e := range err {
 		t.Error(e)
@@ -17,7 +17,7 @@ func TestEstimateResourceAvailabilityFirstSem(t *testing.T) {
 }
 
 func TestEstimateResourceAvailabilitySecondSem(t *testing.T) {
-	err := GA.EstimateResourceAvailability(GA.TERM_2ND_SEMESTER, 0)
+	err := GeneticAlgorithm.EstimateResourceAvailability(GeneticAlgorithm.TERM_2ND_SEMESTER, 0)
 
 	for _, e := range err {
 		t.Error(e)
@@ -26,11 +26,11 @@ func TestEstimateResourceAvailabilitySecondSem(t *testing.T) {
 }
 
 func TestNewPopulationFirstSem(t *testing.T) {
-	GeneratePopulations(t, GA.TERM_1ST_SEMESTER)
+	GeneratePopulations(t, GeneticAlgorithm.TERM_1ST_SEMESTER)
 }
 
 func TestNewPopulationSecondSem(t *testing.T) {
-	GeneratePopulations(t, GA.TERM_2ND_SEMESTER)
+	GeneratePopulations(t, GeneticAlgorithm.TERM_2ND_SEMESTER)
 }
 
 func GeneratePopulations(t *testing.T, target_semester int) {
@@ -47,7 +47,7 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 			fmt.Printf("Generating schedules (%d)..................................\n", (i + 1))
 		}
 
-		university_schedules, err := GA.NewIndividual(target_semester, 0)
+		university_schedules, err := GeneticAlgorithm.NewIndividual(target_semester, 0)
 
 		if err != nil {
 			t.Log(err)
@@ -96,6 +96,6 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 
 func BenchmarkNewPopulationFirstSem(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		GA.NewIndividual(GA.TERM_2ND_SEMESTER, 0)
+		GeneticAlgorithm.NewIndividual(GeneticAlgorithm.TERM_2ND_SEMESTER, 0)
 	}
 }

@@ -8,7 +8,7 @@ import (
 )
 
 func TestInstructorTimeSlotMap(t *testing.T) {
-	mr_instructor := Instructors.InstructorTimeSlotMap{}
+	mr_instructor := Instructors.InstructorTimeSlotBitMap{}
 
 	cnt := 0
 	index := 0

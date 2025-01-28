@@ -28,11 +28,11 @@ const INSTRUCTOR_TIME_SLOT_MAP_LIMBS = (Const.N_WEEKLY_TIME_SLOTS / 64) + u1BitR
 
 // This type helps us manage the weekly availability of an instructor,
 // allowing us to keep track which time slots are available or unavailable for them.
-type InstructorTimeSlotMap [INSTRUCTOR_TIME_SLOT_MAP_LIMBS]uint64
+type InstructorTimeSlotBitMap [INSTRUCTOR_TIME_SLOT_MAP_LIMBS]uint64
 
 // setting a bit to 1 means the instructor is available,
 // and 0 if not for that corresponding bit time slot.
-func (bitset *InstructorTimeSlotMap) SetAvailability(available bool, day, time_slot int) {
+func (bitset *InstructorTimeSlotBitMap) SetAvailability(available bool, day, time_slot int) {
 	if day < 0 || day >= Const.N_WEEKLY_SCHOOL_DAYS {
 		panic(fmt.Sprintf(
 			"SetAvailability(..., day int = %d,...) : invalid argument `day`, accepted values are only 0 to %d",
@@ -58,7 +58,7 @@ func (bitset *InstructorTimeSlotMap) SetAvailability(available bool, day, time_s
 	}
 }
 
-func (bitset *InstructorTimeSlotMap) GetAvailability(day, time_slot int) bool {
+func (bitset *InstructorTimeSlotBitMap) GetAvailability(day, time_slot int) bool {
 	if day < 0 || day >= Const.N_WEEKLY_SCHOOL_DAYS {
 		panic(fmt.Sprintf(
 			"GetAvailability(..., day int = %d,...) : invalid argument `day`, accepted values are only 0 to %d",

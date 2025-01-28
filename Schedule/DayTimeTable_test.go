@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
-	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Schedule"
+	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 )
 
 func Test_DayTimeTable_Availability(t *testing.T) {
@@ -26,17 +26,17 @@ func Test_DayTimeTable_Availability(t *testing.T) {
 				curr_end_time_slot_within_index := (curr_end_time_slot >= start_time_slot) && (curr_end_time_slot <= (start_time_slot + time_slot_size - 1))
 
 				if curr_start_time_slot_within_index || curr_end_time_slot_within_index {
-					if day_time_table.Availability(time_slots, time_slot_size) != false {
+					if day_time_table.IsTimeAvailable(time_slots, time_slot_size) != false {
 						t.Errorf(
 							"Test_DayTimeTable_Availability: start_time_slot(%d), time_slot(%d), time_slot_size(%d) : Availability : %t should be false",
-							start_time_slot, time_slots, time_slot_size, day_time_table.Availability(time_slots, time_slot_size),
+							start_time_slot, time_slots, time_slot_size, day_time_table.IsTimeAvailable(time_slots, time_slot_size),
 						)
 					}
 				} else {
-					if day_time_table.Availability(time_slots, time_slot_size) != true {
+					if day_time_table.IsTimeAvailable(time_slots, time_slot_size) != true {
 						t.Errorf(
 							"Test_DayTimeTable_Availability: start_time_slot(%d), time_slot(%d), time_slot_size(%d) : Availability : %t should be true",
-							start_time_slot, time_slots, time_slot_size, day_time_table.Availability(time_slots, time_slot_size),
+							start_time_slot, time_slots, time_slot_size, day_time_table.IsTimeAvailable(time_slots, time_slot_size),
 						)
 					}
 				}

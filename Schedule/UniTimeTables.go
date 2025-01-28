@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
-	"github.com/mrdcvlsc/scheduling-system-backend/StorageReader"
+	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 )
 
 // The type that represent all of the weekly schedules of each classes / sections
@@ -20,8 +20,8 @@ func NewUniTimeTables(num_of_time_tables uint) UniTimeTables {
 	return make(UniTimeTables, num_of_time_tables)
 }
 
-func (uni_sched UniTimeTables) Get(class_section_idx int) *WeekTimeTable {
-	total_university_sections := len(uni_sched)
+func (university_sched UniTimeTables) GetWeekTimeTable(class_section_idx int) *WeekTimeTable {
+	total_university_sections := len(university_sched)
 
 	if class_section_idx < 0 || class_section_idx >= total_university_sections {
 		panic(fmt.Sprintf(
@@ -30,23 +30,35 @@ func (uni_sched UniTimeTables) Get(class_section_idx int) *WeekTimeTable {
 		))
 	}
 
-	return &uni_sched[class_section_idx]
+	return &university_sched[class_section_idx]
 }
 
 const TIME_SLOT_BYTE_SIZE int = 6 // 3 uint16 = 6 bytes.
 
-func SerializeUniversitySchedule(uni_sched UniTimeTables) []byte {
-	serialized_data := make([]byte, (len(uni_sched) * Const.N_WEEKLY_TIME_SLOTS * TIME_SLOT_BYTE_SIZE))
+func SerializeUniversitySchedule(university_sched UniTimeTables) []byte {
+	serialized_data := make([]byte, (len(university_sched) * Const.N_WEEKLY_TIME_SLOTS * TIME_SLOT_BYTE_SIZE))
 
-	for section_idx := 0; section_idx < len(uni_sched); section_idx++ {
+	for section_idx := 0; section_idx < len(university_sched); section_idx++ {
 		for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
 			for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
 				idx_2D_to_1D := (day * Const.N_DAILY_TIME_SLOTS) + time_slot
 				serialized_time_slot_idx := (section_idx*Const.N_WEEKLY_TIME_SLOTS + idx_2D_to_1D) * TIME_SLOT_BYTE_SIZE
 
-				binary.LittleEndian.PutUint16(serialized_data[serialized_time_slot_idx:serialized_time_slot_idx+2], uni_sched[section_idx][day][time_slot].subjectID)
-				binary.LittleEndian.PutUint16(serialized_data[serialized_time_slot_idx+2:serialized_time_slot_idx+4], uni_sched[section_idx][day][time_slot].instructorID)
-				binary.LittleEndian.PutUint16(serialized_data[serialized_time_slot_idx+4:serialized_time_slot_idx+6], uni_sched[section_idx][day][time_slot].roomID)
+				binary.LittleEndian.PutUint16(
+					serialized_data[serialized_time_slot_idx:serialized_time_slot_idx+2],
+					university_sched[section_idx][day][time_slot].subjectID,
+				)
+
+				binary.LittleEndian.PutUint16(
+					serialized_data[serialized_time_slot_idx+2:serialized_time_slot_idx+4],
+					university_sched[section_idx][day][time_slot].instructorID,
+				)
+
+				binary.LittleEndian.PutUint16(
+					serialized_data[serialized_time_slot_idx+4:serialized_time_slot_idx+6],
+					university_sched[section_idx][day][time_slot].roomID,
+				)
+
 			}
 		}
 	}
@@ -77,20 +89,20 @@ func DeserializeUniversitySchedule(serialized_data []byte) UniTimeTables {
 	return uni_sched
 }
 
-type room_count_and_capacity struct {
+type roomCountAndCapacity struct {
 	OverlappingSections []uint16
 	Capacity            uint16
 }
 
-func (uni_sched UniTimeTables) IsEmpty() bool {
+func (university_sched UniTimeTables) IsEmpty() bool {
 
-	if len(uni_sched) == 0 {
+	if len(university_sched) == 0 {
 		return true
 	}
 
 	empty_subject_count := 0
 
-	for _, section_sched := range uni_sched {
+	for _, section_sched := range university_sched {
 		for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
 			for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
 				if section_sched[day][time_slot].subjectID == 0 {
@@ -100,25 +112,25 @@ func (uni_sched UniTimeTables) IsEmpty() bool {
 		}
 	}
 
-	return empty_subject_count == (Const.N_WEEKLY_TIME_SLOTS * len(uni_sched))
+	return empty_subject_count == (Const.N_WEEKLY_TIME_SLOTS * len(university_sched))
 }
 
-func (uni_sched UniTimeTables) Validate() []error {
+func (university_sched UniTimeTables) Validate() []error {
 
 	list_of_errors := make([]error, 0, 16)
 
-	persistence := StorageReader.Persistence{Service: &StorageReader.JsonReader{}}
-	all_rooms, err_all_rooms := persistence.Service.GetAllRooms()
+	resource_persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+	rooms, err_rooms := resource_persistence.ReaderService.GetAllRooms()
 
-	if err_all_rooms != nil {
-		list_of_errors = append(list_of_errors, err_all_rooms)
+	if err_rooms != nil {
+		list_of_errors = append(list_of_errors, err_rooms)
 		return list_of_errors
 	}
 
-	map_room_id_and_capacity := make(map[uint16]uint16)
+	room_id_to_capacity := make(map[uint16]uint16)
 
-	for _, room := range all_rooms {
-		map_room_id_and_capacity[room.RoomID] = room.Capacity
+	for _, room := range rooms {
+		room_id_to_capacity[room.RoomID] = room.Capacity
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////
@@ -130,15 +142,15 @@ func (uni_sched UniTimeTables) Validate() []error {
 
 			instructor_counter := make(map[uint16][]uint16)
 
-			room_counter := make(map[uint16]*room_count_and_capacity)
+			room_counter := make(map[uint16]*roomCountAndCapacity)
 
-			for section_idx := 0; section_idx < len(uni_sched); section_idx++ {
+			for section_idx := 0; section_idx < len(university_sched); section_idx++ {
 
-				subject_id := uni_sched[section_idx][day][time_slot].subjectID
+				subject_id := university_sched[section_idx][day][time_slot].subjectID
 
-				instructor_id := uni_sched[section_idx][day][time_slot].instructorID
+				instructor_id := university_sched[section_idx][day][time_slot].instructorID
 
-				room_id := uni_sched[section_idx][day][time_slot].roomID
+				room_id := university_sched[section_idx][day][time_slot].roomID
 
 				if subject_id == 0 && instructor_id != 0 {
 					err_json := &UniInstructorValidationError{
@@ -181,9 +193,9 @@ func (uni_sched UniTimeTables) Validate() []error {
 				// if there is an instructor assigned to a time slot add it to counter.
 
 				if instructor_id > 0 {
-					_, exist := instructor_counter[instructor_id]
+					_, has_instructor_id := instructor_counter[instructor_id]
 
-					if !exist {
+					if !has_instructor_id {
 						instructor_counter[instructor_id] = make([]uint16, 0, 4)
 					}
 
@@ -191,11 +203,11 @@ func (uni_sched UniTimeTables) Validate() []error {
 				}
 
 				if room_id > 0 {
-					_, exist := room_counter[room_id]
+					_, has_room_id := room_counter[room_id]
 
-					if !exist {
-						room_counter[room_id] = &room_count_and_capacity{}
-						room_counter[room_id].Capacity = map_room_id_and_capacity[room_id]
+					if !has_room_id {
+						room_counter[room_id] = &roomCountAndCapacity{}
+						room_counter[room_id].Capacity = room_id_to_capacity[room_id]
 					}
 
 					room_counter[room_id].OverlappingSections = append(room_counter[room_id].OverlappingSections, uint16(section_idx))

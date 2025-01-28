@@ -3,7 +3,7 @@ package schedule_datastructures_basic_test
 import (
 	"testing"
 
-	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Schedule"
+	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 )
 
 func TestScheduleTypes1(t *testing.T) {
@@ -12,11 +12,11 @@ func TestScheduleTypes1(t *testing.T) {
 
 	universitySchedules[0][0][1].Set(222, 333, 444)
 
-	testSectionSchedule := universitySchedules.Get(0)
+	testSectionSchedule := universitySchedules.GetWeekTimeTable(0)
 
-	testDaySchedule := testSectionSchedule.Get(0)
+	testDaySchedule := testSectionSchedule.GetDayTimeTable(0)
 
-	testTimeSlot := testDaySchedule.Get(1)
+	testTimeSlot := testDaySchedule.GetTimeSlot(1)
 
 	testTimeSlot.ToggleCFlagSubjectID()
 	testTimeSlot.ToggleCFlagInstructorID()
@@ -111,11 +111,11 @@ func TestScheduleTypes1_5(t *testing.T) {
 	universitySchedules[0][0][1].SetInstructorID(333)
 	universitySchedules[0][0][1].SetRoomID(444)
 
-	testSectionSchedule := universitySchedules.Get(0)
+	testSectionSchedule := universitySchedules.GetWeekTimeTable(0)
 
-	testDaySchedule := testSectionSchedule.Get(0)
+	testDaySchedule := testSectionSchedule.GetDayTimeTable(0)
 
-	testTimeSlot := testDaySchedule.Get(1)
+	testTimeSlot := testDaySchedule.GetTimeSlot(1)
 
 	testTimeSlot.ToggleCFlagSubjectID()
 	testTimeSlot.ToggleCFlagInstructorID()
@@ -206,39 +206,39 @@ func TestScheduleTypes2(t *testing.T) {
 
 	universitySchedules := Schedule.NewUniTimeTables(1)
 
-	universitySchedules.Get(0).Get(0).Get(1).Set(222, 333, 444)
+	universitySchedules.GetWeekTimeTable(0).GetDayTimeTable(0).GetTimeSlot(1).Set(222, 333, 444)
 
-	testSectionSchedule := universitySchedules.Get(0)
+	testSectionSchedule := universitySchedules.GetWeekTimeTable(0)
 
-	testDaySchedule := testSectionSchedule.Get(0)
+	testDaySchedule := testSectionSchedule.GetDayTimeTable(0)
 
-	testTimeSlot := testDaySchedule.Get(1)
+	testTimeSlot := testDaySchedule.GetTimeSlot(1)
 
 	testTimeSlot.ToggleCFlagSubjectID()
 	testTimeSlot.ToggleCFlagInstructorID()
 	testTimeSlot.ToggleCFlagRoomID()
 
-	if universitySchedules.Get(0).Get(0).Get(1).IsConstInstructorID() != true {
+	if universitySchedules.GetWeekTimeTable(0).GetDayTimeTable(0).GetTimeSlot(1).IsConstInstructorID() != true {
 		t.Errorf("uniSectionSchedules[0][0][1].IsFixedInstructorID() - Not Fixed")
 	}
 
-	if universitySchedules.Get(0).Get(0).Get(1).IsConstRoomID() != true {
+	if universitySchedules.GetWeekTimeTable(0).GetDayTimeTable(0).GetTimeSlot(1).IsConstRoomID() != true {
 		t.Error("uniSectionSchedules[0][0][1].IsFixedRoomID() - Not Fixed")
 	}
 
-	if universitySchedules.Get(0).Get(0).Get(1).IsConstSubjectID() != true {
+	if universitySchedules.GetWeekTimeTable(0).GetDayTimeTable(0).GetTimeSlot(1).IsConstSubjectID() != true {
 		t.Error("uniSectionSchedules[0][0][1].IsFixedSubjectID() - Not Fixed")
 	}
 
-	if universitySchedules.Get(0).Get(0).Get(1).GetInstructorID() != 333 {
+	if universitySchedules.GetWeekTimeTable(0).GetDayTimeTable(0).GetTimeSlot(1).GetInstructorID() != 333 {
 		t.Error("uniSectionSchedules[0][0][1].GetInstructorID() != 333")
 	}
 
-	if universitySchedules.Get(0).Get(0).Get(1).GetRoomID() != 444 {
+	if universitySchedules.GetWeekTimeTable(0).GetDayTimeTable(0).GetTimeSlot(1).GetRoomID() != 444 {
 		t.Error("uniSectionSchedules[0][0][1].GetRoomID() != 444")
 	}
 
-	if universitySchedules.Get(0).Get(0).Get(1).GetSubjectID() != 222 {
+	if universitySchedules.GetWeekTimeTable(0).GetDayTimeTable(0).GetTimeSlot(1).GetSubjectID() != 222 {
 		t.Error("uniSectionSchedules[0][0][1].GetSubjectID() != 222")
 	}
 
@@ -246,27 +246,27 @@ func TestScheduleTypes2(t *testing.T) {
 	testTimeSlot.SetRoomID(12122)
 	testTimeSlot.SetSubjectID(9898)
 
-	if universitySchedules.Get(0).Get(0).Get(1).GetInstructorID() != 23423 {
+	if universitySchedules.GetWeekTimeTable(0).GetDayTimeTable(0).GetTimeSlot(1).GetInstructorID() != 23423 {
 		t.Error("uniSectionSchedules[0][0][1].GetInstructorID() != 23423")
 	}
 
-	if universitySchedules.Get(0).Get(0).Get(1).GetRoomID() != 12122 {
+	if universitySchedules.GetWeekTimeTable(0).GetDayTimeTable(0).GetTimeSlot(1).GetRoomID() != 12122 {
 		t.Error("uniSectionSchedules[0][0][1].GetRoomID() != 12122")
 	}
 
-	if universitySchedules.Get(0).Get(0).Get(1).GetSubjectID() != 9898 {
+	if universitySchedules.GetWeekTimeTable(0).GetDayTimeTable(0).GetTimeSlot(1).GetSubjectID() != 9898 {
 		t.Error("uniSectionSchedules[0][0][1].GetSubjectID() != 9898")
 	}
 
-	if universitySchedules.Get(0).Get(0).Get(1).IsConstInstructorID() != true {
+	if universitySchedules.GetWeekTimeTable(0).GetDayTimeTable(0).GetTimeSlot(1).IsConstInstructorID() != true {
 		t.Errorf("uniSectionSchedules[0][0][1].IsFixedInstructorID() - Not Fixed")
 	}
 
-	if universitySchedules.Get(0).Get(0).Get(1).IsConstRoomID() != true {
+	if universitySchedules.GetWeekTimeTable(0).GetDayTimeTable(0).GetTimeSlot(1).IsConstRoomID() != true {
 		t.Error("uniSectionSchedules[0][0][1].IsFixedRoomID() - Not Fixed")
 	}
 
-	if universitySchedules.Get(0).Get(0).Get(1).IsConstSubjectID() != true {
+	if universitySchedules.GetWeekTimeTable(0).GetDayTimeTable(0).GetTimeSlot(1).IsConstSubjectID() != true {
 		t.Error("uniSectionSchedules[0][0][1].IsFixedSubjectID() - Not Fixed")
 	}
 
@@ -274,27 +274,27 @@ func TestScheduleTypes2(t *testing.T) {
 	testTimeSlot.ToggleCFlagInstructorID()
 	testTimeSlot.ToggleCFlagRoomID()
 
-	if universitySchedules.Get(0).Get(0).Get(1).IsConstInstructorID() != false {
+	if universitySchedules.GetWeekTimeTable(0).GetDayTimeTable(0).GetTimeSlot(1).IsConstInstructorID() != false {
 		t.Errorf("uniSectionSchedules[0][0][1].IsFixedInstructorID() - Not Fixed")
 	}
 
-	if universitySchedules.Get(0).Get(0).Get(1).IsConstRoomID() != false {
+	if universitySchedules.GetWeekTimeTable(0).GetDayTimeTable(0).GetTimeSlot(1).IsConstRoomID() != false {
 		t.Error("uniSectionSchedules[0][0][1].IsFixedRoomID() - Not Fixed")
 	}
 
-	if universitySchedules.Get(0).Get(0).Get(1).IsConstSubjectID() != false {
+	if universitySchedules.GetWeekTimeTable(0).GetDayTimeTable(0).GetTimeSlot(1).IsConstSubjectID() != false {
 		t.Error("uniSectionSchedules[0][0][1].IsFixedSubjectID() - Not Fixed")
 	}
 
-	if universitySchedules.Get(0).Get(0).Get(1).GetInstructorID() != 23423 {
+	if universitySchedules.GetWeekTimeTable(0).GetDayTimeTable(0).GetTimeSlot(1).GetInstructorID() != 23423 {
 		t.Error("uniSectionSchedules[0][0][1].GetInstructorID() != 23423")
 	}
 
-	if universitySchedules.Get(0).Get(0).Get(1).GetRoomID() != 12122 {
+	if universitySchedules.GetWeekTimeTable(0).GetDayTimeTable(0).GetTimeSlot(1).GetRoomID() != 12122 {
 		t.Error("uniSectionSchedules[0][0][1].GetRoomID() != 12122")
 	}
 
-	if universitySchedules.Get(0).Get(0).Get(1).GetSubjectID() != 9898 {
+	if universitySchedules.GetWeekTimeTable(0).GetDayTimeTable(0).GetTimeSlot(1).GetSubjectID() != 9898 {
 		t.Error("uniSectionSchedules[0][0][1].GetSubjectID() != 9898")
 	}
 }

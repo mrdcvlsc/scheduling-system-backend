@@ -1,4 +1,4 @@
-package geneticalgorithm
+package GeneticAlgorithm
 
 import (
 	"fmt"
@@ -9,8 +9,8 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
-	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Schedule"
-	"github.com/mrdcvlsc/scheduling-system-backend/StorageReader"
+	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
+	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 )
 
 const (
@@ -42,50 +42,50 @@ const MAX_SECTION_SCHEDULE_GENERATION_RETRY int = 3
 // successfully generated a valid university schedules.
 func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTables, error) {
 
-	persistence := StorageReader.Persistence{Service: &StorageReader.JsonReader{}}
+	persistence_resources := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	list_of_all_rooms, err_all_rooms := generate_map_list_of_all_rooms(&persistence)
+	dept_id_to_room_type_to_rooms, err_dept_id_to_room_type_to_rooms := generate_map_dept_id_to_room_type_to_rooms(&persistence_resources)
 
-	if err_all_rooms != nil {
-		return nil, err_all_rooms
+	if err_dept_id_to_room_type_to_rooms != nil {
+		return nil, err_dept_id_to_room_type_to_rooms
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	list_of_all_instructors, err_all_instructors := generate_map_list_instructors(&persistence)
+	dept_id_to_instructors, err_dept_id_to_instructors := generate_map_dept_id_to_instructors(&persistence_resources)
 
-	if err_all_instructors != nil {
-		return nil, err_all_instructors
+	if err_dept_id_to_instructors != nil {
+		return nil, err_dept_id_to_instructors
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	map_department_id, err_map_department_id := generate_map_department_id(&persistence)
+	dept_id_to_department, err_dept_id_to_department := generate_map_dept_id_to_department(&persistence_resources)
 
-	if err_map_department_id != nil {
-		return nil, err_map_department_id
+	if err_dept_id_to_department != nil {
+		return nil, err_dept_id_to_department
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
 	counted_sections := 0
-	individual := make(Schedule.UniTimeTables, 0, 64)
+	individual_university_schedules := make(Schedule.UniTimeTables, 0, 64)
 
-	all_curriculums, err_all_curriculums := persistence.Service.GetAllCurriculum()
+	curriculums, err_curriculums := persistence_resources.ReaderService.GetAllCurriculum()
 
-	if err_all_curriculums != nil {
-		return nil, err_all_curriculums
+	if err_curriculums != nil {
+		return nil, err_curriculums
 	}
 
 	// the curriculums should always have the same order.
 
-	for _, curriculum := range all_curriculums {
+	for _, curriculum := range curriculums {
 
-		dept_rooms := list_of_all_rooms[curriculum.DepartmentID]
-		dept_teachers := list_of_all_instructors[curriculum.DepartmentID]
+		room_type_to_rooms := dept_id_to_room_type_to_rooms[curriculum.DepartmentID]
+		instructors := dept_id_to_instructors[curriculum.DepartmentID]
 
 		for _, year_level := range curriculum.YearLevels {
 
@@ -102,18 +102,18 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 				// generate week time table for each sections
 
 				section_generation_retries := 0
-				var section int
+				var section_idx int
 
 			section_loop:
-				for section = 0; section < semester.Sections; section++ {
+				for section_idx = 0; section_idx < semester.Sections; section_idx++ {
 
 					week_time_table := Schedule.WeekTimeTable{}
 
 					// shuffle the rooms
 
-					for _, rooms_group_by_type := range dept_rooms {
-						rng.Shuffle(len(rooms_group_by_type), func(i, j int) {
-							rooms_group_by_type[i], rooms_group_by_type[j] = rooms_group_by_type[j], rooms_group_by_type[i]
+					for _, rooms := range room_type_to_rooms {
+						rng.Shuffle(len(rooms), func(i, j int) {
+							rooms[i], rooms[j] = rooms[j], rooms[i]
 						})
 					}
 
@@ -165,11 +165,11 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 							for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
 
-								day_sched := week_time_table.Get(day)
+								day_sched := week_time_table.GetDayTimeTable(day)
 
 								for time_slot := 0; time_slot < (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots); time_slot++ {
 
-									if !day_sched.Availability(time_slot, subject_total_time_slots) {
+									if !day_sched.IsTimeAvailable(time_slot, subject_total_time_slots) {
 										continue // if the current time slot is not available go to the next
 									}
 
@@ -184,19 +184,19 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 									// shuffle instructors
 
-									rng.Shuffle(len(dept_teachers), func(i, j int) {
-										dept_teachers[i], dept_teachers[j] = dept_teachers[j], dept_teachers[i]
+									rng.Shuffle(len(instructors), func(i, j int) {
+										instructors[i], instructors[j] = instructors[j], instructors[i]
 									})
 
 									// sort the instructors based on the number of subjects they are assigned
 
-									sort.Slice(dept_teachers, func(i, j int) bool {
-										return dept_teachers[i].TotalTeachingHours < dept_teachers[j].TotalTeachingHours
+									sort.Slice(instructors, func(i, j int) bool {
+										return instructors[i].TotalTeachingHours < instructors[j].TotalTeachingHours
 									})
 
 									// fmt.Printf("instructor & room searching for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
 
-									for instructor_idx := range dept_teachers {
+									for instructor_idx := range instructors {
 
 										is_available_instructor := true
 
@@ -209,30 +209,30 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 											// time slot, continue to the next iteration of the time slot loop.
 
 											for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
-												is_available_instructor = is_available_instructor && dept_teachers[instructor_idx].TimeSlotAvailability.GetAvailability(day, instructor_time_slot)
+												is_available_instructor = is_available_instructor && instructors[instructor_idx].Time.GetAvailability(day, instructor_time_slot)
 											}
 
 										} else {
 											// fmt.Printf("searching the available time slot for the selected instructor [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
 
 											for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
-												is_available_instructor = is_available_instructor && selected_instructor.TimeSlotAvailability.GetAvailability(day, instructor_time_slot)
+												is_available_instructor = is_available_instructor && selected_instructor.Time.GetAvailability(day, instructor_time_slot)
 											}
 										}
 
 										instructor_search_iteration++
 
-										if (!is_available_instructor && (instructor_idx == len(dept_teachers)-1)) && (time_slot >= (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
+										if (!is_available_instructor && (instructor_idx == len(instructors)-1)) && (time_slot >= (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
 
 											if section_generation_retries < MAX_SECTION_SCHEDULE_GENERATION_RETRY {
 												section_generation_retries++
-												section--
+												section_idx--
 												continue section_loop
 											}
 
-											return individual, fmt.Errorf(
+											return individual_university_schedules, fmt.Errorf(
 												"not enough instructors (%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
-												instructor_idx, map_department_id[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section, counted_sections,
+												instructor_idx, dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
 											)
 										}
 
@@ -261,14 +261,14 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 										// shuffle rooms
 
-										rng.Shuffle(len(dept_rooms[room_type]), func(i, j int) {
-											dept_rooms[room_type][i], dept_rooms[room_type][j] = dept_rooms[room_type][j], dept_rooms[room_type][i]
+										rng.Shuffle(len(room_type_to_rooms[room_type]), func(i, j int) {
+											room_type_to_rooms[room_type][i], room_type_to_rooms[room_type][j] = room_type_to_rooms[room_type][j], room_type_to_rooms[room_type][i]
 										})
 
 										// sort the rooms based on the number of class or sections assigned to it on a specific time slot.
 
-										sort.Slice(dept_rooms[room_type], func(i, j int) bool {
-											return dept_rooms[room_type][i].GetTimeSlotClassCount(day, time_slot) < dept_rooms[room_type][j].GetTimeSlotClassCount(day, time_slot)
+										sort.Slice(room_type_to_rooms[room_type], func(i, j int) bool {
+											return room_type_to_rooms[room_type][i].GetTimeSlotClassCount(day, time_slot) < room_type_to_rooms[room_type][j].GetTimeSlotClassCount(day, time_slot)
 										})
 
 										is_available_room := true
@@ -278,7 +278,7 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 											// search available gym for physical education subjects
 
-											gym := list_of_all_rooms[0][2]
+											gym := dept_id_to_room_type_to_rooms[0][2]
 
 											for room_idx := range gym {
 
@@ -300,10 +300,10 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 											// search for department specific rooms that are available
 
-											for room_idx := range dept_rooms[room_type] {
+											for room_idx := range room_type_to_rooms[room_type] {
 
 												for room_time_slot := time_slot; room_time_slot < (time_slot + subject_total_time_slots); room_time_slot++ {
-													is_available_room = is_available_room && dept_rooms[room_type][room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(dept_rooms[room_type][room_idx].Capacity)
+													is_available_room = is_available_room && room_type_to_rooms[room_type][room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(room_type_to_rooms[room_type][room_idx].Capacity)
 												}
 
 												if !is_available_room {
@@ -311,7 +311,7 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 												}
 
 												// fmt.Printf("selecting the available room[type:%d] for the time slot [d:%d, ts:%d]...\n", room_type, day, time_slot) // DEBUG PRINTS
-												selected_room = &dept_rooms[room_type][room_idx]
+												selected_room = &room_type_to_rooms[room_type][room_idx]
 												break
 											}
 
@@ -326,13 +326,13 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 											if section_generation_retries < MAX_SECTION_SCHEDULE_GENERATION_RETRY {
 												section_generation_retries++
-												section--
+												section_idx--
 												continue section_loop
 											}
 
-											return individual, fmt.Errorf(
+											return individual_university_schedules, fmt.Errorf(
 												"not enough rooms (%d)-(type:%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
-												len(dept_rooms[room_type]), room_type, map_department_id[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section, counted_sections,
+												len(room_type_to_rooms[room_type]), room_type, dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
 											)
 										}
 
@@ -347,7 +347,7 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 										if selected_instructor == nil {
 											// fmt.Printf("selecting the instructor found for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
-											selected_instructor = &dept_teachers[instructor_idx]
+											selected_instructor = &instructors[instructor_idx]
 										}
 
 										break
@@ -380,12 +380,12 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 									// fmt.Printf("ONE SUBJECT FINISHED: assigning subject, instructor and room for the time slot [d:%d, ts:%d]...\n\n", day, time_slot) // DEBUG PRINTS
 
 									for selected_time_slot := time_slot; selected_time_slot < (time_slot + subject_total_time_slots); selected_time_slot++ {
-										selected_instructor.TimeSlotAvailability.SetAvailability(false, day, selected_time_slot)
+										selected_instructor.Time.SetAvailability(false, day, selected_time_slot)
 										selected_room.IncTimeSlotClassCount(day, selected_time_slot)
 
-										day_sched.Get(selected_time_slot).SetSubjectID(subject.ID)
-										day_sched.Get(selected_time_slot).SetInstructorID(selected_instructor.InstructorID)
-										day_sched.Get(selected_time_slot).SetRoomID(selected_room.RoomID)
+										day_sched.GetTimeSlot(selected_time_slot).SetSubjectID(subject.ID)
+										day_sched.GetTimeSlot(selected_time_slot).SetInstructorID(selected_instructor.InstructorID)
+										day_sched.GetTimeSlot(selected_time_slot).SetRoomID(selected_room.RoomID)
 									}
 
 									selected_instructor.AssignedSubjects++
@@ -405,17 +405,17 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 					// front compressed distribution : end
 
-					individual = append(individual, week_time_table)
+					individual_university_schedules = append(individual_university_schedules, week_time_table)
 					counted_sections++
 				}
 			}
 		}
 
 		// sort the instructors based on the number of subjects they are assigned
-		sort.Slice(dept_teachers, func(i, j int) bool {
-			return dept_teachers[i].TotalTeachingHours < dept_teachers[j].TotalTeachingHours
+		sort.Slice(instructors, func(i, j int) bool {
+			return instructors[i].TotalTeachingHours < instructors[j].TotalTeachingHours
 		})
 	}
 
-	return individual, nil
+	return individual_university_schedules, nil
 }

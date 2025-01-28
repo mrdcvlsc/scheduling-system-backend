@@ -1,4 +1,4 @@
-package geneticalgorithm
+package GeneticAlgorithm
 
 import (
 	"fmt"
@@ -8,81 +8,80 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Departments"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
-	"github.com/mrdcvlsc/scheduling-system-backend/StorageReader"
+	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
-func generate_map_list_of_all_rooms(persistence *StorageReader.Persistence) (map[uint16]map[uint16][]Rooms.Room, error) {
+func generate_map_dept_id_to_room_type_to_rooms(persistence *StorageResources.Persistence) (map[uint16]map[uint16][]Rooms.Room, error) {
+	department_id_to_room_type_to_rooms := make(map[uint16]map[uint16][]Rooms.Room)
 
-	list_of_all_rooms := make(map[uint16]map[uint16][]Rooms.Room)
-
-	all_rooms, err := persistence.Service.GetAllRooms()
-
-	if err != nil {
-		return nil, err
-	}
-
-	for _, room := range all_rooms {
-		_, dept_key_exist := list_of_all_rooms[room.DepartmentID]
-
-		if !dept_key_exist {
-			list_of_all_rooms[room.DepartmentID] = make(map[uint16][]Rooms.Room)
-		}
-
-		_, roomtype_key_exist := list_of_all_rooms[room.DepartmentID][room.RoomType]
-
-		if !roomtype_key_exist {
-			list_of_all_rooms[room.DepartmentID][room.RoomType] = make([]Rooms.Room, 1, 8)
-			list_of_all_rooms[room.DepartmentID][room.RoomType][0] = room
-		} else {
-			list_of_all_rooms[room.DepartmentID][room.RoomType] = append(
-				list_of_all_rooms[room.DepartmentID][room.RoomType], room,
-			)
-		}
-	}
-
-	return list_of_all_rooms, nil
-}
-
-func generate_map_list_instructors(persistence *StorageReader.Persistence) (map[uint16][]Instructors.Instructor, error) {
-	list_of_all_instructors := make(map[uint16][]Instructors.Instructor)
-
-	all_instructors, err := persistence.Service.GetAllInstructors()
+	rooms, err := persistence.ReaderService.GetAllRooms()
 
 	if err != nil {
 		return nil, err
 	}
 
-	for _, instructor := range all_instructors {
-		_, exist := list_of_all_instructors[instructor.DepartmentID]
+	for _, room := range rooms {
+		_, has_department_id := department_id_to_room_type_to_rooms[room.DepartmentID]
 
-		if !exist {
-			list_of_all_instructors[instructor.DepartmentID] = make([]Instructors.Instructor, 1, 8)
-			list_of_all_instructors[instructor.DepartmentID][0] = instructor
+		if !has_department_id {
+			department_id_to_room_type_to_rooms[room.DepartmentID] = make(map[uint16][]Rooms.Room)
+		}
+
+		_, has_room_type := department_id_to_room_type_to_rooms[room.DepartmentID][room.RoomType]
+
+		if !has_room_type {
+			department_id_to_room_type_to_rooms[room.DepartmentID][room.RoomType] = make([]Rooms.Room, 1, 8)
+			department_id_to_room_type_to_rooms[room.DepartmentID][room.RoomType][0] = room
 		} else {
-			list_of_all_instructors[instructor.DepartmentID] = append(
-				list_of_all_instructors[instructor.DepartmentID], instructor,
+			department_id_to_room_type_to_rooms[room.DepartmentID][room.RoomType] = append(
+				department_id_to_room_type_to_rooms[room.DepartmentID][room.RoomType], room,
 			)
 		}
 	}
 
-	return list_of_all_instructors, nil
+	return department_id_to_room_type_to_rooms, nil
 }
 
-func generate_map_department_id(persistence *StorageReader.Persistence) (map[uint16]Departments.Department, error) {
-	map_department_id := make(map[uint16]Departments.Department)
+func generate_map_dept_id_to_instructors(persistence *StorageResources.Persistence) (map[uint16][]Instructors.Instructor, error) {
+	department_id_to_instructors := make(map[uint16][]Instructors.Instructor)
 
-	all_departments, err_map_department_id := persistence.Service.GetAllDepartments()
+	instructors, err := persistence.ReaderService.GetAllInstructors()
 
-	if err_map_department_id != nil {
-		return nil, err_map_department_id
+	if err != nil {
+		return nil, err
 	}
 
-	for _, department := range all_departments {
-		map_department_id[department.DepartmentID] = department
+	for _, instructor := range instructors {
+		_, has_department_id := department_id_to_instructors[instructor.DepartmentID]
+
+		if !has_department_id {
+			department_id_to_instructors[instructor.DepartmentID] = make([]Instructors.Instructor, 1, 8)
+			department_id_to_instructors[instructor.DepartmentID][0] = instructor
+		} else {
+			department_id_to_instructors[instructor.DepartmentID] = append(
+				department_id_to_instructors[instructor.DepartmentID], instructor,
+			)
+		}
 	}
 
-	return map_department_id, nil
+	return department_id_to_instructors, nil
+}
+
+func generate_map_dept_id_to_department(persistence *StorageResources.Persistence) (map[uint16]Departments.Department, error) {
+	department_id_to_department := make(map[uint16]Departments.Department)
+
+	departments, err := persistence.ReaderService.GetAllDepartments()
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, department := range departments {
+		department_id_to_department[department.DepartmentID] = department
+	}
+
+	return department_id_to_department, nil
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -132,25 +131,9 @@ type Totals struct {
 }
 
 func EstimateResourceAvailability(selected_semester, distribution_type int) []error {
-	persistence := StorageReader.Persistence{Service: &StorageReader.JsonReader{}}
+	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
 
-	curriculums, err_curriculum := persistence.Service.GetAllCurriculum()
-
-	map_department_id := make(map[uint16]Departments.Department)
-
-	{
-		all_departments, err_map_department_id := persistence.Service.GetAllDepartments()
-
-		if err_map_department_id != nil {
-			err_list := make([]error, 0, 2)
-			err_list = append(err_list, err_map_department_id)
-			return err_list
-		}
-
-		for _, department := range all_departments {
-			map_department_id[department.DepartmentID] = department
-		}
-	}
+	curriculums, err_curriculum := persistence.ReaderService.GetAllCurriculum()
 
 	if err_curriculum != nil {
 		list_of_returned_errors := make([]error, 0, 2)
@@ -158,28 +141,36 @@ func EstimateResourceAvailability(selected_semester, distribution_type int) []er
 		return list_of_returned_errors
 	}
 
-	instructors, err_instructor := persistence.Service.GetAllInstructors()
+	department_id_to_department, err_department_id_to_department := generate_map_dept_id_to_department(&persistence)
 
-	if err_instructor != nil {
+	if err_department_id_to_department != nil {
+		error_slice := make([]error, 0, 2)
+		error_slice = append(error_slice, err_department_id_to_department)
+		return error_slice
+	}
+
+	instructors, err_instructors := persistence.ReaderService.GetAllInstructors()
+
+	if err_instructors != nil {
 		list_of_returned_errors := make([]error, 0, 2)
-		list_of_returned_errors = append(list_of_returned_errors, err_instructor)
+		list_of_returned_errors = append(list_of_returned_errors, err_instructors)
 		return list_of_returned_errors
 	}
 
-	rooms, err_room := persistence.Service.GetAllRooms()
+	rooms, err_rooms := persistence.ReaderService.GetAllRooms()
 
-	if err_room != nil {
+	if err_rooms != nil {
 		list_of_returned_errors := make([]error, 0, 2)
-		list_of_returned_errors = append(list_of_returned_errors, err_room)
+		list_of_returned_errors = append(list_of_returned_errors, err_rooms)
 		return list_of_returned_errors
 	}
 
 	totals := make(map[uint16]*Totals)
 
 	for _, room := range rooms {
-		_, ok := totals[room.DepartmentID]
+		_, has_department_id := totals[room.DepartmentID]
 
-		if !ok {
+		if !has_department_id {
 			if room.RoomType == Rooms.ROOM_TYPE_LEC {
 				totals[room.DepartmentID] = &Totals{
 					LecRoomHours: Const.N_WEEKLY_SCHOOL_DAYS * Const.N_DAILY_SCHOOL_HOURS * int(room.Capacity),
@@ -214,10 +205,9 @@ func EstimateResourceAvailability(selected_semester, distribution_type int) []er
 	}
 
 	for _, instructor := range instructors {
+		_, has_department_id := totals[instructor.DepartmentID]
 
-		_, ok := totals[instructor.DepartmentID]
-
-		if !ok {
+		if !has_department_id {
 			totals[instructor.DepartmentID] = &Totals{
 				InstructorCount: 1,
 			}
@@ -227,7 +217,7 @@ func EstimateResourceAvailability(selected_semester, distribution_type int) []er
 
 		for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
 			for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
-				if instructor.TimeSlotAvailability.GetAvailability(day, time_slot) {
+				if instructor.Time.GetAvailability(day, time_slot) {
 					_, ok := totals[instructor.DepartmentID]
 
 					if !ok {
@@ -243,10 +233,9 @@ func EstimateResourceAvailability(selected_semester, distribution_type int) []er
 	}
 
 	for _, curriculum := range curriculums {
+		_, has_department_id := totals[curriculum.DepartmentID]
 
-		_, ok := totals[curriculum.DepartmentID]
-
-		if !ok {
+		if !has_department_id {
 			totals[curriculum.DepartmentID] = &Totals{
 				DepartmentID: curriculum.DepartmentID,
 				Courses:      1,
@@ -256,14 +245,13 @@ func EstimateResourceAvailability(selected_semester, distribution_type int) []er
 			totals[curriculum.DepartmentID].Courses++
 
 			if len(totals[curriculum.DepartmentID].DepartmentName) == 0 {
-				totals[curriculum.DepartmentID].DepartmentName = map_department_id[curriculum.DepartmentID].Name
+				totals[curriculum.DepartmentID].DepartmentName = department_id_to_department[curriculum.DepartmentID].Name
 			}
 		}
 
 		for _, year_level := range curriculum.YearLevels {
 			for semester_idx, semester := range year_level.Semesters {
 				if semester_idx == selected_semester {
-
 					total_lec_hours_for_course_level := 0
 					total_lab_hours_for_course_level := 0
 					total_gym_hours_for_course_level := 0
@@ -307,7 +295,6 @@ func EstimateResourceAvailability(selected_semester, distribution_type int) []er
 
 	for k, v := range totals {
 		if k != 0 && (v.SubjectLecHours > 0 || v.SubjectLabHours > 0 || v.SubjectGymHours > 0) {
-
 			if (v.SubjectLecHours + MIN_SUBJECT_ROOM_HOUR_BUFFER) > v.LecRoomHours {
 				recommended_room_hours := v.SubjectLecHours + MIN_SUBJECT_ROOM_HOUR_BUFFER
 				needed_hours := (recommended_room_hours - v.LecRoomHours)
@@ -381,7 +368,6 @@ func EstimateResourceAvailability(selected_semester, distribution_type int) []er
 					),
 				)
 			}
-
 		}
 	}
 

@@ -31,7 +31,7 @@ type Instructor struct {
 	//
 	// if value corresponding bit value for that time slot is 1, then the instructor is available.
 	// if value corresponding bit value for that time slot is 0, then the instructor is NOT available.
-	TimeSlotAvailability InstructorTimeSlotMap
+	Time InstructorTimeSlotBitMap
 }
 
 const DAY_MON uint8 = 1 << 5
