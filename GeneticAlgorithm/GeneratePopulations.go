@@ -256,6 +256,14 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 										//                 FIND AVAILABLE ROOM FOR THE TIME SLOT
 										/////////////////////////////////////////////////////////////////////////////////
 
+										// TODO: This is bad design, move the room search loop outside the instructor search loop in the futrue.
+										// even though the time complexity is now correct, people might get confused when they look at the code
+										// in the future since the room search loop is inside the instructor search loop, they might assume
+										// that the time complexity of this inner algorithm is O(I * R), even if this is actually just O(I + R),
+										//
+										// I = total number of departamental instructor.
+										// R = total number of departamental rooms for a specific room type.
+
 										room_search_iteration := 0
 										room_type := uint16(class_type)
 
@@ -271,7 +279,7 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 											return room_type_to_rooms[room_type][i].GetTimeSlotClassCount(day, time_slot) < room_type_to_rooms[room_type][j].GetTimeSlotClassCount(day, time_slot)
 										})
 
-										is_available_room := true
+										var has_available_room bool
 
 										if subject.IsGymType() {
 											// fmt.Printf("searching available gym rooms for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
@@ -282,11 +290,13 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 											for room_idx := range gym {
 
+												has_available_room = true
+
 												for room_time_slot := time_slot; room_time_slot < (time_slot + subject_total_time_slots); room_time_slot++ {
-													is_available_room = is_available_room && gym[room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(gym[room_idx].Capacity)
+													has_available_room = has_available_room && gym[room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(gym[room_idx].Capacity)
 												}
 
-												if !is_available_room {
+												if !has_available_room {
 													continue
 												}
 
@@ -302,11 +312,13 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 											for room_idx := range room_type_to_rooms[room_type] {
 
+												has_available_room = true
+
 												for room_time_slot := time_slot; room_time_slot < (time_slot + subject_total_time_slots); room_time_slot++ {
-													is_available_room = is_available_room && room_type_to_rooms[room_type][room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(room_type_to_rooms[room_type][room_idx].Capacity)
+													has_available_room = has_available_room && room_type_to_rooms[room_type][room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(room_type_to_rooms[room_type][room_idx].Capacity)
 												}
 
-												if !is_available_room {
+												if !has_available_room {
 													continue
 												}
 
@@ -322,7 +334,7 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 										room_search_iteration++
 
-										if !is_available_room && (time_slot >= (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
+										if !has_available_room && (time_slot >= (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
 
 											if section_generation_retries < MAX_SECTION_SCHEDULE_GENERATION_RETRY {
 												section_generation_retries++
@@ -336,9 +348,9 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 											)
 										}
 
-										if !is_available_room {
+										if !has_available_room {
 											// fmt.Printf("No room found for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
-											continue // find another instructor or time slot
+											break // find another time slot
 										}
 
 										// fmt.Printf("room found for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
