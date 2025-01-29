@@ -17,7 +17,3 @@ func DisplayOutboundIP() {
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 	fmt.Printf("\n\nRunning on %v\n\n", localAddr.IP)
 }
-
-func main() {
-	fmt.Println("test IP module")
-}
