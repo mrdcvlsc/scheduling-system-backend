@@ -94,25 +94,26 @@ type roomCountAndCapacity struct {
 	Capacity            uint16
 }
 
+// returns true if the length is 0 or if there are no subjects allocated in the time tables. false otherwise.
 func (university_sched UniTimeTables) IsEmpty() bool {
 
 	if len(university_sched) == 0 {
 		return true
 	}
 
-	empty_subject_count := 0
+	subject_count := 0
 
 	for _, section_sched := range university_sched {
 		for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
 			for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
-				if section_sched[day][time_slot].subjectID == 0 {
-					empty_subject_count++
+				if section_sched[day][time_slot].GetSubjectID() != 0 {
+					subject_count++
 				}
 			}
 		}
 	}
 
-	return empty_subject_count == (Const.N_WEEKLY_TIME_SLOTS * len(university_sched))
+	return subject_count == 0
 }
 
 func (university_sched UniTimeTables) Validate() []error {
