@@ -27,6 +27,13 @@ const (
 
 const MAX_SECTION_SCHEDULE_GENERATION_RETRY int = 3
 
+type ScheduleIndex struct {
+	DepartmentID uint16
+	CurriculumID uint16
+	YearLevel    uint8
+	Section      uint8
+}
+
 // Generate individual university schedules.
 //
 // Different return types:
@@ -431,3 +438,6 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 	return individual_university_schedules, nil
 }
+
+// TODO: when generating solutions while the genetic algorithm is running, we should also generate an index file to be use for querying
+// each sections in the generated university schedules, make the generated schedule and index global for access.
