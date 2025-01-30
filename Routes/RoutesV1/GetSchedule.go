@@ -9,8 +9,8 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageSchedule"
 )
 
-// GET:    /schedule?sem=0    or    /schedule?sem=1
-func GetSchedule(ctx *gin.Context) {
+// GET:    /university_schedule?sem=0    or    /university_schedule?sem=1
+func GetUniversitySchedule(ctx *gin.Context) {
 	param := ctx.Query("sem")
 
 	if param != "0" && param != "1" {

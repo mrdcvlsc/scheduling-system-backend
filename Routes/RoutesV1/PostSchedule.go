@@ -11,7 +11,7 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageSchedule"
 )
 
-func PostSchedule(ctx *gin.Context) {
+func PostUniversitySchedule(ctx *gin.Context) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 	//                                   FOR TESTING

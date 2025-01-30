@@ -126,8 +126,8 @@ func main() {
 
 	v1.GET("/department_data", RoutesV1.GetDepartmentData)
 
-	v1.GET("/schedule", RoutesV1.GetSchedule)
-	v1.POST("/schedule", RoutesV1.PostSchedule)
+	v1.GET("/university_schedule", RoutesV1.GetUniversitySchedule)
+	v1.POST("/university_schedule", RoutesV1.PostUniversitySchedule)
 
 	v1.GET("/test_read", RoutesV1.TestRead)
 	v1.GET("/test_write", RoutesV1.TestWrite)
