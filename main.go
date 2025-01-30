@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"runtime"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
+	"github.com/mrdcvlsc/scheduling-system-backend/Routes/RoutesV1"
 	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -94,9 +96,23 @@ func main() {
 		c.HTML(http.StatusOK, "index.html", gin.H{})
 	})
 
-	////////////////////////////////
+	router.GET("/cpu", func(ctx *gin.Context) {
+		ctx.JSON(http.StatusOK, gin.H{"cpu": runtime.NumCPU()})
+	})
 
-	Utils.DisplayOutboundIP()
+	//////////////////////////////////////////////////////////////////////////
+	//                              API-v1
+	//////////////////////////////////////////////////////////////////////////
+
+	v1 := router.Group("/v1")
+
+	v1.GET("/const", RoutesV1.GetConst)
+	v1.GET("/schedule", RoutesV1.GetSchedule)
+	v1.POST("/schedule", RoutesV1.PostSchedule)
+
+	//////////////////////////////////////////////////////////////////////////
+
+	Utils.DisplayOutboundIP(os.Getenv("PORT"))
 	router.Run(fmt.Sprintf(":%s", os.Getenv("PORT")))
 
 }
