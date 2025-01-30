@@ -5,43 +5,47 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
-	"github.com/mrdcvlsc/scheduling-system-backend/StorageSchedule"
 )
 
-// GET:    /university_schedule?sem=0    or    /university_schedule?sem=1
+// GET:  /v1/university_schedule?semester=0  or  /v1/university_schedule?semester=1
 func GetUniversitySchedule(ctx *gin.Context) {
-	param := ctx.Query("sem")
 
-	if param != "0" && param != "1" {
-		ctx.String(http.StatusBadRequest, "malformed query")
+	param_semester := ctx.Query("semester")
+
+	if param_semester == "" {
+		ctx.String(http.StatusBadRequest, "mising 'semester' parameter or parameter value")
 		return
 	}
 
-	semester, parse_err := strconv.Atoi(param)
+	selected_semester, semester_atoi_err := strconv.Atoi(param_semester)
 
-	if parse_err != nil {
-		ctx.String(http.StatusInternalServerError, "Opps! we are not able to parse that semester")
+	if semester_atoi_err != nil {
+		ctx.String(http.StatusBadRequest, "invalid 'semester' parameter value")
 		return
 	}
 
-	persistence := StorageSchedule.Persistence{ReaderService: &StorageSchedule.JsonReader{}}
+	if selected_semester < 0 || selected_semester >= 2 {
+		ctx.String(http.StatusBadRequest, "invalid 'semester' index value")
+		return
+	}
 
-	university_schedules, read_err := persistence.ReaderService.LoadSchedules(semester)
+	university_schedules, read_err := RouteGlobals.SchedulePersistence.ReaderService.LoadSchedules(selected_semester)
 
 	if read_err != nil {
-		ctx.String(http.StatusInternalServerError, "Opps! error reading the schedule")
+		ctx.String(http.StatusInternalServerError, "error reading schedule")
 		return
 	}
 
 	if university_schedules.IsEmpty() {
-		ctx.String(http.StatusNotFound, "a schedule was not found, please generate one first")
+		ctx.String(http.StatusNotFound, "schedule was not found, please generate one first")
 		return
 	}
 
 	for _, validation_err := range university_schedules.Validate() {
 		if validation_err != nil {
-			ctx.String(http.StatusConflict, "we detected an invalid schedule")
+			ctx.String(http.StatusConflict, "server detected an invalid schedule")
 			return
 		}
 	}

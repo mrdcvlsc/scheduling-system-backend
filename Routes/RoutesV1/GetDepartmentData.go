@@ -24,7 +24,7 @@ type YearLevelMicroData struct {
 	SectionsUniversityScheduleIndex []int  `json:"Sections"`
 }
 
-// : /v1/department_data?department_id=D&semester=S
+// GET : /v1/department_data?department_id=D&semester=S
 func GetDepartmentData(ctx *gin.Context) {
 	param_department_id := ctx.Query("department_id")
 

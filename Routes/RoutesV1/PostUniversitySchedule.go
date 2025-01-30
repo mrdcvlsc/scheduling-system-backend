@@ -7,8 +7,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
+	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
-	"github.com/mrdcvlsc/scheduling-system-backend/StorageSchedule"
 )
 
 func PostUniversitySchedule(ctx *gin.Context) {
@@ -17,23 +17,26 @@ func PostUniversitySchedule(ctx *gin.Context) {
 	//                                   FOR TESTING
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	param := ctx.Query("sem")
+	param_semester := ctx.Query("semester")
 
-	if param != "0" && param != "1" {
-		ctx.String(http.StatusBadRequest, "malformed query")
+	if param_semester == "" {
+		ctx.String(http.StatusBadRequest, "mising 'semester' parameter or parameter value")
 		return
 	}
 
-	semester, parse_err := strconv.Atoi(param)
+	selected_semester, semester_atoi_err := strconv.Atoi(param_semester)
 
-	if parse_err != nil {
-		ctx.String(http.StatusInternalServerError, "opps! we are not able to parse that semester")
+	if semester_atoi_err != nil {
+		ctx.String(http.StatusBadRequest, "invalid 'semester' parameter value")
 		return
 	}
 
-	persistence := StorageSchedule.Persistence{ReaderService: &StorageSchedule.JsonReader{}}
+	if selected_semester < 0 || selected_semester >= 2 {
+		ctx.String(http.StatusBadRequest, "invalid 'semester' index value")
+		return
+	}
 
-	university_schedules, read_err := persistence.ReaderService.LoadSchedules(semester)
+	university_schedules, read_err := RouteGlobals.SchedulePersistence.ReaderService.LoadSchedules(selected_semester)
 
 	if read_err != nil {
 		ctx.String(http.StatusInternalServerError, "error reading the schedule")
