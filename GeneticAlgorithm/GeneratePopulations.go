@@ -140,6 +140,8 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 					// iterate over the subjects
 
+					subject_assign_counter := 0
+
 					for _, subject := range semester.Subjects {
 
 						var selected_instructor *Instructors.Instructor
@@ -410,6 +412,8 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 									selected_instructor.AssignedSubjects++
 									selected_instructor.TotalTeachingHours += subject_hours
 
+									subject_assign_counter++
+
 									/////////////////////////////////////////////////////////////////////////////////
 									//                 BREAK day AND time_slot LOOP
 									/////////////////////////////////////////////////////////////////////////////////
@@ -417,24 +421,37 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 									section_generation_retries = 0
 									day = 9999
 									time_slot = 9999
-								}
-							}
-						}
-					}
+								} // ------------- end of time_slot loop -------------
+							} // ------------- end of day loop -------------
+						} // ------------- end of class_type_iter loop -------------
+					} // ------------- end of subject loop -------------
 
 					// front compressed distribution : end
 
+					// TODO: debug later, for some reasons there are some subjects not being assigned
+
+					if subject_assign_counter != len(semester.Subjects) {
+						panic(fmt.Sprintf(
+
+							// TODO: debug step: make this output more information.
+
+							"there are some subjects that was not assigned for some reason (%d/%d)", subject_assign_counter, len(semester.Subjects),
+						))
+					}
+
+					// TODO: keep track of all the subjects that was assigned, find out which subject was not assigned and analyze it why is that happening.
+
 					individual_university_schedules = append(individual_university_schedules, week_time_table)
 					counted_sections++
-				}
-			}
-		}
+				} // ------------- end of section_idx loop -------------
+			} // ------------- end of semester_idx loop -------------
+		} // ------------- end of year_level loop -------------
 
 		// sort the instructors based on the number of subjects they are assigned
 		sort.Slice(instructors, func(i, j int) bool {
 			return instructors[i].TotalTeachingHours < instructors[j].TotalTeachingHours
 		})
-	}
+	} // ------------- end of curriculum loop -------------
 
 	return individual_university_schedules, nil
 }
