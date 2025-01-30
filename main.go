@@ -11,7 +11,10 @@ import (
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
+	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 	"github.com/mrdcvlsc/scheduling-system-backend/Routes/RoutesV1"
+	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
+	"github.com/mrdcvlsc/scheduling-system-backend/StorageSchedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -23,6 +26,19 @@ var SessionStore = cookie.NewStore([]byte(os.Getenv("SESSION_SECRET")))
 
 func main() {
 	fmt.Println("Starting backend service")
+
+	//////////////////////////////////////////////////////////////////////////
+	//                    Initialize Persistence To Use
+	//////////////////////////////////////////////////////////////////////////
+
+	RouteGlobals.ResourcesPersistence = &StorageResources.Persistence{
+		ReaderService: &StorageResources.JsonReader{},
+	}
+
+	RouteGlobals.SchedulePersistence = &StorageSchedule.Persistence{
+		ReaderService: &StorageSchedule.JsonReader{},
+		WriterService: &StorageSchedule.JsonWriter{},
+	}
 
 	//////////////////////////////////////////////////////////////////////////
 	// MongoDB Setup
@@ -107,8 +123,14 @@ func main() {
 	v1 := router.Group("/v1")
 
 	v1.GET("/const", RoutesV1.GetConst)
+
+	v1.GET("/department_data", RoutesV1.GetDepartmentData)
+
 	v1.GET("/schedule", RoutesV1.GetSchedule)
 	v1.POST("/schedule", RoutesV1.PostSchedule)
+
+	v1.GET("/test_read", RoutesV1.TestRead)
+	v1.GET("/test_write", RoutesV1.TestWrite)
 
 	//////////////////////////////////////////////////////////////////////////
 
