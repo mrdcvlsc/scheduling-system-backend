@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path"
+	"sort"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Departments"
@@ -133,6 +134,10 @@ func (s *JsonReader) GetAllCurriculum() ([]Curriculum.Curriculum, error) {
 
 		curriculums = append(curriculums, *course)
 	}
+
+	sort.Slice(curriculums, func(i, j int) bool {
+		return curriculums[i].CurriculumID < curriculums[j].CurriculumID
+	})
 
 	return curriculums, nil
 }

@@ -8,8 +8,9 @@ import (
 )
 
 type readerRepository interface {
-	GetAllSubjects() ([]Curriculum.Subject, error)
+	// the order of curriculums returned by this method is always sorted by curriculum ID.
 	GetAllCurriculum() ([]Curriculum.Curriculum, error)
+	GetAllSubjects() ([]Curriculum.Subject, error)
 	GetAllDepartments() ([]Departments.Department, error)
 	GetAllInstructors() ([]Instructors.Instructor, error)
 	GetAllRooms() ([]Rooms.Room, error)
