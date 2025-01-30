@@ -9,7 +9,7 @@ import (
 
 type JsonWriter struct{}
 
-func (s *JsonWriter) SaveSchedules(university_schedule Schedule.UniTimeTables) error {
+func (s *JsonWriter) SaveSchedules(university_schedule Schedule.UniTimeTables, semester int) error {
 
 	project_root, err_project_root := Utils.FindProjectRoot()
 
@@ -17,7 +17,13 @@ func (s *JsonWriter) SaveSchedules(university_schedule Schedule.UniTimeTables) e
 		return err_project_root
 	}
 
-	saved_file := path.Join(project_root, "scheduling-system-temporary-data", "univ.sched")
+	var saved_file string
+
+	if semester == first_semester {
+		saved_file = path.Join(project_root, "scheduling-system-temporary-data", "univ-1st-sem.sched")
+	} else if semester == second_semester {
+		saved_file = path.Join(project_root, "scheduling-system-temporary-data", "univ-2nd-sem.sched")
+	}
 
 	Utils.SaveToBinFile(saved_file, Schedule.SerializeUniversitySchedule(university_schedule))
 

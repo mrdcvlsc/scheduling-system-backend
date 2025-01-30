@@ -9,7 +9,10 @@ import (
 
 type JsonReader struct{}
 
-func (s *JsonReader) LoadSchedules() (Schedule.UniTimeTables, error) {
+const first_semester int = 0
+const second_semester int = 1
+
+func (s *JsonReader) LoadSchedules(semester int) (Schedule.UniTimeTables, error) {
 
 	project_root, err_project_root := Utils.FindProjectRoot()
 
@@ -17,7 +20,13 @@ func (s *JsonReader) LoadSchedules() (Schedule.UniTimeTables, error) {
 		return nil, err_project_root
 	}
 
-	saved_file := path.Join(project_root, "scheduling-system-temporary-data", "univ.sched")
+	var saved_file string
+
+	if semester == first_semester {
+		saved_file = path.Join(project_root, "scheduling-system-temporary-data", "univ-1st-sem.sched")
+	} else if semester == second_semester {
+		saved_file = path.Join(project_root, "scheduling-system-temporary-data", "univ-2nd-sem.sched")
+	}
 
 	read_bytes, err_read_from_bin_file := Utils.ReadFromBinFile(saved_file)
 

@@ -47,7 +47,7 @@ func Test_JsonReadWriteUniversitySchedules(t *testing.T) {
 		persistence := StorageSchedule.Persistence{WriterService: &StorageSchedule.JsonWriter{}}
 
 		wrote_sched = first_university_schedule
-		write_err := persistence.WriterService.SaveSchedules(first_university_schedule)
+		write_err := persistence.WriterService.SaveSchedules(first_university_schedule, GeneticAlgorithm.TERM_1ST_SEMESTER)
 
 		if write_err != nil {
 			t.Fatal(write_err)
@@ -57,7 +57,7 @@ func Test_JsonReadWriteUniversitySchedules(t *testing.T) {
 	{
 		persistence := StorageSchedule.Persistence{ReaderService: &StorageSchedule.JsonReader{}}
 
-		load_university_schedules, load_err := persistence.ReaderService.LoadSchedules()
+		load_university_schedules, load_err := persistence.ReaderService.LoadSchedules(GeneticAlgorithm.TERM_1ST_SEMESTER)
 
 		if load_err != nil {
 			t.Fatal(load_err)
