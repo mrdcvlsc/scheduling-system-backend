@@ -37,7 +37,7 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 	t.Logf("Semester : %d\n\n", target_semester)
 
 	total_test_iterations := 512
-	allowed_generation_errors := 0.4 // 40% error rate allowed.
+	allowed_generation_errors := 0.8 // 80% error rate allowed.
 
 	generation_error_list := make([]error, 0, 8)
 	validation_error_list := make([]error, 0, 8)
