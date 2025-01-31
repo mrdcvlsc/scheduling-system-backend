@@ -49,6 +49,10 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 
 		university_schedules, err := GeneticAlgorithm.NewIndividual(target_semester, 0)
 
+		if len(university_schedules) == 0 {
+			t.Fatal("No university schedules generated")
+		}
+
 		if err != nil {
 			t.Log(err)
 			generation_error_list = append(generation_error_list, err)

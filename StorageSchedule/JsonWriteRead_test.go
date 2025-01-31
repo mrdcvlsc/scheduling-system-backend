@@ -1,6 +1,7 @@
 package StorageSchedule_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
@@ -12,17 +13,34 @@ import (
 func Test_JsonReadWriteUniversitySchedules(t *testing.T) {
 	var wrote_sched Schedule.UniTimeTables
 
+	fmt.Print("Sched Part 1\n")
+
 	{
+		fmt.Print("Make Population Slice\n")
+
 		populations_of_schedules := make([]Schedule.UniTimeTables, 0)
+
+		fmt.Print("initialize error counter\n")
+
+		sched_gen_err_cnt := 0
+
+		fmt.Print("Entering Loop\n")
+
 		for i := 0; i < 30; i++ {
+
 			university_schedule, err := GeneticAlgorithm.NewIndividual(GeneticAlgorithm.TERM_1ST_SEMESTER, 0)
 
-			if err != nil && i == 99 {
-				t.Fatal(err)
+			if err != nil {
+				fmt.Println(err)
+
+				sched_gen_err_cnt++
+				continue
 			}
 
-			if err != nil {
-				continue
+			if sched_gen_err_cnt > 28 {
+				fmt.Print("Too many errors\n")
+				t.Fatal(err)
+
 			}
 
 			populations_of_schedules = append(populations_of_schedules, university_schedule)

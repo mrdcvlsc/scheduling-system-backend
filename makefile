@@ -18,6 +18,9 @@ devr:
 	mkdir scheduling-system-temporary-data
 	unzip release.zip -d ./scheduling-system-temporary-data
 
+rc:
+	go clean -testcache
+
 test:
 	go clean -testcache
 	go test ./... -timeout 0
