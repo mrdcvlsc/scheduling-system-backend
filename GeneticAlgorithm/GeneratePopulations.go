@@ -48,14 +48,13 @@ type ScheduleIndex struct {
 //
 // (slice, nil) - if this function returns a (slice, nil), that would mean it
 // successfully generated a valid university schedules.
-func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTables, error) {
+func NewIndividual(persistence_resources *StorageResources.Persistence, selected_semester, distribution_type int) (Schedule.UniTimeTables, error) {
 
-	persistence_resources := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	dept_id_to_room_type_to_rooms, err_dept_id_to_room_type_to_rooms := generate_map_dept_id_to_room_type_to_rooms(&persistence_resources)
+	dept_id_to_room_type_to_rooms, err_dept_id_to_room_type_to_rooms := generate_map_dept_id_to_room_type_to_rooms(persistence_resources)
 
 	if err_dept_id_to_room_type_to_rooms != nil {
 		return nil, err_dept_id_to_room_type_to_rooms
@@ -63,7 +62,7 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	dept_id_to_instructors, err_dept_id_to_instructors := generate_map_dept_id_to_instructors(&persistence_resources)
+	dept_id_to_instructors, err_dept_id_to_instructors := generate_map_dept_id_to_instructors(persistence_resources)
 
 	if err_dept_id_to_instructors != nil {
 		return nil, err_dept_id_to_instructors
@@ -71,7 +70,7 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	dept_id_to_department, err_dept_id_to_department := generate_map_dept_id_to_department(&persistence_resources)
+	dept_id_to_department, err_dept_id_to_department := generate_map_dept_id_to_department(persistence_resources)
 
 	if err_dept_id_to_department != nil {
 		return nil, err_dept_id_to_department

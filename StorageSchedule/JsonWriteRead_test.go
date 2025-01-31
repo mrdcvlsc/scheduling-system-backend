@@ -7,11 +7,13 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
+	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageSchedule"
 )
 
 func Test_JsonReadWriteUniversitySchedules(t *testing.T) {
 	var wrote_sched Schedule.UniTimeTables
+	resource_persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
 
 	fmt.Print("Sched Part 1\n")
 
@@ -28,7 +30,7 @@ func Test_JsonReadWriteUniversitySchedules(t *testing.T) {
 
 		for i := 0; i < 30; i++ {
 
-			university_schedule, err := GeneticAlgorithm.NewIndividual(GeneticAlgorithm.TERM_1ST_SEMESTER, 0)
+			university_schedule, err := GeneticAlgorithm.NewIndividual(&resource_persistence, GeneticAlgorithm.TERM_1ST_SEMESTER, 0)
 
 			if err != nil {
 				fmt.Println(err)
@@ -56,16 +58,16 @@ func Test_JsonReadWriteUniversitySchedules(t *testing.T) {
 			t.Fatal("the first university schedule generated is empty")
 		}
 
-		err_validation := first_university_schedule.Validate()
+		err_validation := first_university_schedule.Validate(&resource_persistence)
 
 		for _, e := range err_validation {
 			t.Fatal(e)
 		}
 
-		persistence := StorageSchedule.Persistence{WriterService: &StorageSchedule.JsonWriter{}}
+		sched_persistence := StorageSchedule.Persistence{WriterService: &StorageSchedule.JsonWriter{}}
 
 		wrote_sched = first_university_schedule
-		write_err := persistence.WriterService.SaveSchedules(first_university_schedule, GeneticAlgorithm.TERM_1ST_SEMESTER)
+		write_err := sched_persistence.WriterService.SaveSchedules(first_university_schedule, GeneticAlgorithm.TERM_1ST_SEMESTER)
 
 		if write_err != nil {
 			t.Fatal(write_err)
@@ -73,15 +75,16 @@ func Test_JsonReadWriteUniversitySchedules(t *testing.T) {
 	}
 
 	{
-		persistence := StorageSchedule.Persistence{ReaderService: &StorageSchedule.JsonReader{}}
+		schedule_persistence := StorageSchedule.Persistence{ReaderService: &StorageSchedule.JsonReader{}}
+		resource_persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
 
-		load_university_schedules, load_err := persistence.ReaderService.LoadSchedules(GeneticAlgorithm.TERM_1ST_SEMESTER)
+		load_university_schedules, load_err := schedule_persistence.ReaderService.LoadSchedules(GeneticAlgorithm.TERM_1ST_SEMESTER)
 
 		if load_err != nil {
 			t.Fatal(load_err)
 		}
 
-		validation_err := load_university_schedules.Validate()
+		validation_err := load_university_schedules.Validate(&resource_persistence)
 
 		if load_university_schedules.IsEmpty() {
 			t.Fatal("loaded university schedules are empty")

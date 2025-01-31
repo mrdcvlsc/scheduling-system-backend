@@ -116,11 +116,10 @@ func (university_sched UniTimeTables) IsEmpty() bool {
 	return subject_count == 0
 }
 
-func (university_sched UniTimeTables) Validate() []error {
+func (university_sched UniTimeTables) Validate(resource_persistence *StorageResources.Persistence) []error {
 
 	list_of_errors := make([]error, 0, 16)
 
-	resource_persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
 	rooms, err_rooms := resource_persistence.ReaderService.GetAllRooms()
 
 	if err_rooms != nil {

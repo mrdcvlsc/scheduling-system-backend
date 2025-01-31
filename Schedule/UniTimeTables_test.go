@@ -7,6 +7,7 @@ import (
 	geneticalgorithm "github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
+	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
@@ -14,8 +15,10 @@ func Test_UniTimeTablesSerializationAndDeserialization(t *testing.T) {
 
 	var wrote_sched Schedule.UniTimeTables
 
+	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+
 	{
-		uni_sched, err := geneticalgorithm.NewIndividual(0, 0)
+		uni_sched, err := geneticalgorithm.NewIndividual(&persistence, 0, 0)
 
 		if uni_sched == nil && err != nil {
 			t.Fatalf("there was an error reading data: %v\n", err)

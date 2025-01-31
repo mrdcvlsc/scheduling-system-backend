@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
+	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 )
 
 func TestEstimateResourceAvailabilityFirstSem(t *testing.T) {
@@ -34,6 +35,8 @@ func TestNewPopulationSecondSem(t *testing.T) {
 }
 
 func GeneratePopulations(t *testing.T, target_semester int) {
+	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+
 	t.Logf("Semester : %d\n\n", target_semester)
 
 	total_test_iterations := 512
@@ -47,7 +50,7 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 			fmt.Printf("Generating schedules (%d)..................................\n", (i + 1))
 		}
 
-		university_schedules, err := GeneticAlgorithm.NewIndividual(target_semester, 0)
+		university_schedules, err := GeneticAlgorithm.NewIndividual(&persistence, target_semester, 0)
 
 		if len(university_schedules) == 0 {
 			t.Fatal("No university schedules generated")
@@ -66,7 +69,7 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 			t.Fatalf("returned an empty university schedule : loop iteration %d\n", i)
 		}
 
-		err_validation := university_schedules.Validate()
+		err_validation := university_schedules.Validate(&persistence)
 
 		t.Logf("Schedules Generated : %d", len(university_schedules))
 
@@ -99,7 +102,9 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 }
 
 func BenchmarkNewPopulationFirstSem(b *testing.B) {
+	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+
 	for i := 0; i < b.N; i++ {
-		GeneticAlgorithm.NewIndividual(GeneticAlgorithm.TERM_2ND_SEMESTER, 0)
+		GeneticAlgorithm.NewIndividual(&persistence, GeneticAlgorithm.TERM_2ND_SEMESTER, 0)
 	}
 }
