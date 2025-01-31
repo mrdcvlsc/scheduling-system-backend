@@ -11,17 +11,30 @@ import (
 
 var ResourcesPersistence *StorageResources.Persistence
 var SchedulePersistence *StorageSchedule.Persistence
-var ScheduleCache *scheduleCache
 
 const NUM_OF_SEMESTERS int = 2
+
+var schedule_cache *scheduleCache
 
 type scheduleCache struct {
 	rw_mutex          sync.RWMutex
 	semester_schedule [NUM_OF_SEMESTERS]Schedule.UniTimeTables
 }
 
-// returns: (Schedule.UniTimeTables, nil) if has cached schedule, (nil, error) if something goes wrong (nil, nil) if no cached schedule.
-func (s *scheduleCache) GetCachedUniversitySchedule(semester int) (Schedule.UniTimeTables, bool, error) {
+/*
+example usage:
+
+	schedule, has_cache, err := RouteGlobals.GetCachedUniversitySchedule(semester)
+
+	if cache_err != nil {
+		// error handling...
+	}
+
+	if has_cache {
+		// do stuffs...
+	}
+*/
+func GetCachedUniversitySchedule(semester int) (Schedule.UniTimeTables, bool, error) {
 
 	if semester < 0 {
 		return nil, false, errors.New("cached schedule semester index underflow")
@@ -31,18 +44,27 @@ func (s *scheduleCache) GetCachedUniversitySchedule(semester int) (Schedule.UniT
 		return nil, false, errors.New("cached schedule semester index overflow")
 	}
 
-	s.rw_mutex.Lock()
-	defer s.rw_mutex.Unlock()
+	schedule_cache.rw_mutex.Lock()
 
-	if s.semester_schedule[semester] != nil {
-		return s.semester_schedule[semester], true, nil
+	if schedule_cache == nil {
+		schedule_cache = &scheduleCache{}
+	}
+
+	schedule_cache.rw_mutex.Unlock()
+
+	schedule_cache.rw_mutex.RLock()
+	defer schedule_cache.rw_mutex.RUnlock()
+
+	if schedule_cache.semester_schedule[semester] != nil {
+		if len(schedule_cache.semester_schedule[semester]) > 0 {
+			return schedule_cache.semester_schedule[semester], true, nil
+		}
 	}
 
 	return nil, false, nil
 }
 
-// returns: (Schedule.UniTimeTables, nil) if has cached schedule, (nil, error) if something goes wrong (nil, nil) if no cached schedule.
-func (s *scheduleCache) SetCachedUniversitySchedule(semester int, university_schedule Schedule.UniTimeTables) error {
+func SetCachedUniversitySchedule(semester int, university_schedule Schedule.UniTimeTables) error {
 
 	if semester < 0 {
 		return errors.New("cached schedule semester index underflow")
@@ -52,10 +74,14 @@ func (s *scheduleCache) SetCachedUniversitySchedule(semester int, university_sch
 		return errors.New("cached schedule semester index overflow")
 	}
 
-	s.rw_mutex.Lock()
-	defer s.rw_mutex.Unlock()
+	schedule_cache.rw_mutex.Lock()
+	defer schedule_cache.rw_mutex.Unlock()
 
-	s.semester_schedule[semester] = university_schedule
+	if schedule_cache == nil {
+		schedule_cache = &scheduleCache{}
+	}
+
+	schedule_cache.semester_schedule[semester] = university_schedule
 
 	return nil
 }
