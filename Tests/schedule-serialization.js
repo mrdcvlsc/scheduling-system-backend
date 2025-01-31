@@ -19,7 +19,7 @@ async function fetch_const(base_url = '') {
   return const_json;
 }
 
-async function fetch_serialized_schedule(selected_semester, base_url='') {
+async function fetch_serialized_schedule(selected_semester, base_url = '') {
   const response = await fetch(`${base_url}/v1/university_schedule?semester=${selected_semester}`, {
     headers: {
       Accept: "text/plain",
@@ -37,7 +37,7 @@ async function fetch_serialized_schedule(selected_semester, base_url='') {
   return [new Uint8Array(serialized_schedule), response.ok];
 }
 
-async function fetch_serialized_class_schedule(department_id, selected_semester, schedule_idx, base_url='') {
+async function fetch_serialized_class_schedule(department_id, selected_semester, schedule_idx, base_url = '') {
   const response = await fetch(
     `${base_url}/v1/class_schedule?department_id=${department_id}&semester=${selected_semester}&schedule_idx=${schedule_idx}`, {
     headers: {
@@ -57,7 +57,7 @@ async function fetch_serialized_class_schedule(department_id, selected_semester,
   return [new Uint8Array(serialized_schedule), response.ok];
 }
 
-async function send_serialized_schedule(selected_semester, serialized_schedule, base_url='') {
+async function send_serialized_schedule(selected_semester, serialized_schedule, base_url = '') {
   const response = await fetch(`${base_url}/v1/university_schedule?semester=${selected_semester}`, {
     method: 'POST',
     headers: {
@@ -76,7 +76,7 @@ async function send_serialized_schedule(selected_semester, serialized_schedule, 
   console.log('serialized university schedule sent to backend.');
 }
 
-async function deserialize_schedule(serialized_data, base_url='') {
+async function deserialize_schedule(serialized_data, base_url = '') {
   let constants = await fetch_const(base_url)
 
   const time_slot_bytes = constants.time_slot_bytes;
@@ -111,7 +111,7 @@ async function deserialize_schedule(serialized_data, base_url='') {
   return university_schedules;
 }
 
-async function serialize_schedule(university_schedules, base_url='') {
+async function serialize_schedule(university_schedules, base_url = '') {
   let constants = await fetch_const(base_url)
 
   const time_slot_bytes = constants.time_slot_bytes;
@@ -140,7 +140,7 @@ async function serialize_schedule(university_schedules, base_url='') {
   return serialized_data;
 }
 
-async function generate_schedule(selected_semester, base_url='') {
+async function generate_schedule(selected_semester, base_url = '') {
   const response = await fetch(`${base_url}/v1/generate_schedule?semester=${selected_semester}`, {
     method: 'POST',
     headers: {
@@ -157,20 +157,30 @@ async function generate_schedule(selected_semester, base_url='') {
   console.log(`success response: ${msg}`);
 }
 
-async function test(base_url='') {
+async function test(base_url = '') {
   try {
+    console.log('--------------------generate_schedule---------------------------\n')
     await generate_schedule(0, base_url)
+    await new Promise(resolve => setTimeout(resolve, 7000));
+    console.log('--------------------fetch_serialized_schedule---------------------------\n')
     let [raw_data, _] = await fetch_serialized_schedule(0, base_url);
+    console.log('--------------------deserialize_schedule---------------------------\n')
     let deserialized = await deserialize_schedule(raw_data, base_url);
+    console.log('--------------------serialize_schedule---------------------------\n')
     let serialized = await serialize_schedule(deserialized, base_url);
+    console.log('--------------------send_serialized_schedule---------------------------\n')
     await send_serialized_schedule(0, serialized, base_url)
-  
+    console.log('--------------------die---------------------------\n')
+
     await fetch(`${base_url}/die`, {
       headers: {
         Accept: "text/plain",
       },
       method: 'GET'
     });
+
+    console.log('--------------------success test js---------------------------\n')
+
   } catch (err) {
     if (err.cause?.code === 'UND_ERR_SOCKET') {
       console.log('err.cause.code =', err.cause.code)
@@ -178,12 +188,16 @@ async function test(base_url='') {
     } else {
       console.log('err =', err)
 
+      console.log('-------------------error die----------------------------\n')
+
       await fetch(`${base_url}/die`, {
         headers: {
           Accept: "text/plain",
         },
         method: 'GET'
       });
+
+      console.log('-----------------------------------------------\n')
 
       process.exit(1)
     }

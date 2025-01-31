@@ -1,6 +1,7 @@
 package RoutesV1
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -16,13 +17,19 @@ func GetUniversitySchedule(ctx *gin.Context) {
 		return
 	}
 
+	log.Print("GetUniversitySchedule: trying to obtain a university schedule")
 	university_schedules, has_obtained := ObtainUniversitySchedule(ctx, selected_semester)
 
 	if !has_obtained {
+		log.Print("GetUniversitySchedule: failed to obtain a university schedule")
 		return
 	}
 
+	log.Print("GetUniversitySchedule: success obtaining university schedule ")
+
 	serialized_schedule := Schedule.SerializeUniversitySchedule(university_schedules)
+
+	log.Print("GetUniversitySchedule: sending university schedule ")
 
 	ctx.Data(http.StatusOK, "application/octet-stream", serialized_schedule)
 }
