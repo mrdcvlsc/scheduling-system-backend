@@ -22,6 +22,22 @@ type scheduleCache struct {
 }
 
 /*
+call this first on the main program, if not called panic will happen when calling the other two methods:
+
+	GetCachedUniversitySchedule
+	SetCachedUniversitySchedule
+*/
+func InitializeCachedUniversitySchedule() {
+	if schedule_cache == nil {
+		schedule_cache = &scheduleCache{}
+	}
+}
+
+/*
+requires initial method call:
+
+	InitializeCachedUniversitySchedule()
+
 example usage:
 
 	schedule, has_cache, err := RouteGlobals.GetCachedUniversitySchedule(semester)
@@ -44,13 +60,9 @@ func GetCachedUniversitySchedule(semester int) (Schedule.UniTimeTables, bool, er
 		return nil, false, errors.New("cached schedule semester index overflow")
 	}
 
-	schedule_cache.rw_mutex.Lock()
-
 	if schedule_cache == nil {
-		schedule_cache = &scheduleCache{}
+		return nil, false, errors.New("uninitialized scheduling cache")
 	}
-
-	schedule_cache.rw_mutex.Unlock()
 
 	schedule_cache.rw_mutex.RLock()
 	defer schedule_cache.rw_mutex.RUnlock()
@@ -64,6 +76,11 @@ func GetCachedUniversitySchedule(semester int) (Schedule.UniTimeTables, bool, er
 	return nil, false, nil
 }
 
+/*
+requires initial method call:
+
+	InitializeCachedUniversitySchedule()
+*/
 func SetCachedUniversitySchedule(semester int, university_schedule Schedule.UniTimeTables) error {
 
 	if semester < 0 {
@@ -76,10 +93,6 @@ func SetCachedUniversitySchedule(semester int, university_schedule Schedule.UniT
 
 	schedule_cache.rw_mutex.Lock()
 	defer schedule_cache.rw_mutex.Unlock()
-
-	if schedule_cache == nil {
-		schedule_cache = &scheduleCache{}
-	}
 
 	schedule_cache.semester_schedule[semester] = university_schedule
 
