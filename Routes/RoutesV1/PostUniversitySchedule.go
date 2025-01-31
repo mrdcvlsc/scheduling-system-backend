@@ -44,7 +44,7 @@ func PostUniversitySchedule(ctx *gin.Context) {
 	}
 
 	if university_schedules.IsEmpty() {
-		ctx.String(http.StatusNotFound, "schedule was not found, please generate one first")
+		ctx.String(http.StatusNotFound, "schedule was empty, please generate one first")
 		return
 	}
 
@@ -80,12 +80,12 @@ func PostUniversitySchedule(ctx *gin.Context) {
 				}
 
 				if university_schedules[section_idx][day][time_slot].GetInstructorID() != received_university_schedules[section_idx][day][time_slot].GetInstructorID() {
-					ctx.String(http.StatusConflict, "schedule subject id mismatch")
+					ctx.String(http.StatusConflict, "schedule instructor id mismatch")
 					return
 				}
 
 				if university_schedules[section_idx][day][time_slot].GetRoomID() != received_university_schedules[section_idx][day][time_slot].GetRoomID() {
-					ctx.String(http.StatusConflict, "schedule subject id mismatch")
+					ctx.String(http.StatusConflict, "schedule room id mismatch")
 					return
 				}
 			}
