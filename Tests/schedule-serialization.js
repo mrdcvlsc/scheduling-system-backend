@@ -140,8 +140,26 @@ async function serialize_schedule(university_schedules, base_url='') {
   return serialized_data;
 }
 
+async function generate_schedule(selected_semester, base_url='') {
+  const response = await fetch(`${base_url}/v1/generate_schedule?semester=${selected_semester}`, {
+    method: 'POST',
+    headers: {
+      Accept: "text/plain",
+    },
+  });
+
+  const msg = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`${response.status} : ${msg}`);
+  }
+
+  console.log(`success response: ${msg}`);
+}
+
 async function test(base_url='') {
   try {
+    await generate_schedule(0, base_url)
     let [raw_data, _] = await fetch_serialized_schedule(0, base_url);
     let deserialized = await deserialize_schedule(raw_data, base_url);
     let serialized = await serialize_schedule(deserialized, base_url);

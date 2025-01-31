@@ -3,6 +3,7 @@ package RouteGlobals
 import (
 	"errors"
 	"sync"
+	"sync/atomic"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
@@ -14,12 +15,18 @@ var SchedulePersistence *StorageSchedule.Persistence
 
 const NUM_OF_SEMESTERS int = 2
 
-var schedule_cache *scheduleCache
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+var IsGeneratingSchedule atomic.Bool
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 type scheduleCache struct {
 	rw_mutex          sync.RWMutex
 	semester_schedule [NUM_OF_SEMESTERS]Schedule.UniTimeTables
 }
+
+var schedule_cache *scheduleCache
 
 /*
 call this first on the main program, if not called panic will happen when calling the other two methods:
