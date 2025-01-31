@@ -2,7 +2,6 @@ package RoutesV1
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
@@ -26,41 +25,16 @@ type YearLevelMicroData struct {
 
 // GET : /v1/department_data?department_id=D&semester=S
 func GetDepartmentData(ctx *gin.Context) {
-	param_department_id := ctx.Query("department_id")
 
-	if param_department_id == "" {
-		ctx.String(http.StatusBadRequest, "mising 'department_id' parameter or parameter value")
+	department_id, is_valid_department_id_param := IsValidParameterDepartmentID(ctx)
+
+	if !is_valid_department_id_param {
 		return
 	}
 
-	department_id, department_id_atoi_err := strconv.Atoi(param_department_id)
+	selected_semester, is_valid_semester_param := IsValidParameterSemesterIndex(ctx)
 
-	if department_id_atoi_err != nil {
-		ctx.String(http.StatusBadRequest, "invalid 'department_id' parameter value")
-		return
-	}
-
-	if department_id <= 0 {
-		ctx.String(http.StatusBadRequest, "invalid 'department_id' value")
-		return
-	}
-
-	param_semester := ctx.Query("semester")
-
-	if param_semester == "" {
-		ctx.String(http.StatusBadRequest, "mising 'semester' parameter or parameter value")
-		return
-	}
-
-	selected_semester, semester_atoi_err := strconv.Atoi(param_semester)
-
-	if semester_atoi_err != nil {
-		ctx.String(http.StatusBadRequest, "invalid 'semester' parameter value")
-		return
-	}
-
-	if selected_semester < 0 || selected_semester >= 2 {
-		ctx.String(http.StatusBadRequest, "invalid 'semester' index value")
+	if !is_valid_semester_param {
 		return
 	}
 

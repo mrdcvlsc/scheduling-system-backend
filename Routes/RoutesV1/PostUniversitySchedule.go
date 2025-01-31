@@ -3,7 +3,6 @@ package RoutesV1
 import (
 	"io"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
@@ -17,22 +16,9 @@ func PostUniversitySchedule(ctx *gin.Context) {
 	//                                   FOR TESTING
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	param_semester := ctx.Query("semester")
+	selected_semester, is_valid_semester_para := IsValidParameterSemesterIndex(ctx)
 
-	if param_semester == "" {
-		ctx.String(http.StatusBadRequest, "mising 'semester' parameter or parameter value")
-		return
-	}
-
-	selected_semester, semester_atoi_err := strconv.Atoi(param_semester)
-
-	if semester_atoi_err != nil {
-		ctx.String(http.StatusBadRequest, "invalid 'semester' parameter value")
-		return
-	}
-
-	if selected_semester < 0 || selected_semester >= 2 {
-		ctx.String(http.StatusBadRequest, "invalid 'semester' index value")
+	if !is_valid_semester_para {
 		return
 	}
 

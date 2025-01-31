@@ -11,45 +11,22 @@ import (
 
 // GET : /v1/class_schedule?department_id=D&semester=S&schedule_idx=I
 func GetClassSchedule(ctx *gin.Context) {
+
 	// parse semester parameter
 
-	semester_param := ctx.Query("semester")
+	semester, is_valid_semester_param := IsValidParameterSemesterIndex(ctx)
 
-	if semester_param == "" {
-		ctx.String(http.StatusBadRequest, "mising 'semester_param' parameter or parameter value")
-		return
-	}
-
-	semester, semester_atoi_err := strconv.Atoi(semester_param)
-
-	if semester_atoi_err != nil {
-		ctx.String(http.StatusInternalServerError, "invalid 'semester' value")
-		return
-	}
-
-	if semester != 0 && semester != 1 {
-		ctx.String(http.StatusBadRequest, "invalid 'semester' index")
+	if !is_valid_semester_param {
 		return
 	}
 
 	// parse department_id parameter
 
-	param_department_id := ctx.Query("department_id")
+	// TODO: use this for authentication later on.
 
-	if param_department_id == "" {
-		ctx.String(http.StatusBadRequest, "mising 'department_id' parameter or parameter value")
-		return
-	}
+	_, is_valid_department_id_param := IsValidParameterDepartmentID(ctx)
 
-	department_id, department_id_atoi_err := strconv.Atoi(param_department_id)
-
-	if department_id_atoi_err != nil {
-		ctx.String(http.StatusBadRequest, "invalid 'department_id' parameter value")
-		return
-	}
-
-	if department_id <= 0 {
-		ctx.String(http.StatusBadRequest, "invalid 'department_id' value")
+	if !is_valid_department_id_param {
 		return
 	}
 
