@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
@@ -130,6 +131,8 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 						semester.Subjects[i], semester.Subjects[j] = semester.Subjects[j], semester.Subjects[i]
 					})
 
+					// TODO: implement distribution types
+					//
 					// front compressed distribution : start
 					//
 					// for now the this is a brute force implementation, yet it is still enough
@@ -140,9 +143,13 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 
 					// iterate over the subjects
 
-					subject_assign_counter := 0
+					// TODO: the map below was added for debugging purposes only, remove when the code becomes stable and optimized.
 
+					subject_recorder := make(map[uint16]Curriculum.Subject)
+
+					// fmt.Println("=============================================") // DEBUG SUBJECT UNASSIGNED PROBLEM
 					for _, subject := range semester.Subjects {
+						// fmt.Printf("assigning subject : %s", subject.Code) // DEBUG SUBJECT UNASSIGNED PROBLEM
 
 						var selected_instructor *Instructors.Instructor
 
@@ -153,6 +160,8 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 						for class_type_iter := 0; class_type_iter < 2; class_type_iter++ {
 
 							class_type := (rand_class_type + class_type_iter) % 2
+
+							// fmt.Printf("\tcI[%d], cT[%d]\t", class_type_iter, class_type) // DEBUG SUBJECT UNASSIGNED PROBLEM
 
 							var selected_room *Rooms.Room
 
@@ -177,6 +186,19 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 								day_sched := week_time_table.GetDayTimeTable(day)
 
 								for time_slot := 0; time_slot < (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots); time_slot++ {
+
+									if !day_sched.IsTimeAvailable(time_slot, subject_total_time_slots) && (time_slot >= (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
+										if section_generation_retries < MAX_SECTION_SCHEDULE_GENERATION_RETRY {
+											section_generation_retries++
+											section_idx--
+											continue section_loop
+										}
+
+										return individual_university_schedules, fmt.Errorf(
+											"no time slot found for %s in %s for %s %s %s section[%d] after generating schedules for %d other sections",
+											subject.Code, dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
+										)
+									}
 
 									if !day_sched.IsTimeAvailable(time_slot, subject_total_time_slots) {
 										continue // if the current time slot is not available go to the next
@@ -412,7 +434,9 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 									selected_instructor.AssignedSubjects++
 									selected_instructor.TotalTeachingHours += subject_hours
 
-									subject_assign_counter++
+									subject_recorder[subject.ID] = subject
+
+									// fmt.Printf("\t\tassigned : %s", subject.Code) // DEBUG SUBJECT UNASSIGNED PROBLEM
 
 									/////////////////////////////////////////////////////////////////////////////////
 									//                 BREAK day AND time_slot LOOP
@@ -424,18 +448,30 @@ func NewIndividual(selected_semester, distribution_type int) (Schedule.UniTimeTa
 								} // ------------- end of time_slot loop -------------
 							} // ------------- end of day loop -------------
 						} // ------------- end of class_type_iter loop -------------
+
+						// fmt.Printf("\t\t<-- result for : %s\n", subject.Code) // DEBUG SUBJECT UNASSIGNED PROBLEM
 					} // ------------- end of subject loop -------------
 
 					// front compressed distribution : end
 
 					// TODO: debug later, for some reasons there are some subjects not being assigned
 
-					if subject_assign_counter != len(semester.Subjects) {
+					if len(subject_recorder) != len(semester.Subjects) {
+
+						// fmt.Printf("\n\nAssigned Subjects : %s %s %s section %d\n", curriculum.CurriculumName, year_level.Name, semester.Name, section_idx) // DEBUG SUBJECT UNASSIGNED PROBLEM
+
+						// for _, s := range subject_recorder { // DEBUG SUBJECT UNASSIGNED PROBLEM
+						// fmt.Printf("%v\n", s) // DEBUG SUBJECT UNASSIGNED PROBLEM
+						// } // DEBUG SUBJECT UNASSIGNED PROBLEM
+
+						// fmt.Printf("\n\nSubjects To Assign : %s %s %s section %d\n", curriculum.CurriculumName, year_level.Name, semester.Name, section_idx) // DEBUG SUBJECT UNASSIGNED PROBLEM
+
+						// for _, s := range semester.Subjects { // DEBUG SUBJECT UNASSIGNED PROBLEM
+						// fmt.Printf("%v\n", s) // DEBUG SUBJECT UNASSIGNED PROBLEM
+						// } // DEBUG SUBJECT UNASSIGNED PROBLEM
+
 						panic(fmt.Sprintf(
-
-							// TODO: debug step: make this output more information.
-
-							"there are some subjects that was not assigned for some reason (%d/%d)", subject_assign_counter, len(semester.Subjects),
+							"there are some subjects that was not assigned for some reason (%d/%d)", len(subject_recorder), len(semester.Subjects),
 						))
 					}
 

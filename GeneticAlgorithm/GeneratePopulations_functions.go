@@ -97,12 +97,12 @@ func generate_map_dept_id_to_department(persistence *StorageResources.Persistenc
 // * MIN_SUBJECT_ROOM_HOUR_BUFFER = 200, MIN_SUBJECT_INSTRUCTOR_HOUR_BUFFER = 300
 //
 // : 1024 generations => 65% - 68% valid schedules.
-const MIN_SUBJECT_ROOM_HOUR_BUFFER int = 150
+const MIN_SUBJECT_ROOM_HOUR_BUFFER int = 200
 
 // The minimum recommended difference between the total available instructor hours in a department
 // and the total lecture and laboratory hours combined for all subjects in the department.
 // This ensures that schedules can be generated with minimal risk of resource shortages.
-const MIN_SUBJECT_INSTRUCTOR_HOUR_BUFFER int = 192
+const MIN_SUBJECT_INSTRUCTOR_HOUR_BUFFER int = 300
 
 type Totals struct {
 	DepartmentID uint16
