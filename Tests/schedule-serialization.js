@@ -1,5 +1,7 @@
-async function fetch_const() {
-  const response = await fetch('http://localhost:3000/v1/const', {
+let domain = 'http://localhost:3000'
+
+async function fetch_const(base_url = '') {
+  const response = await fetch(`${base_url}/v1/const`, {
     headers: {
       Accept: "application/json",
     },
@@ -17,8 +19,8 @@ async function fetch_const() {
   return const_json;
 }
 
-async function fetch_serialized_schedule(selected_semester) {
-  const response = await fetch(`http://localhost:3000/v1/university_schedule?semester=${selected_semester}`, {
+async function fetch_serialized_schedule(selected_semester, base_url='') {
+  const response = await fetch(`${base_url}/v1/university_schedule?semester=${selected_semester}`, {
     headers: {
       Accept: "text/plain",
     },
@@ -35,9 +37,9 @@ async function fetch_serialized_schedule(selected_semester) {
   return [new Uint8Array(serialized_schedule), response.ok];
 }
 
-async function fetch_serialized_class_schedule(department_id, selected_semester, schedule_idx) {
+async function fetch_serialized_class_schedule(department_id, selected_semester, schedule_idx, base_url='') {
   const response = await fetch(
-    `http://localhost:3000/v1/class_schedule?department_id=${department_id}&semester=${selected_semester}&schedule_idx=${schedule_idx}`, {
+    `${base_url}/v1/class_schedule?department_id=${department_id}&semester=${selected_semester}&schedule_idx=${schedule_idx}`, {
     headers: {
       Accept: "text/plain",
     },
@@ -55,8 +57,8 @@ async function fetch_serialized_class_schedule(department_id, selected_semester,
   return [new Uint8Array(serialized_schedule), response.ok];
 }
 
-async function send_serialized_schedule(selected_semester, serialized_schedule) {
-  const response = await fetch(`http://localhost:3000/v1/university_schedule?semester=${selected_semester}`, {
+async function send_serialized_schedule(selected_semester, serialized_schedule, base_url='') {
+  const response = await fetch(`${base_url}/v1/university_schedule?semester=${selected_semester}`, {
     method: 'POST',
     headers: {
       Accept: "text/plain",
@@ -74,8 +76,8 @@ async function send_serialized_schedule(selected_semester, serialized_schedule) 
   console.log('serialized university schedule sent to backend.');
 }
 
-async function deserialize_schedule(serialized_data) {
-  let constants = await fetch_const()
+async function deserialize_schedule(serialized_data, base_url='') {
+  let constants = await fetch_const(base_url)
 
   const time_slot_bytes = constants.time_slot_bytes;
   const weekly_school_days = constants.weekly_school_days;
@@ -109,8 +111,8 @@ async function deserialize_schedule(serialized_data) {
   return university_schedules;
 }
 
-async function serialize_schedule(university_schedules) {
-  let constants = await fetch_const()
+async function serialize_schedule(university_schedules, base_url='') {
+  let constants = await fetch_const(base_url)
 
   const time_slot_bytes = constants.time_slot_bytes;
   const weekly_time_slots = constants.weekly_time_slots;
@@ -138,14 +140,14 @@ async function serialize_schedule(university_schedules) {
   return serialized_data;
 }
 
-async function test() {
+async function test(base_url='') {
   try {
-    let [raw_data, _] = await fetch_serialized_schedule(0);
-    let deserialized = await deserialize_schedule(raw_data);
-    let serialized = await serialize_schedule(deserialized);
-    await send_serialized_schedule(0, serialized)
+    let [raw_data, _] = await fetch_serialized_schedule(0, base_url);
+    let deserialized = await deserialize_schedule(raw_data, base_url);
+    let serialized = await serialize_schedule(deserialized, base_url);
+    await send_serialized_schedule(0, serialized, base_url)
   
-    await fetch(`http://localhost:3000/die`, {
+    await fetch(`${base_url}/die`, {
       headers: {
         Accept: "text/plain",
       },
@@ -158,7 +160,7 @@ async function test() {
     } else {
       console.log('err =', err)
 
-      await fetch(`http://localhost:3000/die`, {
+      await fetch(`${base_url}/die`, {
         headers: {
           Accept: "text/plain",
         },
@@ -170,4 +172,4 @@ async function test() {
   }
 }
 
-test()
+test(domain)
