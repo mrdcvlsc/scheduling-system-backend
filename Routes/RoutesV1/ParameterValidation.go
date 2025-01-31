@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 )
 
 // requires a 'semester' parameter then validate it.
@@ -52,4 +53,40 @@ func IsValidParameterDepartmentID(ctx *gin.Context) (int, bool) {
 	}
 
 	return department_id, true
+}
+
+/*
+usage inside a route:
+
+	schedule_idx, is_valid_idx := IsValidUniversityScheduleIndex(ctx, university_schedules)
+	if !is_valid_idx {
+		return
+	}
+*/
+func IsValidUniversityScheduleIndex(ctx *gin.Context, university_schedule Schedule.UniTimeTables) (int, bool) {
+	param_schedule_idx := ctx.Query("schedule_idx")
+
+	if param_schedule_idx == "" {
+		ctx.String(http.StatusBadRequest, "mising 'schedule_idx' parameter or parameter value")
+		return -1, false
+	}
+
+	schedule_idx, schedule_idx_atoi_err := strconv.Atoi(param_schedule_idx)
+
+	if schedule_idx_atoi_err != nil {
+		ctx.String(http.StatusBadRequest, "invalid 'schedule_idx' parameter value")
+		return -1, false
+	}
+
+	if schedule_idx < 0 {
+		ctx.String(http.StatusBadRequest, "university schedule underflow: class schedule does not exist")
+		return -1, false
+	}
+
+	if schedule_idx >= len(university_schedule) {
+		ctx.String(http.StatusBadRequest, "university schedule overflow: class schedule does not exist, university schedules might have been altered")
+		return -1, false
+	}
+
+	return schedule_idx, true
 }
