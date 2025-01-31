@@ -54,3 +54,8 @@ jobs:
 
       - name: Run Server And Node Fetch Test
         run: ./app & sleep 1 && node Tests/schedule-serialization.js
+        env:
+          PORT: 3000
+          GIN_MODE: debug
+          PROTOCOL: tcp
+          NODE_VERSION: lts
