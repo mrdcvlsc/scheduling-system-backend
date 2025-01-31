@@ -2,9 +2,9 @@ name: tests
 
 on:
   push:
-    branches: [ "master", "main", "development" ]
+    branches: [ "master", "main", "development", "api_test" ]
   pull_request:
-    branches: [ "master", "main", "development" ]
+    branches: [ "master", "main", "development", "api_test" ]
 
 jobs:
   run_tests:
@@ -46,3 +46,11 @@ jobs:
 
       - name: Run Tests
         run: make test
+
+        # build test
+
+      - name: Run Build
+        run: make build
+
+      - name: Run Server And Node Fetch Test
+        run: ./app & sleep 1 && node Tests/schedule-serialization.js
