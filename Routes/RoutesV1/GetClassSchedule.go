@@ -1,9 +1,11 @@
 package RoutesV1
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 )
 
@@ -34,6 +36,14 @@ func GetClassSchedule(ctx *gin.Context) {
 
 	if !has_obtained {
 		return
+	}
+
+	// cache the found university schedule for the semester
+
+	cache_err := RouteGlobals.SetCachedUniversitySchedule(semester, university_schedules)
+
+	if cache_err != nil {
+		log.Println(cache_err.Error())
 	}
 
 	// parse schedule_idx parameter
