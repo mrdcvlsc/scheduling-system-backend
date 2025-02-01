@@ -57,6 +57,24 @@ async function fetch_serialized_class_schedule(department_id, selected_semester,
   return [new Uint8Array(serialized_schedule), response.ok];
 }
 
+async function fetch_serialized_class_json_schedule(department_id, selected_semester, schedule_idx, base_url = '') {
+  const response = await fetch(
+    `${base_url}/v1/class_json_schedule?department_id=${department_id}&semester=${selected_semester}&schedule_idx=${schedule_idx}`, {
+    headers: {
+      Accept: "application/json",
+    },
+    method: 'GET'
+  }
+  );
+
+  if (!response.ok) {
+    const err_msg = await response.text();
+    throw Error(`${response.status} : ${err_msg}`);
+  }
+
+  return [await response.json(), response.ok];
+}
+
 async function send_serialized_schedule(selected_semester, serialized_schedule, base_url = '') {
   const response = await fetch(`${base_url}/v1/university_schedule?semester=${selected_semester}`, {
     method: 'POST',

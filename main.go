@@ -135,6 +135,7 @@ func main() {
 	v1.POST("/university_schedule", RoutesV1.PostUniversitySchedule)
 
 	v1.GET("/class_schedule", RoutesV1.GetClassSchedule)
+	v1.GET("/class_json_schedule", RoutesV1.GetJsonClassSchedule)
 
 	v1.POST("/generate_schedule", RoutesV1.GenerateSchedule)
 
