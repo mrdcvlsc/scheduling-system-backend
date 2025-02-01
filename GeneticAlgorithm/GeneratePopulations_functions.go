@@ -130,8 +130,7 @@ type Totals struct {
 	LabSubjectCount int
 }
 
-func EstimateResourceAvailability(selected_semester, distribution_type int) []error {
-	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+func EstimateResourceAvailability(persistence *StorageResources.Persistence, selected_semester, distribution_type int) []error {
 
 	curriculums, err_curriculum := persistence.ReaderService.GetAllCurriculum()
 
@@ -141,7 +140,7 @@ func EstimateResourceAvailability(selected_semester, distribution_type int) []er
 		return list_of_returned_errors
 	}
 
-	department_id_to_department, err_department_id_to_department := generate_map_dept_id_to_department(&persistence)
+	department_id_to_department, err_department_id_to_department := generate_map_dept_id_to_department(persistence)
 
 	if err_department_id_to_department != nil {
 		error_slice := make([]error, 0, 2)

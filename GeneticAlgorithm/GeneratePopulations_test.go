@@ -9,7 +9,9 @@ import (
 )
 
 func TestEstimateResourceAvailabilityFirstSem(t *testing.T) {
-	err := GeneticAlgorithm.EstimateResourceAvailability(GeneticAlgorithm.TERM_1ST_SEMESTER, 0)
+	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+
+	err := GeneticAlgorithm.EstimateResourceAvailability(&persistence, GeneticAlgorithm.TERM_1ST_SEMESTER, 0)
 
 	for _, e := range err {
 		t.Error(e)
@@ -18,7 +20,9 @@ func TestEstimateResourceAvailabilityFirstSem(t *testing.T) {
 }
 
 func TestEstimateResourceAvailabilitySecondSem(t *testing.T) {
-	err := GeneticAlgorithm.EstimateResourceAvailability(GeneticAlgorithm.TERM_2ND_SEMESTER, 0)
+	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+
+	err := GeneticAlgorithm.EstimateResourceAvailability(&persistence, GeneticAlgorithm.TERM_2ND_SEMESTER, 0)
 
 	for _, e := range err {
 		t.Error(e)
