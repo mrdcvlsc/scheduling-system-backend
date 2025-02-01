@@ -152,6 +152,18 @@ func NewIndividual(persistence_resources *StorageResources.Persistence, selected
 
 						var selected_instructor *Instructors.Instructor
 
+						// shuffle instructors
+
+						rng.Shuffle(len(instructors), func(i, j int) {
+							instructors[i], instructors[j] = instructors[j], instructors[i]
+						})
+
+						// sort the instructors based on the number of subjects they are assigned
+
+						sort.Slice(instructors, func(i, j int) bool {
+							return instructors[i].TotalTeachingHours < instructors[j].TotalTeachingHours
+						})
+
 						// iterate over the class type of the subject lec = 0 or lab = 1
 
 						rand_class_type := int(rng.Int31n(2))
@@ -212,18 +224,6 @@ func NewIndividual(persistence_resources *StorageResources.Persistence, selected
 
 									instructor_search_iteration := 0
 
-									// shuffle instructors
-
-									rng.Shuffle(len(instructors), func(i, j int) {
-										instructors[i], instructors[j] = instructors[j], instructors[i]
-									})
-
-									// sort the instructors based on the number of subjects they are assigned
-
-									sort.Slice(instructors, func(i, j int) bool {
-										return instructors[i].TotalTeachingHours < instructors[j].TotalTeachingHours
-									})
-
 									// fmt.Printf("instructor & room searching for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
 
 									for instructor_idx := range instructors {
@@ -231,7 +231,6 @@ func NewIndividual(persistence_resources *StorageResources.Persistence, selected
 										is_available_instructor := true
 
 										if selected_instructor == nil {
-
 											// fmt.Printf("searching the available time slot for the iterated instructor [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
 
 											// IF NONE: iterate over all of the sorted instructors to find which
@@ -447,7 +446,6 @@ func NewIndividual(persistence_resources *StorageResources.Persistence, selected
 								} // ------------- end of time_slot loop -------------
 							} // ------------- end of day loop -------------
 						} // ------------- end of class_type_iter loop -------------
-
 						// fmt.Printf("\t\t<-- result for : %s\n", subject.Code) // DEBUG SUBJECT UNASSIGNED PROBLEM
 					} // ------------- end of subject loop -------------
 
