@@ -52,6 +52,39 @@ namespace Departments {
 
 
 
+namespace GeneticAlgorithm {
+    class ScheduleIndex << (S,Aquamarine) >> {
+        + DepartmentID uint16
+        + CurriculumID uint16
+        + YearLevel uint8
+        + Section uint8
+
+    }
+    class Totals << (S,Aquamarine) >> {
+        + DepartmentID uint16
+        + SectionCount int
+        + LecRoomHours int
+        + LabRoomHours int
+        + GymRoomHours int
+        + InstructorHours float64
+        + InstructorCount int
+        + SubjectLecHours int
+        + SubjectLabHours int
+        + SubjectGymHours int
+        + RoomCapacity int
+        + RoomLabCount int
+        + RoomLecCount int
+        + Semester int
+        + DepartmentName string
+        + Courses int
+        + LecSubjectCount int
+        + LabSubjectCount int
+
+    }
+}
+
+
+
 namespace Instructors {
     class Instructor << (S,Aquamarine) >> {
         + InstructorID uint16
@@ -62,20 +95,20 @@ namespace Instructors {
         + AssignedSubjects int
         + TotalTeachingHours int
         + AvailableDay uint8
-        + TimeSlotAvailability InstructorTimeSlotMap
+        + Time InstructorTimeSlotBitMap
 
     }
-    class InstructorTimeSlotMap << (S,Aquamarine) >> {
+    class InstructorTimeSlotBitMap << (S,Aquamarine) >> {
         + SetAvailability(available bool, day int, time_slot int) 
         + GetAvailability(day int, time_slot int) bool
 
     }
-    class Instructors.InstructorTimeSlotMap << (T, #FF7700) >>  {
+    class Instructors.InstructorTimeSlotBitMap << (T, #FF7700) >>  {
     }
 }
 
 
-"Instructors.Instructor""uses" o-- "Instructors.InstructorTimeSlotMap"
+"Instructors.Instructor""uses" o-- "Instructors.InstructorTimeSlotBitMap"
 
 namespace Rooms {
     class Room << (S,Aquamarine) >> {
@@ -96,10 +129,54 @@ namespace Rooms {
 
 
 
+namespace RouteGlobals {
+    class scheduleCache << (S,Aquamarine) >> {
+        - rw_mutex sync.RWMutex
+        - semester_schedule []Schedule.UniTimeTables
+
+    }
+}
+
+
+"RouteGlobals.scheduleCache""uses" o-- "Schedule.UniTimeTables"
+"RouteGlobals.scheduleCache""uses" o-- "sync.RWMutex"
+
+namespace RoutesV1 {
+    class CurriculumMicroData << (S,Aquamarine) >> {
+        + CurriculumID uint16
+        + CurriculumName string
+        + CurriculumCode string
+        + YearLevels []YearLevelMicroData
+
+    }
+    class DepartmentData << (S,Aquamarine) >> {
+        + Curriculums []CurriculumMicroData
+
+    }
+    class SubjectAssignmentInfo << (S,Aquamarine) >> {
+        + SubjectCode string
+        + InstructorLastName string
+        + RoomName string
+        + DayIdx uint8
+        + TimeSlotIdx uint8
+        + SubjectTimeSlots uint8
+
+    }
+    class YearLevelMicroData << (S,Aquamarine) >> {
+        + Name string
+        + SectionsUniversityScheduleIndex []int
+
+    }
+}
+
+
+"RoutesV1.CurriculumMicroData""uses" o-- "RoutesV1.YearLevelMicroData"
+"RoutesV1.DepartmentData""uses" o-- "RoutesV1.CurriculumMicroData"
+
 namespace Schedule {
     class DayTimeTable << (S,Aquamarine) >> {
-        + Get(time_slot_idx int) *TimeSlot
-        + Availability(time_slot_idx int, time_slot_size int) bool
+        + GetTimeSlot(time_slot_idx int) *TimeSlot
+        + IsTimeAvailable(time_slot_idx int, time_slot_size int) bool
 
     }
     class Schedule.DayTimeTable << (T, #FF7700) >>  {
@@ -146,16 +223,16 @@ namespace Schedule {
 
     }
     class UniTimeTables << (S,Aquamarine) >> {
-        + Get(class_section_idx int) *WeekTimeTable
+        + GetWeekTimeTable(class_section_idx int) *WeekTimeTable
         + IsEmpty() bool
-        + Validate() []error
+        + Validate(resource_persistence *StorageResources.Persistence) []error
 
     }
     class WeekTimeTable << (S,Aquamarine) >> {
-        + Get(day_idx int) *DayTimeTable
+        + GetDayTimeTable(day_idx int) *DayTimeTable
 
     }
-    class room_count_and_capacity << (S,Aquamarine) >> {
+    class roomCountAndCapacity << (S,Aquamarine) >> {
         + OverlappingSections []uint16
         + Capacity uint16
 
@@ -164,8 +241,8 @@ namespace Schedule {
 
 
 
-namespace Storage {
-    class JsonFilePersistence << (S,Aquamarine) >> {
+namespace StorageResources {
+    class JsonReader << (S,Aquamarine) >> {
         + GetAllRooms() ([]Rooms.Room, error)
         + GetAllInstructors() ([]Instructors.Instructor, error)
         + GetAllCurriculum() ([]Curriculum.Curriculum, error)
@@ -173,53 +250,56 @@ namespace Storage {
         + GetAllDepartments() ([]Departments.Department, error)
 
     }
-    class PersistenceService << (S,Aquamarine) >> {
+    class Persistence << (S,Aquamarine) >> {
+        + ReaderService readerRepository
+
+    }
+    interface readerRepository  {
+        + GetAllCurriculum() ([]Curriculum.Curriculum, error)
+        + GetAllSubjects() ([]Curriculum.Subject, error)
+        + GetAllDepartments() ([]Departments.Department, error)
+        + GetAllInstructors() ([]Instructors.Instructor, error)
+        + GetAllRooms() ([]Rooms.Room, error)
+
+    }
+}
+
+"StorageResources.readerRepository" <|-- "implements""StorageResources.JsonReader"
+
+"StorageResources.Persistence""uses" o-- "StorageResources.readerRepository"
+
+namespace StorageSchedule {
+    class JsonReader << (S,Aquamarine) >> {
+        + LoadSchedules(semester int) (Schedule.UniTimeTables, error)
+
+    }
+    class JsonWriter << (S,Aquamarine) >> {
+        + SaveSchedules(university_schedule Schedule.UniTimeTables, semester int) error
+
+    }
+    class Persistence << (S,Aquamarine) >> {
         + ReaderService readerRepository
         + WriterService writerRepository
 
     }
     interface readerRepository  {
-        + GetAllSubjects() ([]Curriculum.Subject, error)
-        + GetAllCurriculum() ([]Curriculum.Curriculum, error)
-        + GetAllDepartments() ([]Departments.Department, error)
-        + GetAllInstructors() ([]Instructors.Instructor, error)
-        + GetAllRooms() ([]Rooms.Room, error)
+        + LoadSchedules(semester int) (Schedule.UniTimeTables, error)
 
     }
     interface writerRepository  {
-        + SaveSchedules() error
+        + SaveSchedules(university_schedule Schedule.UniTimeTables, semester int) error
 
     }
 }
 
-"Storage.readerRepository" <|-- "implements""Storage.JsonFilePersistence"
+"StorageSchedule.readerRepository" <|-- "implements""StorageSchedule.JsonReader"
+"StorageSchedule.writerRepository" <|-- "implements""StorageSchedule.JsonWriter"
 
-"Storage.PersistenceService""uses" o-- "Storage.readerRepository"
-"Storage.PersistenceService""uses" o-- "Storage.writerRepository"
-
-namespace geneticalgorithm {
-    class Totals << (S,Aquamarine) >> {
-        + DepartmentID uint16
-        + SectionCount int
-        + LecRoomHours int
-        + LabRoomHours int
-        + GymRoomHours int
-        + InstructorHours float64
-        + InstructorCount int
-        + SubjectLecHours int
-        + SubjectLabHours int
-        + SubjectGymHours int
-        + RoomCapacity int
-        + Semester int
-        + DepartmentName string
-
-    }
-}
-
-
+"StorageSchedule.Persistence""uses" o-- "StorageSchedule.readerRepository"
+"StorageSchedule.Persistence""uses" o-- "StorageSchedule.writerRepository"
 
 "Schedule.[]DayTimeTable" #.. "alias of""Schedule.WeekTimeTable"
 "Schedule.[]TimeSlot" #.. "alias of""Schedule.DayTimeTable"
 "Schedule.[]WeekTimeTable" #.. "alias of""Schedule.UniTimeTables"
-"__builtin__.[]uint64" #.. "alias of""Instructors.InstructorTimeSlotMap"
+"__builtin__.[]uint64" #.. "alias of""Instructors.InstructorTimeSlotBitMap"
 @enduml

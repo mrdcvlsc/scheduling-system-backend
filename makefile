@@ -10,7 +10,8 @@ uml: project_uml.puml
 project_uml.puml:
 	@echo Generating UML...
 	@echo using: https://github.com/jfeliu007/goplantuml
-	@goplantuml -recursive -show-aggregations -show-aliases -show-compositions -show-connection-labels -show-implementations -aggregate-private-members  ~/Repo/scheduling-system-backend > project_uml.puml
+	rm project_uml.puml
+	@goplantuml -recursive -show-aggregations -show-aliases -show-compositions -show-connection-labels -show-implementations -aggregate-private-members ./ > project_uml.puml
 
 devr:
 	gh release --repo github.com/mrdcvlsc/scheduling-system-temporary-data download --pattern *.zip --clobber
@@ -38,3 +39,9 @@ bench:
 
 todo:
 	python todo.py
+
+find:
+	grep -nr "Persistence" ./
+
+test_api:
+	./app & sleep 1 && node Tests/schedule-serialization.js
