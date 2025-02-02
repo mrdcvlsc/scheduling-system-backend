@@ -7,10 +7,6 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 )
 
-type DepartmentData struct {
-	Curriculums []CurriculumMicroData `json:"Curriculums"`
-}
-
 type CurriculumMicroData struct {
 	CurriculumID   uint16               `json:"CurriculumID"`
 	CurriculumName string               `json:"CurriculumName"`
@@ -45,9 +41,7 @@ func GetDepartmentData(ctx *gin.Context) {
 		return
 	}
 
-	department_data := &DepartmentData{}
-
-	department_data.Curriculums = make([]CurriculumMicroData, 0)
+	slice_of_curriculum_micro_data := make([]CurriculumMicroData, 0)
 
 	for curriculum_idx, curriculum := range curriculums {
 
@@ -94,8 +88,8 @@ func GetDepartmentData(ctx *gin.Context) {
 			}
 		}
 
-		department_data.Curriculums = append(department_data.Curriculums, *curriculum_micro_data)
+		slice_of_curriculum_micro_data = append(slice_of_curriculum_micro_data, *curriculum_micro_data)
 	}
 
-	ctx.JSON(http.StatusOK, department_data)
+	ctx.JSON(http.StatusOK, slice_of_curriculum_micro_data)
 }
