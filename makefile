@@ -14,10 +14,22 @@ project_uml.puml:
 	@goplantuml -recursive -show-aggregations -show-aliases -show-compositions -show-connection-labels -show-implementations -aggregate-private-members ./ > project_uml.puml
 
 devr:
+	@echo Download Test Data
 	gh release --repo github.com/mrdcvlsc/scheduling-system-temporary-data download --pattern *.zip --clobber
 	rm -rf scheduling-system-temporary-data
 	mkdir scheduling-system-temporary-data
 	unzip release.zip -d ./scheduling-system-temporary-data
+
+frontend:
+	@echo Download Frontend
+	gh release --repo github.com/mrdcvlsc/scheduling-system-frontend download --pattern dist.zip --clobber
+	rm -rf dist
+	mkdir dist
+	unzip dist.zip
+
+frontend_local:
+	rm -rf dist
+	cd ../scheduling-system-frontend && npm run build && cp -R dist ../scheduling-system-backend
 
 rc:
 	go clean -testcache
