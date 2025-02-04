@@ -296,18 +296,6 @@ func NewIndividual(persistence_resources *StorageResources.Persistence, selected
 										room_search_iteration := 0
 										room_type := uint16(class_type)
 
-										// shuffle rooms
-
-										rng.Shuffle(len(room_type_to_rooms[room_type]), func(i, j int) {
-											room_type_to_rooms[room_type][i], room_type_to_rooms[room_type][j] = room_type_to_rooms[room_type][j], room_type_to_rooms[room_type][i]
-										})
-
-										// sort the rooms based on the number of class or sections assigned to it on a specific time slot.
-
-										sort.Slice(room_type_to_rooms[room_type], func(i, j int) bool {
-											return room_type_to_rooms[room_type][i].GetTimeSlotClassCount(day, time_slot) < room_type_to_rooms[room_type][j].GetTimeSlotClassCount(day, time_slot)
-										})
-
 										var has_available_room bool
 
 										if subject.IsGymType() {
@@ -479,11 +467,6 @@ func NewIndividual(persistence_resources *StorageResources.Persistence, selected
 				} // ------------- end of section_idx loop -------------
 			} // ------------- end of semester_idx loop -------------
 		} // ------------- end of year_level loop -------------
-
-		// sort the instructors based on the number of subjects they are assigned
-		sort.Slice(instructors, func(i, j int) bool {
-			return instructors[i].TotalTeachingHours < instructors[j].TotalTeachingHours
-		})
 	} // ------------- end of curriculum loop -------------
 
 	return individual_university_schedules, nil
