@@ -226,24 +226,21 @@ func NewIndividual(persistence_resources *StorageResources.Persistence, selected
 
 									// fmt.Printf("instructor & room searching for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
 
+									selected_instructor_idx := -1
+									var is_available_instructor bool
+
 									for instructor_idx := range instructors {
 
-										is_available_instructor := true
+										is_available_instructor = true
 
 										if selected_instructor == nil {
 											// fmt.Printf("searching the available time slot for the iterated instructor [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
-
-											// IF NONE: iterate over all of the sorted instructors to find which
-											// one is available, if there is no instructor available for the current
-											// time slot, continue to the next iteration of the time slot loop.
-
 											for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
 												is_available_instructor = is_available_instructor && instructors[instructor_idx].Time.GetAvailability(day, instructor_time_slot)
 											}
 
 										} else {
 											// fmt.Printf("searching the available time slot for the selected instructor [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
-
 											for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
 												is_available_instructor = is_available_instructor && selected_instructor.Time.GetAvailability(day, instructor_time_slot)
 											}
@@ -266,11 +263,6 @@ func NewIndividual(persistence_resources *StorageResources.Persistence, selected
 										}
 
 										if !is_available_instructor && selected_instructor != nil {
-
-											// TODO: debug later because even though this should speed up the algorithm,
-											// it seems that it is not happening often so it does not provide considerable
-											// amout of speed in performance.
-
 											break // immediately find other time slots if there is already a selected instructor yet is not available
 										}
 
@@ -281,109 +273,100 @@ func NewIndividual(persistence_resources *StorageResources.Persistence, selected
 
 										// fmt.Printf("instructor found available for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
 
-										/////////////////////////////////////////////////////////////////////////////////
-										//                 FIND AVAILABLE ROOM FOR THE TIME SLOT
-										/////////////////////////////////////////////////////////////////////////////////
-
-										// TODO: This is bad design, move the room search loop outside the instructor search loop in the futrue.
-										// even though the time complexity is now correct, people might get confused when they look at the code
-										// in the future since the room search loop is inside the instructor search loop, they might assume
-										// that the time complexity of this inner algorithm is O(I * R), even if this is actually just O(I + R),
-										//
-										// I = total number of departamental instructor.
-										// R = total number of departamental rooms for a specific room type.
-
-										room_search_iteration := 0
-										room_type := uint16(class_type)
-
-										var has_available_room bool
-
-										if subject.IsGymType() {
-											// fmt.Printf("searching available gym rooms for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
-
-											// search available gym for physical education subjects
-
-											gym := dept_id_to_room_type_to_rooms[0][2]
-
-											for room_idx := range gym {
-
-												has_available_room = true
-
-												for room_time_slot := time_slot; room_time_slot < (time_slot + subject_total_time_slots); room_time_slot++ {
-													has_available_room = has_available_room && gym[room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(gym[room_idx].Capacity)
-												}
-
-												if !has_available_room {
-													continue
-												}
-
-												// fmt.Printf("selecting the available gym for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
-												selected_room = &gym[room_idx]
-												break
-											}
-										} else {
-
-											// fmt.Printf("searching available room[type:%d] for the time slot [d:%d, ts:%d]...\n", room_type, day, time_slot) // DEBUG PRINTS
-
-											// search for department specific rooms that are available
-
-											for room_idx := range room_type_to_rooms[room_type] {
-
-												has_available_room = true
-
-												for room_time_slot := time_slot; room_time_slot < (time_slot + subject_total_time_slots); room_time_slot++ {
-													has_available_room = has_available_room && room_type_to_rooms[room_type][room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(room_type_to_rooms[room_type][room_idx].Capacity)
-												}
-
-												if !has_available_room {
-													continue
-												}
-
-												// fmt.Printf("selecting the available room[type:%d] for the time slot [d:%d, ts:%d]...\n", room_type, day, time_slot) // DEBUG PRINTS
-												selected_room = &room_type_to_rooms[room_type][room_idx]
-												break
-											}
-
-											// TODO: [implement below] search for general rooms that are available (consult first)
-
-											// TODO: [implement below] search available lab room for lecture subjects (consult first)
-										}
-
-										room_search_iteration++
-
-										if !has_available_room && (time_slot >= (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
-
-											if section_generation_retries < MAX_SECTION_SCHEDULE_GENERATION_RETRY {
-												section_generation_retries++
-												section_idx--
-												continue section_loop
-											}
-
-											return individual_university_schedules, fmt.Errorf(
-												"not enough rooms (%d)-(type:%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
-												len(room_type_to_rooms[room_type]), room_type, dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
-											)
-										}
-
-										if !has_available_room {
-											// fmt.Printf("No room found for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
-											break // find another time slot
-										}
-
-										// fmt.Printf("room found for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
-
-										// the instructor loop will not reach here if there are no available instructors and rooms found
-
-										if selected_instructor == nil {
-											// fmt.Printf("selecting the instructor found for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
-											selected_instructor = &instructors[instructor_idx]
-										}
-
+										selected_instructor_idx = instructor_idx
 										break
 									}
 
-									if selected_instructor == nil || selected_room == nil {
+									if !is_available_instructor {
 										continue
+									}
+
+									/////////////////////////////////////////////////////////////////////////////////
+									//                 FIND AVAILABLE ROOM FOR THE TIME SLOT
+									/////////////////////////////////////////////////////////////////////////////////
+
+									room_search_iteration := 0
+									room_type := uint16(class_type)
+
+									var has_available_room bool
+
+									if subject.IsGymType() {
+										// fmt.Printf("searching available gym rooms for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
+
+										// search available gym for physical education subjects
+
+										gym := dept_id_to_room_type_to_rooms[0][2]
+
+										for room_idx := range gym {
+
+											has_available_room = true
+
+											for room_time_slot := time_slot; room_time_slot < (time_slot + subject_total_time_slots); room_time_slot++ {
+												has_available_room = has_available_room && gym[room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(gym[room_idx].Capacity)
+											}
+
+											if !has_available_room {
+												continue
+											}
+
+											// fmt.Printf("selecting the available gym for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
+											selected_room = &gym[room_idx]
+											break
+										}
+									} else {
+
+										// fmt.Printf("searching available room[type:%d] for the time slot [d:%d, ts:%d]...\n", room_type, day, time_slot) // DEBUG PRINTS
+
+										// search for department specific rooms that are available
+
+										for room_idx := range room_type_to_rooms[room_type] {
+
+											has_available_room = true
+
+											for room_time_slot := time_slot; room_time_slot < (time_slot + subject_total_time_slots); room_time_slot++ {
+												has_available_room = has_available_room && room_type_to_rooms[room_type][room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(room_type_to_rooms[room_type][room_idx].Capacity)
+											}
+
+											if !has_available_room {
+												continue
+											}
+
+											// fmt.Printf("selecting the available room[type:%d] for the time slot [d:%d, ts:%d]...\n", room_type, day, time_slot) // DEBUG PRINTS
+											selected_room = &room_type_to_rooms[room_type][room_idx]
+											break
+										}
+
+										// TODO: [implement below] search for general rooms that are available (consult first)
+
+										// TODO: [implement below] search available lab room for lecture subjects (consult first)
+									}
+
+									room_search_iteration++
+
+									if !has_available_room && (time_slot >= (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
+
+										if section_generation_retries < MAX_SECTION_SCHEDULE_GENERATION_RETRY {
+											section_generation_retries++
+											section_idx--
+											continue section_loop
+										}
+
+										return individual_university_schedules, fmt.Errorf(
+											"not enough rooms (%d)-(type:%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
+											len(room_type_to_rooms[room_type]), room_type, dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
+										)
+									}
+
+									if !has_available_room {
+										// fmt.Printf("No room found for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
+										continue // find another time slot
+									}
+
+									// fmt.Printf("room found for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
+
+									if selected_instructor == nil {
+										// fmt.Printf("selecting the instructor found for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
+										selected_instructor = &instructors[selected_instructor_idx]
 									}
 
 									/////////////////////////////////////////////////////////////////////////////////
@@ -439,8 +422,6 @@ func NewIndividual(persistence_resources *StorageResources.Persistence, selected
 
 					// front compressed distribution : end
 
-					// TODO: debug later, for some reasons there are some subjects not being assigned
-
 					if len(subject_recorder) != len(semester.Subjects) {
 
 						// fmt.Printf("\n\nAssigned Subjects : %s %s %s section %d\n", curriculum.CurriculumName, year_level.Name, semester.Name, section_idx) // DEBUG SUBJECT UNASSIGNED PROBLEM
@@ -459,8 +440,6 @@ func NewIndividual(persistence_resources *StorageResources.Persistence, selected
 							"there are some subjects that was not assigned for some reason (%d/%d)", len(subject_recorder), len(semester.Subjects),
 						))
 					}
-
-					// TODO: keep track of all the subjects that was assigned, find out which subject was not assigned and analyze it why is that happening.
 
 					individual_university_schedules = append(individual_university_schedules, week_time_table)
 					counted_sections++
