@@ -82,6 +82,7 @@ func main() {
 
 	use_secure_cookie := false
 	same_site := http.SameSiteDefaultMode
+
 	if os.Getenv("GIN_MODE") == "release" {
 		use_secure_cookie = true
 		same_site = http.SameSiteNoneMode
@@ -107,21 +108,6 @@ func main() {
 	router.Use(sessions.Sessions("session_id", SessionStore))
 
 	//////////////////////////////////////////////////////////////////////////
-
-	router.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.html", gin.H{})
-	})
-
-	router.GET("/cpu", func(ctx *gin.Context) {
-		ctx.JSON(http.StatusOK, gin.H{"cpu": runtime.NumCPU()})
-	})
-
-	router.GET("/die", func(ctx *gin.Context) {
-		ctx.String(http.StatusOK, "bye-bye")
-		os.Exit(0)
-	})
-
-	//////////////////////////////////////////////////////////////////////////
 	//                              API-v1
 	//////////////////////////////////////////////////////////////////////////
 
@@ -137,12 +123,27 @@ func main() {
 	v1.GET("/class_schedule", RoutesV1.GetClassSchedule)
 	v1.GET("/class_json_schedule", RoutesV1.GetJsonClassSchedule)
 
-	v1.POST("/generate_schedule", RoutesV1.GenerateSchedule)
+	if os.Getenv("GIN_MODE") == "release" {
+		v1.POST("/generate_schedule", RoutesV1.GenerateSchedule)
+	} else {
+		v1.GET("/generate_schedule", RoutesV1.GenerateSchedule) // for dev only
+	}
 
 	v1.GET("/test_read", RoutesV1.TestRead)
 	v1.GET("/test_write", RoutesV1.TestWrite)
 
 	//////////////////////////////////////////////////////////////////////////
+
+	if os.Getenv("GIN_MODE") != "release" {
+		router.GET("/cpu", func(ctx *gin.Context) {
+			ctx.JSON(http.StatusOK, gin.H{"cpu": runtime.NumCPU()})
+		})
+
+		router.GET("/die", func(ctx *gin.Context) {
+			ctx.String(http.StatusOK, "bye-bye")
+			os.Exit(0)
+		})
+	}
 
 	Utils.DisplayOutboundIP(os.Getenv("PORT"))
 	router.Run(fmt.Sprintf(":%s", os.Getenv("PORT")))
