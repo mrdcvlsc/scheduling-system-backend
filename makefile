@@ -1,5 +1,5 @@
 build_dev:
-	go build -ldflags "-s -w" -o app
+	go build -ldflags "-s -w" -o app && $(MAKE) frontend_local && ./app
 
 build:
 	go build -tags netgo -ldflags '-s -w' -o app
