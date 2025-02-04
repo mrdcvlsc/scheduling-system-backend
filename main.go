@@ -123,9 +123,9 @@ func main() {
 	v1.GET("/class_schedule", RoutesV1.GetClassSchedule)
 	v1.GET("/class_json_schedule", RoutesV1.GetJsonClassSchedule)
 
-	if os.Getenv("GIN_MODE") == "release" {
-		v1.POST("/generate_schedule", RoutesV1.GenerateSchedule)
-	} else {
+	v1.POST("/generate_schedule", RoutesV1.GenerateSchedule)
+
+	if os.Getenv("GIN_MODE") != "release" {
 		v1.GET("/generate_schedule", RoutesV1.GenerateSchedule) // for dev only
 	}
 
