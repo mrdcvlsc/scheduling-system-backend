@@ -31,7 +31,7 @@ frontend_local:
 	rm -rf dist
 	cd ../scheduling-system-frontend && npm run build && cp -R dist ../scheduling-system-backend
 
-rc:
+clean:
 	go clean -testcache
 
 test:
