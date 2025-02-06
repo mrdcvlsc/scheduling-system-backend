@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 )
 
@@ -116,7 +117,8 @@ func (university_sched UniTimeTables) IsEmpty() bool {
 	return subject_count == 0
 }
 
-func (university_sched UniTimeTables) Validate(resource_persistence *StorageResources.Persistence) []error {
+// validate rooms and instructors time slot availability, this function detects overlapping instructor or room time slots.
+func (university_sched UniTimeTables) VerticalValidation(resource_persistence *StorageResources.Persistence) []error {
 
 	list_of_errors := make([]error, 0, 16)
 
@@ -255,39 +257,108 @@ func (university_sched UniTimeTables) Validate(resource_persistence *StorageReso
 		}
 	}
 
+	return list_of_errors
+}
+
+// validate assigned subjects to every section schedules in the whole university.
+//
+// warnning: this method should only be called if you're validating a whole university schedule that contains all of the sections,
+// this function should not be use if you're just validating a slice of a whole university schedules.
+func (university_sched UniTimeTables) HorizontalValidation(resource_persistence *StorageResources.Persistence, selected_semester int) []error {
+
+	list_of_errors := make([]error, 0, 16)
+
 	/////////////////////////////////////////////////////////////////////////////////
 	//                            HORIZONTAL CHECKS
 	/////////////////////////////////////////////////////////////////////////////////
 
-	// TODO: implement horizontal checks - incomplete code below
+	curriculums, curriculum_err := resource_persistence.ReaderService.GetAllCurriculum()
 
-	// persistence := Storage.PersistenceService{Service: &Storage.JsonFilePersistence{}}
+	if curriculum_err != nil {
+		list_of_errors = append(list_of_errors, curriculum_err)
+	}
 
-	// subjects := persistence.Service.GetAllSubjects()
-	// map_id_subjects := make(map[uint16]Curriculum.Subject)
+	total_university_sections := Curriculum.GetTotalNumberOfSections(curriculums, selected_semester)
 
-	// for _, subject := range subjects {
-	// 	map_id_subjects[subject.ID] = subject
-	// }
+	if total_university_sections != len(university_sched) {
+		list_of_errors = append(list_of_errors, fmt.Errorf(
+			"read total university sections (%d) in persistence did not match the university schedule instance (%d)",
+			total_university_sections, len(university_sched),
+		))
+	}
 
-	// rooms := persistence.Service.GetAllRooms()
-	// map_id_rooms := make(map[uint16]Rooms.Room)
+	schedule_idx := 0
+	for _, curriculum := range curriculums {
+		for _, year_level := range curriculum.YearLevels {
 
-	// for _, room := range rooms {
-	// 	map_id_rooms[room.RoomID] = room
-	// }
+			if !year_level.IsActive {
+				continue // skip inactive year levels
+			}
 
-	// for section_idx := 0; section_idx < len(uni_sched); section_idx++ {
-	// 	for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
-	// 		for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
-	// 			subject_id := uni_sched[section_idx][day][time_slot].subjectID
+			for semester_idx, semester := range year_level.Semesters {
 
-	// 			instructor_id := uni_sched[section_idx][day][time_slot].instructorID
+				if selected_semester != semester_idx {
+					continue // skip not selected semesters
+				}
 
-	// 			room_id := uni_sched[section_idx][day][time_slot].roomID
-	// 		}
-	// 	}
-	// }
+				for section_idx := 0; section_idx < semester.Sections; section_idx++ {
+					subject_id_to_time_slot_count := make(map[uint16]int)
+
+					for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
+						for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
+							subject_id := university_sched[schedule_idx][day][time_slot].GetSubjectID()
+
+							if subject_id == 0 {
+								continue
+							}
+
+							_, has_subjsubject_id := subject_id_to_time_slot_count[subject_id]
+
+							if !has_subjsubject_id {
+								subject_id_to_time_slot_count[subject_id] = 1
+							} else {
+								subject_id_to_time_slot_count[subject_id]++
+							}
+						}
+					}
+
+					if len(semester.Subjects) != len(subject_id_to_time_slot_count) {
+						list_of_errors = append(list_of_errors, fmt.Errorf(
+							"detected missing subject(s) [%d/%d] in %s %s %s section[%d], university schedule_idx = %d",
+							len(subject_id_to_time_slot_count), len(semester.Subjects),
+							curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, schedule_idx,
+						))
+
+						return list_of_errors
+					}
+
+					for _, subject := range semester.Subjects {
+						_, has_subject_id := subject_id_to_time_slot_count[subject.ID]
+
+						if !has_subject_id {
+							list_of_errors = append(list_of_errors, fmt.Errorf(
+								"detected missing subject %s in %s %s %s section[%d], university schedule_idx = %d",
+								subject.Code, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, schedule_idx,
+							))
+						}
+
+						if ((subject.LecHours + subject.LabHours) * Const.N_HOUR_TIME_SLOTS) != uint8(subject_id_to_time_slot_count[subject.ID]) {
+							list_of_errors = append(list_of_errors, fmt.Errorf(
+								"detected wrong subject [id : %d / %s] time slot allocation count (persistence : %d != %d : schedule) in %s %s %s section[%d], university schedule_idx[%d]",
+								subject.ID, subject.Code,
+								((subject.LecHours+subject.LabHours)*Const.N_HOUR_TIME_SLOTS), uint8(subject_id_to_time_slot_count[subject.ID]),
+								curriculum.CurriculumCode, semester.Name,
+								year_level.Name, section_idx, schedule_idx,
+							))
+							return list_of_errors
+						}
+					}
+
+					schedule_idx++
+				} // ------------- end of section_idx loop -------------
+			} // ------------- end of semester_idx loop -------------
+		} // ------------- end of year_level loop -------------
+	} // ------------- end of curriculum loop -------------
 
 	return list_of_errors
 }
