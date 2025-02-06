@@ -19,3 +19,27 @@ type Semester struct {
 	Sections int       `json:"Sections"`
 	Subjects []Subject `json:"Subjects"`
 }
+
+func GetTotalNumberOfSections(curriculums []Curriculum, selected_semester int) int {
+	section_count := 0
+
+	for _, curriculum := range curriculums {
+		for _, year_level := range curriculum.YearLevels {
+
+			if !year_level.IsActive {
+				continue // skip inactive year levels
+			}
+
+			for semester_idx, semester := range year_level.Semesters {
+
+				if selected_semester != semester_idx {
+					continue // skip not selected semesters
+				}
+
+				section_count += semester.Sections
+			} // ------------- end of semester_idx loop -------------
+		} // ------------- end of year_level loop -------------
+	} // ------------- end of curriculum loop -------------
+
+	return section_count
+}
