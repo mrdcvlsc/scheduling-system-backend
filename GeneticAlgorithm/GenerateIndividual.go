@@ -2,16 +2,17 @@ package GeneticAlgorithm
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"sort"
 	"time"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Departments"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
-	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 )
 
 const (
@@ -48,32 +49,54 @@ type ScheduleIndex struct {
 //
 // (slice, nil) - if this function returns a (slice, nil), that would mean it
 // successfully generated a valid university schedules.
-func NewIndividual(persistence_resources *StorageResources.Persistence, selected_semester, distribution_type int) (Schedule.UniTimeTables, error) {
+func EncodeIndividualGenome(
+	curriculums_arg []Curriculum.Curriculum,
+	dept_id_to_department_arg map[uint16]Departments.Department,
+	dept_id_to_instructors_arg map[uint16][]Instructors.Instructor,
+	dept_id_to_room_type_to_rooms_arg map[uint16]map[uint16][]Rooms.Room,
+	selected_semester,
+	distribution_type int,
+) (Schedule.UniTimeTables, error) {
 
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 
-	////////////////////////////////////////////////////////////////////////////////////////
+	// ////////////////////////////////////////////////////////////////////////////////////////
 
-	dept_id_to_room_type_to_rooms, err_dept_id_to_room_type_to_rooms := generate_map_dept_id_to_room_type_to_rooms(persistence_resources)
+	dept_id_to_room_type_to_rooms := make(map[uint16]map[uint16][]Rooms.Room)
 
-	if err_dept_id_to_room_type_to_rooms != nil {
-		return nil, err_dept_id_to_room_type_to_rooms
+	for out_k, out_v := range dept_id_to_room_type_to_rooms_arg {
+		dept_id_to_room_type_to_rooms[out_k] = make(map[uint16][]Rooms.Room)
+
+		for in_k, in_v := range out_v {
+			dept_id_to_room_type_to_rooms[out_k][in_k] = make([]Rooms.Room, len(in_v))
+			copies := copy(dept_id_to_room_type_to_rooms[out_k][in_k], in_v)
+			if copies != len(in_v) {
+				log.Printf("copies : %d\tlen(dept_id_to_room_type_to_rooms[out_k][in_k] = %d/%d = in_v)\n", copies, len(dept_id_to_room_type_to_rooms[out_k][in_k]), len(in_v))
+				return nil, fmt.Errorf("slice elements copied %d, internal department id to rooms map copy operation failed in generate new individual function", copies)
+			}
+		}
 	}
 
-	////////////////////////////////////////////////////////////////////////////////////////
+	// ////////////////////////////////////////////////////////////////////////////////////////
 
-	dept_id_to_instructors, err_dept_id_to_instructors := generate_map_dept_id_to_instructors(persistence_resources)
+	// dept_id_to_instructors, err_dept_id_to_instructors := generate_map_dept_id_to_instructors(persistence_resources)
 
-	if err_dept_id_to_instructors != nil {
-		return nil, err_dept_id_to_instructors
+	dept_id_to_instructors := make(map[uint16][]Instructors.Instructor)
+
+	for k, v := range dept_id_to_instructors_arg {
+		dept_id_to_instructors[k] = make([]Instructors.Instructor, len(v))
+		copies := copy(dept_id_to_instructors[k], v)
+		if copies != len(v) {
+			return nil, fmt.Errorf("slice elements copied %d, internal department id to instructors map copy operation failed in generate new individual function", copies)
+		}
 	}
 
-	////////////////////////////////////////////////////////////////////////////////////////
+	// ////////////////////////////////////////////////////////////////////////////////////////
 
-	dept_id_to_department, err_dept_id_to_department := generate_map_dept_id_to_department(persistence_resources)
+	dept_id_to_department := make(map[uint16]Departments.Department)
 
-	if err_dept_id_to_department != nil {
-		return nil, err_dept_id_to_department
+	for k, v := range dept_id_to_department_arg {
+		dept_id_to_department[k] = v
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -81,13 +104,14 @@ func NewIndividual(persistence_resources *StorageResources.Persistence, selected
 	counted_sections := 0
 	individual_university_schedules := make(Schedule.UniTimeTables, 0, 64)
 
-	curriculums, err_curriculums := persistence_resources.ReaderService.GetAllCurriculum()
+	curriculums := make([]Curriculum.Curriculum, len(curriculums_arg))
+	copied_curriculums := copy(curriculums, curriculums_arg)
 
-	if err_curriculums != nil {
-		return nil, err_curriculums
+	if copied_curriculums != len(curriculums_arg) {
+		return nil, fmt.Errorf("slice elements copied %d, internal curriculum copy operation failed in generate new individual function", copied_curriculums)
 	}
 
-	// the curriculums should always have the same order.
+	////////////////////////////////////////////////////////////////////////////////////////
 
 	for _, curriculum := range curriculums {
 
@@ -248,7 +272,7 @@ func NewIndividual(persistence_resources *StorageResources.Persistence, selected
 
 										instructor_search_iteration++
 
-										if (!is_available_instructor && (instructor_idx == len(instructors)-1)) && (time_slot >= (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
+										if (!is_available_instructor && ((instructor_idx == len(instructors)-1) || selected_instructor != nil)) && (time_slot >= (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
 
 											if section_generation_retries < MAX_SECTION_SCHEDULE_GENERATION_RETRY {
 												section_generation_retries++
@@ -391,13 +415,34 @@ func NewIndividual(persistence_resources *StorageResources.Persistence, selected
 
 									// fmt.Printf("ONE SUBJECT FINISHED: assigning subject, instructor and room for the time slot [d:%d, ts:%d]...\n\n", day, time_slot) // DEBUG PRINTS
 
+									time_slot_assignment_sanity_counter := 0
+
 									for selected_time_slot := time_slot; selected_time_slot < (time_slot + subject_total_time_slots); selected_time_slot++ {
+										if day_sched.GetTimeSlot(selected_time_slot).GetSubjectID() != 0 {
+											panic("woah woah woah! you are overwriting a subject allocated in that time slot")
+										}
+
+										if day_sched.GetTimeSlot(selected_time_slot).GetInstructorID() != 0 {
+											panic("woah woah woah! you are overwriting a instructor allocated in that time slot")
+										}
+
+										if day_sched.GetTimeSlot(selected_time_slot).GetRoomID() != 0 {
+											panic("woah woah woah! you are overwriting a room allocated in that time slot")
+										}
+
 										selected_instructor.Time.SetAvailability(false, day, selected_time_slot)
 										selected_room.IncTimeSlotClassCount(day, selected_time_slot)
 
 										day_sched.GetTimeSlot(selected_time_slot).SetSubjectID(subject.ID)
+										time_slot_assignment_sanity_counter++
 										day_sched.GetTimeSlot(selected_time_slot).SetInstructorID(selected_instructor.InstructorID)
 										day_sched.GetTimeSlot(selected_time_slot).SetRoomID(selected_room.RoomID)
+									}
+
+									if time_slot_assignment_sanity_counter != subject_total_time_slots {
+										panic(
+											"total time slot assigned did not match the subject total time slot",
+										)
 									}
 
 									selected_instructor.AssignedSubjects++
@@ -453,3 +498,34 @@ func NewIndividual(persistence_resources *StorageResources.Persistence, selected
 
 // TODO: when generating solutions while the genetic algorithm is running, we should also generate an index file to be use for querying
 // each sections in the generated university schedules, make the generated schedule and index global for access.
+
+func NewEmptyIndividual(
+	curriculums []Curriculum.Curriculum,
+	selected_semester int,
+) (Schedule.UniTimeTables, error) {
+
+	individual_university_schedules := make(Schedule.UniTimeTables, 0, 64)
+
+	for _, curriculum := range curriculums {
+		for _, year_level := range curriculum.YearLevels {
+
+			if !year_level.IsActive {
+				continue // skip inactive year levels
+			}
+
+			for semester_idx, semester := range year_level.Semesters {
+
+				if selected_semester != semester_idx {
+					continue // skip not selected semesters
+				}
+
+				for section_idx := 0; section_idx < semester.Sections; section_idx++ {
+					week_time_table := Schedule.WeekTimeTable{}
+					individual_university_schedules = append(individual_university_schedules, week_time_table)
+				} // ------------- end of section_idx loop -------------
+			} // ------------- end of semester_idx loop -------------
+		} // ------------- end of year_level loop -------------
+	} // ------------- end of curriculum loop -------------
+
+	return individual_university_schedules, nil
+}
