@@ -12,10 +12,9 @@ import (
 )
 
 func Test_JsonReadWriteUniversitySchedules(t *testing.T) {
+
 	var wrote_sched Schedule.UniTimeTables
 	resource_persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
-
-	fmt.Print("Sched Part 1\n")
 
 	{
 		fmt.Print("Make Population Slice\n")
@@ -26,11 +25,55 @@ func Test_JsonReadWriteUniversitySchedules(t *testing.T) {
 
 		sched_gen_err_cnt := 0
 
+		fmt.Println("Reading Resources")
+
+		persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+
+		////////////////////////////////////////////////////////////////////////////////////////
+
+		curriculums, err_curriculums := persistence.ReaderService.GetAllCurriculum()
+
+		if err_curriculums != nil {
+			t.Fatal(err_curriculums)
+		}
+
+		////////////////////////////////////////////////////////////////////////////////////////
+
+		dept_id_to_room_type_to_rooms, err_dept_id_to_room_type_to_rooms := GeneticAlgorithm.GenerateMapDeptIdToRoomTypeToRooms(&persistence)
+
+		if err_dept_id_to_room_type_to_rooms != nil {
+			t.Fatal(err_dept_id_to_room_type_to_rooms)
+		}
+
+		////////////////////////////////////////////////////////////////////////////////////////
+
+		dept_id_to_instructors, err_dept_id_to_instructors := GeneticAlgorithm.GenerateMapDeptIdToInstructors(&persistence)
+
+		if err_dept_id_to_instructors != nil {
+			t.Fatal(err_dept_id_to_instructors)
+		}
+
+		////////////////////////////////////////////////////////////////////////////////////////
+
+		dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(&persistence)
+
+		if err_dept_id_to_department != nil {
+			t.Fatal(err_dept_id_to_department)
+		}
+
+		////////////////////////////////////////////////////////////////////////////////////////
+
 		fmt.Print("Entering Loop\n")
 
-		for i := 0; i < 30; i++ {
+		for i := 0; i < 40; i++ {
 
-			university_schedule, err := GeneticAlgorithm.NewIndividual(&resource_persistence, GeneticAlgorithm.TERM_1ST_SEMESTER, 0)
+			university_schedule, err := GeneticAlgorithm.EncodeIndividualGenome(
+				curriculums,
+				dept_id_to_department,
+				dept_id_to_instructors,
+				dept_id_to_room_type_to_rooms,
+				GeneticAlgorithm.TERM_1ST_SEMESTER, 0,
+			)
 
 			if err != nil {
 				fmt.Println(err)
@@ -58,9 +101,25 @@ func Test_JsonReadWriteUniversitySchedules(t *testing.T) {
 			t.Fatal("the first university schedule generated is empty")
 		}
 
-		err_validation := first_university_schedule.Validate(&resource_persistence)
+		err_validation := first_university_schedule.VerticalValidation(&resource_persistence)
 
 		for _, e := range err_validation {
+			t.Fatal(e)
+		}
+
+		vertical_validation_err := first_university_schedule.VerticalValidation(&resource_persistence)
+
+		if first_university_schedule.IsEmpty() {
+			t.Fatal("loaded university schedules are empty")
+		}
+
+		for e := range vertical_validation_err {
+			t.Fatal(e)
+		}
+
+		horizontal_validation_err := first_university_schedule.HorizontalValidation(&resource_persistence, GeneticAlgorithm.TERM_1ST_SEMESTER)
+
+		for e := range horizontal_validation_err {
 			t.Fatal(e)
 		}
 
@@ -84,14 +143,22 @@ func Test_JsonReadWriteUniversitySchedules(t *testing.T) {
 			t.Fatal(load_err)
 		}
 
-		validation_err := load_university_schedules.Validate(&resource_persistence)
+		vertical_validation_err := load_university_schedules.VerticalValidation(&resource_persistence)
 
 		if load_university_schedules.IsEmpty() {
 			t.Fatal("loaded university schedules are empty")
 		}
 
-		for e := range validation_err {
+		for e := range vertical_validation_err {
 			t.Fatal(e)
+		}
+
+		if load_err == nil {
+			horizontal_validation_err := load_university_schedules.HorizontalValidation(&resource_persistence, GeneticAlgorithm.TERM_1ST_SEMESTER)
+
+			for e := range horizontal_validation_err {
+				t.Fatal(e)
+			}
 		}
 
 		for i, week_time_tables := range load_university_schedules {

@@ -47,9 +47,55 @@ func generate_schedule(semester int) {
 
 	log.Println("generate_schedule: generating schedule...")
 
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	curriculums, err_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.GetAllCurriculum()
+
+	if err_curriculums != nil {
+		log.Fatal("generate_schedule:", err_curriculums)
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	dept_id_to_room_type_to_rooms, err_dept_id_to_room_type_to_rooms := GeneticAlgorithm.GenerateMapDeptIdToRoomTypeToRooms(
+		RouteGlobals.ResourcesPersistence,
+	)
+
+	if err_dept_id_to_room_type_to_rooms != nil {
+		log.Fatal("generate_schedule:", err_dept_id_to_room_type_to_rooms)
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	dept_id_to_instructors, err_dept_id_to_instructors := GeneticAlgorithm.GenerateMapDeptIdToInstructors(
+		RouteGlobals.ResourcesPersistence,
+	)
+
+	if err_dept_id_to_instructors != nil {
+		log.Fatal("generate_schedule:", err_dept_id_to_instructors)
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(
+		RouteGlobals.ResourcesPersistence,
+	)
+
+	if err_dept_id_to_department != nil {
+		log.Fatal("generate_schedule:", err_dept_id_to_department)
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
 	for i := 0; i < maximum_trials; i++ {
 
-		university_schedule, err := GeneticAlgorithm.NewIndividual(RouteGlobals.ResourcesPersistence, semester, 0)
+		university_schedule, err := GeneticAlgorithm.EncodeIndividualGenome(
+			curriculums,
+			dept_id_to_department,
+			dept_id_to_instructors,
+			dept_id_to_room_type_to_rooms,
+			semester, 0,
+		)
 
 		if (err != nil) && (i == (maximum_trials - 1)) {
 			log.Print("generate_schedule:", err.Error())
@@ -76,9 +122,11 @@ func generate_schedule(semester int) {
 
 	log.Println("generate_schedule: validating schedule")
 
-	err_validation := generate_university_schedule.Validate(RouteGlobals.ResourcesPersistence)
+	for _, e := range generate_university_schedule.VerticalValidation(RouteGlobals.ResourcesPersistence) {
+		log.Print("generate_schedule:", e.Error())
+	}
 
-	for _, e := range err_validation {
+	for _, e := range generate_university_schedule.HorizontalValidation(RouteGlobals.ResourcesPersistence, semester) {
 		log.Print("generate_schedule:", e.Error())
 	}
 

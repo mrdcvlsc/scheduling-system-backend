@@ -34,7 +34,14 @@ func PostUniversitySchedule(ctx *gin.Context) {
 		return
 	}
 
-	for _, validation_err := range university_schedules.Validate(RouteGlobals.ResourcesPersistence) {
+	for _, validation_err := range university_schedules.VerticalValidation(RouteGlobals.ResourcesPersistence) {
+		if validation_err != nil {
+			ctx.String(http.StatusConflict, "we detected an invalid schedule")
+			return
+		}
+	}
+
+	for _, validation_err := range university_schedules.HorizontalValidation(RouteGlobals.ResourcesPersistence, selected_semester) {
 		if validation_err != nil {
 			ctx.String(http.StatusConflict, "we detected an invalid schedule")
 			return

@@ -49,12 +49,52 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 	generation_error_list := make([]error, 0, 8)
 	validation_error_list := make([]error, 0, 8)
 
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	curriculums, err_curriculums := persistence.ReaderService.GetAllCurriculum()
+
+	if err_curriculums != nil {
+		t.Fatal(err_curriculums)
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	dept_id_to_room_type_to_rooms, err_dept_id_to_room_type_to_rooms := GeneticAlgorithm.GenerateMapDeptIdToRoomTypeToRooms(&persistence)
+
+	if err_dept_id_to_room_type_to_rooms != nil {
+		t.Fatal(err_dept_id_to_room_type_to_rooms)
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	dept_id_to_instructors, err_dept_id_to_instructors := GeneticAlgorithm.GenerateMapDeptIdToInstructors(&persistence)
+
+	if err_dept_id_to_instructors != nil {
+		t.Fatal(err_dept_id_to_instructors)
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(&persistence)
+
+	if err_dept_id_to_department != nil {
+		t.Fatal(err_dept_id_to_department)
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
 	for i := 0; i < total_test_iterations; i++ {
 		if (i == 0) || (((i + 1) % 32) == 0) {
 			fmt.Printf("Generating schedules (%d)..................................\n", (i + 1))
 		}
 
-		university_schedules, err := GeneticAlgorithm.NewIndividual(&persistence, target_semester, 0)
+		university_schedules, err := GeneticAlgorithm.EncodeIndividualGenome(
+			curriculums,
+			dept_id_to_department,
+			dept_id_to_instructors,
+			dept_id_to_room_type_to_rooms,
+			target_semester, 0,
+		)
 
 		if len(university_schedules) == 0 {
 			t.Fatal("No university schedules generated")
@@ -73,14 +113,25 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 			t.Fatalf("returned an empty university schedule : loop iteration %d\n", i)
 		}
 
-		err_validation := university_schedules.Validate(&persistence)
-
 		t.Logf("Schedules Generated : %d", len(university_schedules))
 
-		for _, e := range err_validation {
+		err_vertical_validations := university_schedules.VerticalValidation(&persistence)
+
+		for _, e := range err_vertical_validations {
 			t.Error(e)
 			validation_error_list = append(validation_error_list, e)
 		}
+
+		if err == nil {
+			err_horizontal_validations := university_schedules.HorizontalValidation(&persistence, target_semester)
+
+			for _, e := range err_horizontal_validations {
+				// schedules_persistence := StorageSchedule.Persistence{WriterService: &StorageSchedule.JsonWriter{}}
+				// schedules_persistence.WriterService.SaveSchedules(university_schedules, target_semester)
+				t.Fatal(e)
+			}
+		}
+
 	}
 
 	failed_individuals := float64(len(generation_error_list))
@@ -108,7 +159,47 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 func BenchmarkNewPopulationFirstSem(b *testing.B) {
 	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
 
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	curriculums, err_curriculums := persistence.ReaderService.GetAllCurriculum()
+
+	if err_curriculums != nil {
+		b.Fatal(err_curriculums)
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	dept_id_to_room_type_to_rooms, err_dept_id_to_room_type_to_rooms := GeneticAlgorithm.GenerateMapDeptIdToRoomTypeToRooms(&persistence)
+
+	if err_dept_id_to_room_type_to_rooms != nil {
+		b.Fatal(err_dept_id_to_room_type_to_rooms)
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	dept_id_to_instructors, err_dept_id_to_instructors := GeneticAlgorithm.GenerateMapDeptIdToInstructors(&persistence)
+
+	if err_dept_id_to_instructors != nil {
+		b.Fatal(err_dept_id_to_instructors)
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(&persistence)
+
+	if err_dept_id_to_department != nil {
+		b.Fatal(err_dept_id_to_department)
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
 	for i := 0; i < b.N; i++ {
-		GeneticAlgorithm.NewIndividual(&persistence, GeneticAlgorithm.TERM_2ND_SEMESTER, 0)
+		GeneticAlgorithm.EncodeIndividualGenome(
+			curriculums,
+			dept_id_to_department,
+			dept_id_to_instructors,
+			dept_id_to_room_type_to_rooms,
+			GeneticAlgorithm.TERM_2ND_SEMESTER, 0,
+		)
 	}
 }

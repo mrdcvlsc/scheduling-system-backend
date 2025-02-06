@@ -60,10 +60,18 @@ func ObtainUniversitySchedule(ctx *gin.Context, semester int) (Schedule.UniTimeT
 		return nil, false
 	}
 
-	for _, validation_err := range university_schedules.Validate(RouteGlobals.ResourcesPersistence) {
+	for _, validation_err := range university_schedules.VerticalValidation(RouteGlobals.ResourcesPersistence) {
 		if validation_err != nil {
 			log.Println("invalid schedule detected")
-			ctx.String(http.StatusConflict, "server detected an invalid schedule")
+			ctx.String(http.StatusConflict, "server detected an invalid schedule with vertically overlapping data")
+			return nil, false
+		}
+	}
+
+	for _, validation_err := range university_schedules.HorizontalValidation(RouteGlobals.ResourcesPersistence, semester) {
+		if validation_err != nil {
+			log.Println("invalid schedule detected")
+			ctx.String(http.StatusConflict, "server detected an invalid schedule with wrong horizontal data allocations")
 			return nil, false
 		}
 	}

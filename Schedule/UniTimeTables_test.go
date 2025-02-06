@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	geneticalgorithm "github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
+	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
@@ -15,10 +15,51 @@ func Test_UniTimeTablesSerializationAndDeserialization(t *testing.T) {
 
 	var wrote_sched Schedule.UniTimeTables
 
-	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+	storage_persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+	resource_persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	curriculums, err_curriculums := storage_persistence.ReaderService.GetAllCurriculum()
+
+	if err_curriculums != nil {
+		t.Fatal(err_curriculums)
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	dept_id_to_room_type_to_rooms, err_dept_id_to_room_type_to_rooms := GeneticAlgorithm.GenerateMapDeptIdToRoomTypeToRooms(&storage_persistence)
+
+	if err_dept_id_to_room_type_to_rooms != nil {
+		t.Fatal(err_dept_id_to_room_type_to_rooms)
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	dept_id_to_instructors, err_dept_id_to_instructors := GeneticAlgorithm.GenerateMapDeptIdToInstructors(&storage_persistence)
+
+	if err_dept_id_to_instructors != nil {
+		t.Fatal(err_dept_id_to_instructors)
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(&storage_persistence)
+
+	if err_dept_id_to_department != nil {
+		t.Fatal(err_dept_id_to_department)
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
 
 	{
-		uni_sched, err := geneticalgorithm.NewIndividual(&persistence, 0, 0)
+		uni_sched, err := GeneticAlgorithm.EncodeIndividualGenome(
+			curriculums,
+			dept_id_to_department,
+			dept_id_to_instructors,
+			dept_id_to_room_type_to_rooms,
+			GeneticAlgorithm.TERM_1ST_SEMESTER, 0,
+		)
 
 		if uni_sched == nil && err != nil {
 			t.Fatalf("there was an error reading data: %v\n", err)
@@ -26,6 +67,26 @@ func Test_UniTimeTablesSerializationAndDeserialization(t *testing.T) {
 
 		if uni_sched.IsEmpty() {
 			t.Fatal("there was no schedule generated to be tested")
+		}
+
+		list_of_errors := make([]error, 0)
+
+		list_of_errors = append(list_of_errors, uni_sched.VerticalValidation(&resource_persistence)...)
+
+		if len(list_of_errors) > 0 {
+			for _, e := range list_of_errors {
+				t.Error(e)
+			}
+		}
+
+		if err == nil {
+			list_of_errors = append(list_of_errors, uni_sched.HorizontalValidation(&resource_persistence, GeneticAlgorithm.TERM_1ST_SEMESTER)...)
+		}
+
+		if len(list_of_errors) > 0 {
+			for _, e := range list_of_errors {
+				t.Error(e)
+			}
 		}
 
 		serialized_data := Schedule.SerializeUniversitySchedule(uni_sched)

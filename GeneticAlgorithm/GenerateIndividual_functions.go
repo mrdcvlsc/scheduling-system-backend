@@ -12,7 +12,7 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
-func generate_map_dept_id_to_room_type_to_rooms(persistence *StorageResources.Persistence) (map[uint16]map[uint16][]Rooms.Room, error) {
+func GenerateMapDeptIdToRoomTypeToRooms(persistence *StorageResources.Persistence) (map[uint16]map[uint16][]Rooms.Room, error) {
 	department_id_to_room_type_to_rooms := make(map[uint16]map[uint16][]Rooms.Room)
 
 	rooms, err := persistence.ReaderService.GetAllRooms()
@@ -43,7 +43,7 @@ func generate_map_dept_id_to_room_type_to_rooms(persistence *StorageResources.Pe
 	return department_id_to_room_type_to_rooms, nil
 }
 
-func generate_map_dept_id_to_instructors(persistence *StorageResources.Persistence) (map[uint16][]Instructors.Instructor, error) {
+func GenerateMapDeptIdToInstructors(persistence *StorageResources.Persistence) (map[uint16][]Instructors.Instructor, error) {
 	department_id_to_instructors := make(map[uint16][]Instructors.Instructor)
 
 	instructors, err := persistence.ReaderService.GetAllInstructors()
@@ -68,7 +68,7 @@ func generate_map_dept_id_to_instructors(persistence *StorageResources.Persisten
 	return department_id_to_instructors, nil
 }
 
-func generate_map_dept_id_to_department(persistence *StorageResources.Persistence) (map[uint16]Departments.Department, error) {
+func GenerateMapDeptIdToDepartment(persistence *StorageResources.Persistence) (map[uint16]Departments.Department, error) {
 	department_id_to_department := make(map[uint16]Departments.Department)
 
 	departments, err := persistence.ReaderService.GetAllDepartments()
@@ -140,7 +140,7 @@ func EstimateResourceAvailability(persistence *StorageResources.Persistence, sel
 		return list_of_returned_errors
 	}
 
-	department_id_to_department, err_department_id_to_department := generate_map_dept_id_to_department(persistence)
+	department_id_to_department, err_department_id_to_department := GenerateMapDeptIdToDepartment(persistence)
 
 	if err_department_id_to_department != nil {
 		error_slice := make([]error, 0, 2)
