@@ -43,11 +43,9 @@ func GetDepartmentData(ctx *gin.Context) {
 
 	slice_of_curriculum_micro_data := make([]CurriculumMicroData, 0)
 
-	for curriculum_idx, curriculum := range curriculums {
+	schedule_idx := 0
 
-		if curriculum.DepartmentID != uint16(department_id) {
-			continue
-		}
+	for _, curriculum := range curriculums {
 
 		curriculum_micro_data := &CurriculumMicroData{
 			CurriculumID:   curriculum.CurriculumID,
@@ -56,7 +54,7 @@ func GetDepartmentData(ctx *gin.Context) {
 			YearLevels:     make([]YearLevelMicroData, 0),
 		}
 
-		for year_level_idx, year_level := range curriculum.YearLevels {
+		for _, year_level := range curriculum.YearLevels {
 
 			if !year_level.IsActive {
 				continue
@@ -75,20 +73,25 @@ func GetDepartmentData(ctx *gin.Context) {
 
 				for section_idx := 0; section_idx < semester.Sections; section_idx++ {
 
-					idx_d2_to_d1 := (len(curriculum.YearLevels) * curriculum_idx) + year_level_idx
-					idx_d3_to_d1 := (semester.Sections * idx_d2_to_d1) + section_idx
+					if department_id == int(curriculum.DepartmentID) {
+						year_level_micro_data.SectionsUniversityScheduleIndex = append(
+							year_level_micro_data.SectionsUniversityScheduleIndex,
+							schedule_idx,
+						)
+					}
 
-					year_level_micro_data.SectionsUniversityScheduleIndex = append(
-						year_level_micro_data.SectionsUniversityScheduleIndex,
-						idx_d3_to_d1,
-					)
+					schedule_idx++
 				}
 
-				curriculum_micro_data.YearLevels = append(curriculum_micro_data.YearLevels, *year_level_micro_data)
+				if department_id == int(curriculum.DepartmentID) {
+					curriculum_micro_data.YearLevels = append(curriculum_micro_data.YearLevels, *year_level_micro_data)
+				}
 			}
 		}
 
-		slice_of_curriculum_micro_data = append(slice_of_curriculum_micro_data, *curriculum_micro_data)
+		if department_id == int(curriculum.DepartmentID) {
+			slice_of_curriculum_micro_data = append(slice_of_curriculum_micro_data, *curriculum_micro_data)
+		}
 	}
 
 	ctx.JSON(http.StatusOK, slice_of_curriculum_micro_data)
