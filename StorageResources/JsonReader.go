@@ -42,6 +42,10 @@ func (s *JsonReader) GetAllRooms() ([]Rooms.Room, error) {
 		rooms[room_idx].RoomID = uint16(room_idx + 1)
 	}
 
+	sort.Slice(rooms, func(i, j int) bool {
+		return rooms[i].RoomID < rooms[j].RoomID
+	})
+
 	return rooms, nil
 }
 
@@ -70,6 +74,10 @@ func (s *JsonReader) GetAllInstructors() ([]Instructors.Instructor, error) {
 	for idx := range instructors {
 		instructors[idx].InstructorID = uint16(idx + 1)
 	}
+
+	sort.Slice(instructors, func(i, j int) bool {
+		return instructors[i].InstructorID < instructors[j].InstructorID
+	})
 
 	return instructors, nil
 }
@@ -169,6 +177,10 @@ func (s *JsonReader) GetAllSubjects() ([]Curriculum.Subject, error) {
 		subjects[i].ID = uint16(i + 1)
 	}
 
+	sort.Slice(subjects, func(i, j int) bool {
+		return subjects[i].ID < subjects[j].ID
+	})
+
 	return subjects, nil
 }
 
@@ -192,6 +204,10 @@ func (s *JsonReader) GetAllDepartments() ([]Departments.Department, error) {
 	if err = json.Unmarshal(departments_byte_data, &departments); err != nil {
 		return nil, err
 	}
+
+	sort.Slice(departments, func(i, j int) bool {
+		return departments[i].DepartmentID < departments[j].DepartmentID
+	})
 
 	return departments, nil
 }
