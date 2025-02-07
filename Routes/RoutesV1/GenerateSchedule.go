@@ -57,43 +57,21 @@ func generate_schedule(semester int) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	dept_id_to_room_type_to_rooms, err_dept_id_to_room_type_to_rooms := GeneticAlgorithm.GenerateMapDeptIdToRoomTypeToRooms(
-		RouteGlobals.ResourcesPersistence,
-	)
+	encoding_resource, encoding_resource_err := GeneticAlgorithm.ReadDefaultEncodingResource(RouteGlobals.ResourcesPersistence)
 
-	if err_dept_id_to_room_type_to_rooms != nil {
-		log.Fatal("generate_schedule:", err_dept_id_to_room_type_to_rooms)
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////
-
-	dept_id_to_instructors, err_dept_id_to_instructors := GeneticAlgorithm.GenerateMapDeptIdToInstructors(
-		RouteGlobals.ResourcesPersistence,
-	)
-
-	if err_dept_id_to_instructors != nil {
-		log.Fatal("generate_schedule:", err_dept_id_to_instructors)
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////
-
-	dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(
-		RouteGlobals.ResourcesPersistence,
-	)
-
-	if err_dept_id_to_department != nil {
-		log.Fatal("generate_schedule:", err_dept_id_to_department)
+	if encoding_resource_err != nil {
+		log.Fatal(encoding_resource_err)
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
 	for i := 0; i < maximum_trials; i++ {
+		empty_university_schedule := GeneticAlgorithm.NewEmptyIndividual(curriculums, semester)
 
-		university_schedule, err := GeneticAlgorithm.EncodeIndividualGenome(
+		university_schedule, _, err := GeneticAlgorithm.EncodeIndividualGenome(
+			empty_university_schedule,
 			curriculums,
-			dept_id_to_department,
-			dept_id_to_instructors,
-			dept_id_to_room_type_to_rooms,
+			encoding_resource,
 			semester, 0,
 		)
 

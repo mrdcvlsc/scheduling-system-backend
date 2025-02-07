@@ -13,6 +13,7 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
+	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 )
 
 const (
@@ -29,42 +30,80 @@ const (
 
 const MAX_SECTION_SCHEDULE_GENERATION_RETRY int = 3
 
-type ScheduleIndex struct {
-	DepartmentID uint16
-	CurriculumID uint16
-	YearLevel    uint8
-	Section      uint8
+type EncodingResource struct {
+	IsSchedIdxToSubIdToSkip map[uint16]map[uint16]bool
+	DeptIdToDepartment      map[uint16]Departments.Department
+	DeptIdToInstructors     map[uint16][]Instructors.Instructor
+	DeptIdToRoomtypeToRooms map[uint16]map[uint16][]Rooms.Room
+}
+
+func ReadDefaultEncodingResource(resource_persistence *StorageResources.Persistence) (*EncodingResource, error) {
+	dept_id_to_room_type_to_rooms, err_dept_id_to_room_type_to_rooms := GenerateMapDeptIdToRoomTypeToRooms(resource_persistence)
+
+	if err_dept_id_to_room_type_to_rooms != nil {
+		return nil, err_dept_id_to_room_type_to_rooms
+	}
+
+	dept_id_to_instructors, err_dept_id_to_instructors := GenerateMapDeptIdToInstructors(resource_persistence)
+
+	if err_dept_id_to_instructors != nil {
+		return nil, err_dept_id_to_instructors
+	}
+
+	dept_id_to_department, err_dept_id_to_department := GenerateMapDeptIdToDepartment(resource_persistence)
+
+	if err_dept_id_to_department != nil {
+		return nil, err_dept_id_to_department
+	}
+
+	return &EncodingResource{
+		IsSchedIdxToSubIdToSkip: make(map[uint16]map[uint16]bool),
+		DeptIdToDepartment:      dept_id_to_department,
+		DeptIdToInstructors:     dept_id_to_instructors,
+		DeptIdToRoomtypeToRooms: dept_id_to_room_type_to_rooms,
+	}, nil
 }
 
 // Generate individual university schedules.
 //
 // Different return types:
 //
-// (nil, error) - if this function returns a (nil, error) that would mean there is an
+// (nil, any, error) - if this function returns a (nil, error) that would mean there is an
 // error that prevented the function to read the required data resources.
 //
-// (slice, error) - if this function returns a (slice, error) that would mean that it produced one
+// (slice, any, error) - if this function returns a (slice, error) that would mean that it produced one
 // invalid section schedule due to not having enough resources available during
 // the schedule generation configuration.
 //
-// (slice, nil) - if this function returns a (slice, nil), that would mean it
+// (slice, any, nil) - if this function returns a (slice, nil), that would mean it
 // successfully generated a valid university schedules.
 func EncodeIndividualGenome(
+	individual_university_schedules_arg Schedule.UniTimeTables,
 	curriculums_arg []Curriculum.Curriculum,
-	dept_id_to_department_arg map[uint16]Departments.Department,
-	dept_id_to_instructors_arg map[uint16][]Instructors.Instructor,
-	dept_id_to_room_type_to_rooms_arg map[uint16]map[uint16][]Rooms.Room,
+	input_encoding_resource *EncodingResource,
 	selected_semester,
 	distribution_type int,
-) (Schedule.UniTimeTables, error) {
+) (Schedule.UniTimeTables, *EncodingResource, error) {
 
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 
-	// ////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	is_sched_idx_to_sub_id_to_skip := make(map[uint16]map[uint16]bool)
+
+	for out_k, out_v := range input_encoding_resource.IsSchedIdxToSubIdToSkip {
+		is_sched_idx_to_sub_id_to_skip[out_k] = make(map[uint16]bool)
+
+		for in_k, in_v := range out_v {
+			is_sched_idx_to_sub_id_to_skip[out_k][in_k] = in_v
+		}
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
 
 	dept_id_to_room_type_to_rooms := make(map[uint16]map[uint16][]Rooms.Room)
 
-	for out_k, out_v := range dept_id_to_room_type_to_rooms_arg {
+	for out_k, out_v := range input_encoding_resource.DeptIdToRoomtypeToRooms {
 		dept_id_to_room_type_to_rooms[out_k] = make(map[uint16][]Rooms.Room)
 
 		for in_k, in_v := range out_v {
@@ -72,46 +111,62 @@ func EncodeIndividualGenome(
 			copies := copy(dept_id_to_room_type_to_rooms[out_k][in_k], in_v)
 			if copies != len(in_v) {
 				log.Printf("copies : %d\tlen(dept_id_to_room_type_to_rooms[out_k][in_k] = %d/%d = in_v)\n", copies, len(dept_id_to_room_type_to_rooms[out_k][in_k]), len(in_v))
-				return nil, fmt.Errorf("slice elements copied %d, internal department id to rooms map copy operation failed in generate new individual function", copies)
+				return nil, nil, fmt.Errorf("slice elements copied %d, internal department id to rooms map copy operation failed in generate new individual function", copies)
 			}
 		}
 	}
 
-	// ////////////////////////////////////////////////////////////////////////////////////////
-
-	// dept_id_to_instructors, err_dept_id_to_instructors := generate_map_dept_id_to_instructors(persistence_resources)
+	////////////////////////////////////////////////////////////////////////////////////////
 
 	dept_id_to_instructors := make(map[uint16][]Instructors.Instructor)
 
-	for k, v := range dept_id_to_instructors_arg {
+	for k, v := range input_encoding_resource.DeptIdToInstructors {
 		dept_id_to_instructors[k] = make([]Instructors.Instructor, len(v))
 		copies := copy(dept_id_to_instructors[k], v)
 		if copies != len(v) {
-			return nil, fmt.Errorf("slice elements copied %d, internal department id to instructors map copy operation failed in generate new individual function", copies)
+			return nil, nil, fmt.Errorf("slice elements copied %d, internal department id to instructors map copy operation failed in generate new individual function", copies)
 		}
 	}
 
-	// ////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////
 
 	dept_id_to_department := make(map[uint16]Departments.Department)
 
-	for k, v := range dept_id_to_department_arg {
+	for k, v := range input_encoding_resource.DeptIdToDepartment {
 		dept_id_to_department[k] = v
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	counted_sections := 0
-	individual_university_schedules := make(Schedule.UniTimeTables, 0, 64)
-
 	curriculums := make([]Curriculum.Curriculum, len(curriculums_arg))
 	copied_curriculums := copy(curriculums, curriculums_arg)
 
 	if copied_curriculums != len(curriculums_arg) {
-		return nil, fmt.Errorf("slice elements copied %d, internal curriculum copy operation failed in generate new individual function", copied_curriculums)
+		return nil, nil, fmt.Errorf("slice elements copied %d, internal curriculum copy operation failed in generate new individual function", copied_curriculums)
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
+
+	individual_university_schedules := make(Schedule.UniTimeTables, len(individual_university_schedules_arg))
+
+	copied_week_time_table := copy(individual_university_schedules, individual_university_schedules_arg)
+
+	if copied_week_time_table != len(individual_university_schedules_arg) {
+		return nil, nil, fmt.Errorf("slice elements copied %d, internal university schedule copy operation failed in generate new individual function", copied_week_time_table)
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	output_encoding_resource := &EncodingResource{
+		IsSchedIdxToSubIdToSkip: is_sched_idx_to_sub_id_to_skip,
+		DeptIdToDepartment:      dept_id_to_department,
+		DeptIdToInstructors:     dept_id_to_instructors,
+		DeptIdToRoomtypeToRooms: dept_id_to_room_type_to_rooms,
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	counted_sections := 0
 
 	for _, curriculum := range curriculums {
 
@@ -172,6 +227,19 @@ func EncodeIndividualGenome(
 
 					// fmt.Println("=============================================") // DEBUG SUBJECT UNASSIGNED PROBLEM
 					for _, subject := range semester.Subjects {
+
+						non_final_sched_idx := uint16(counted_sections)
+
+						if _, has_sched_idx := is_sched_idx_to_sub_id_to_skip[non_final_sched_idx]; has_sched_idx {
+							_, has_sub_id := is_sched_idx_to_sub_id_to_skip[non_final_sched_idx][subject.ID]
+							if has_sub_id {
+								if is_sched_idx_to_sub_id_to_skip[non_final_sched_idx][subject.ID] {
+									subject_recorder[subject.ID] = subject
+									continue // skip since subject was already assigned
+								}
+							}
+						}
+
 						// fmt.Printf("assigning subject : %s", subject.Code) // DEBUG SUBJECT UNASSIGNED PROBLEM
 
 						var selected_instructor *Instructors.Instructor
@@ -226,10 +294,11 @@ func EncodeIndividualGenome(
 										if section_generation_retries < MAX_SECTION_SCHEDULE_GENERATION_RETRY {
 											section_generation_retries++
 											section_idx--
+											delete(is_sched_idx_to_sub_id_to_skip, non_final_sched_idx)
 											continue section_loop
 										}
 
-										return individual_university_schedules, fmt.Errorf(
+										return individual_university_schedules, nil, fmt.Errorf(
 											"no time slot found for %s in %s for %s %s %s section[%d] after generating schedules for %d other sections",
 											subject.Code, dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
 										)
@@ -277,10 +346,11 @@ func EncodeIndividualGenome(
 											if section_generation_retries < MAX_SECTION_SCHEDULE_GENERATION_RETRY {
 												section_generation_retries++
 												section_idx--
+												delete(is_sched_idx_to_sub_id_to_skip, non_final_sched_idx)
 												continue section_loop
 											}
 
-											return individual_university_schedules, fmt.Errorf(
+											return individual_university_schedules, nil, fmt.Errorf(
 												"not enough instructors (%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
 												instructor_idx, dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
 											)
@@ -372,10 +442,11 @@ func EncodeIndividualGenome(
 										if section_generation_retries < MAX_SECTION_SCHEDULE_GENERATION_RETRY {
 											section_generation_retries++
 											section_idx--
+											delete(is_sched_idx_to_sub_id_to_skip, non_final_sched_idx)
 											continue section_loop
 										}
 
-										return individual_university_schedules, fmt.Errorf(
+										return individual_university_schedules, nil, fmt.Errorf(
 											"not enough rooms (%d)-(type:%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
 											len(room_type_to_rooms[room_type]), room_type, dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
 										)
@@ -462,7 +533,21 @@ func EncodeIndividualGenome(
 								} // ------------- end of time_slot loop -------------
 							} // ------------- end of day loop -------------
 						} // ------------- end of class_type_iter loop -------------
+
 						// fmt.Printf("\t\t<-- result for : %s\n", subject.Code) // DEBUG SUBJECT UNASSIGNED PROBLEM
+
+						// map encoding resource that this subject is already assigned.
+
+						if _, has_sched_idx := is_sched_idx_to_sub_id_to_skip[non_final_sched_idx]; !has_sched_idx {
+							is_sched_idx_to_sub_id_to_skip[non_final_sched_idx] = make(map[uint16]bool)
+							is_sched_idx_to_sub_id_to_skip[non_final_sched_idx][subject.ID] = true
+						} else {
+							if _, has_sub_id := is_sched_idx_to_sub_id_to_skip[non_final_sched_idx][subject.ID]; !has_sub_id {
+								is_sched_idx_to_sub_id_to_skip[non_final_sched_idx][subject.ID] = true
+							} else {
+								panic("woah woah woah!, you're not supposed to be here")
+							}
+						}
 					} // ------------- end of subject loop -------------
 
 					// front compressed distribution : end
@@ -486,14 +571,14 @@ func EncodeIndividualGenome(
 						))
 					}
 
-					individual_university_schedules = append(individual_university_schedules, week_time_table)
+					individual_university_schedules[counted_sections] = week_time_table
 					counted_sections++
 				} // ------------- end of section_idx loop -------------
 			} // ------------- end of semester_idx loop -------------
 		} // ------------- end of year_level loop -------------
 	} // ------------- end of curriculum loop -------------
 
-	return individual_university_schedules, nil
+	return individual_university_schedules, output_encoding_resource, nil
 }
 
 // TODO: when generating solutions while the genetic algorithm is running, we should also generate an index file to be use for querying
@@ -502,9 +587,9 @@ func EncodeIndividualGenome(
 func NewEmptyIndividual(
 	curriculums []Curriculum.Curriculum,
 	selected_semester int,
-) (Schedule.UniTimeTables, error) {
+) Schedule.UniTimeTables {
 
-	individual_university_schedules := make(Schedule.UniTimeTables, 0, 64)
+	individual_university_schedules := make(Schedule.UniTimeTables, 0, 128)
 
 	for _, curriculum := range curriculums {
 		for _, year_level := range curriculum.YearLevels {
@@ -527,5 +612,5 @@ func NewEmptyIndividual(
 		} // ------------- end of year_level loop -------------
 	} // ------------- end of curriculum loop -------------
 
-	return individual_university_schedules, nil
+	return individual_university_schedules
 }

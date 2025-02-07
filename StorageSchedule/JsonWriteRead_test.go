@@ -39,26 +39,10 @@ func Test_JsonReadWriteUniversitySchedules(t *testing.T) {
 
 		////////////////////////////////////////////////////////////////////////////////////////
 
-		dept_id_to_room_type_to_rooms, err_dept_id_to_room_type_to_rooms := GeneticAlgorithm.GenerateMapDeptIdToRoomTypeToRooms(&persistence)
+		encoding_resource, encoding_resource_err := GeneticAlgorithm.ReadDefaultEncodingResource(&persistence)
 
-		if err_dept_id_to_room_type_to_rooms != nil {
-			t.Fatal(err_dept_id_to_room_type_to_rooms)
-		}
-
-		////////////////////////////////////////////////////////////////////////////////////////
-
-		dept_id_to_instructors, err_dept_id_to_instructors := GeneticAlgorithm.GenerateMapDeptIdToInstructors(&persistence)
-
-		if err_dept_id_to_instructors != nil {
-			t.Fatal(err_dept_id_to_instructors)
-		}
-
-		////////////////////////////////////////////////////////////////////////////////////////
-
-		dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(&persistence)
-
-		if err_dept_id_to_department != nil {
-			t.Fatal(err_dept_id_to_department)
+		if encoding_resource_err != nil {
+			t.Fatal(encoding_resource_err)
 		}
 
 		////////////////////////////////////////////////////////////////////////////////////////
@@ -66,12 +50,12 @@ func Test_JsonReadWriteUniversitySchedules(t *testing.T) {
 		fmt.Print("Entering Loop\n")
 
 		for i := 0; i < 40; i++ {
+			empty_university_schedule := GeneticAlgorithm.NewEmptyIndividual(curriculums, GeneticAlgorithm.TERM_1ST_SEMESTER)
 
-			university_schedule, err := GeneticAlgorithm.EncodeIndividualGenome(
+			university_schedule, _, err := GeneticAlgorithm.EncodeIndividualGenome(
+				empty_university_schedule,
 				curriculums,
-				dept_id_to_department,
-				dept_id_to_instructors,
-				dept_id_to_room_type_to_rooms,
+				encoding_resource,
 				GeneticAlgorithm.TERM_1ST_SEMESTER, 0,
 			)
 

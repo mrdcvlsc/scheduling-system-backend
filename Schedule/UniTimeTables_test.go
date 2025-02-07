@@ -28,36 +28,21 @@ func Test_UniTimeTablesSerializationAndDeserialization(t *testing.T) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	dept_id_to_room_type_to_rooms, err_dept_id_to_room_type_to_rooms := GeneticAlgorithm.GenerateMapDeptIdToRoomTypeToRooms(&storage_persistence)
+	encoding_resource, encoding_resource_err := GeneticAlgorithm.ReadDefaultEncodingResource(&resource_persistence)
 
-	if err_dept_id_to_room_type_to_rooms != nil {
-		t.Fatal(err_dept_id_to_room_type_to_rooms)
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////
-
-	dept_id_to_instructors, err_dept_id_to_instructors := GeneticAlgorithm.GenerateMapDeptIdToInstructors(&storage_persistence)
-
-	if err_dept_id_to_instructors != nil {
-		t.Fatal(err_dept_id_to_instructors)
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////
-
-	dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(&storage_persistence)
-
-	if err_dept_id_to_department != nil {
-		t.Fatal(err_dept_id_to_department)
+	if encoding_resource_err != nil {
+		t.Fatal(encoding_resource_err)
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
 	{
-		uni_sched, err := GeneticAlgorithm.EncodeIndividualGenome(
+		empty_university_schedule := GeneticAlgorithm.NewEmptyIndividual(curriculums, GeneticAlgorithm.TERM_1ST_SEMESTER)
+
+		uni_sched, _, err := GeneticAlgorithm.EncodeIndividualGenome(
+			empty_university_schedule,
 			curriculums,
-			dept_id_to_department,
-			dept_id_to_instructors,
-			dept_id_to_room_type_to_rooms,
+			encoding_resource,
 			GeneticAlgorithm.TERM_1ST_SEMESTER, 0,
 		)
 

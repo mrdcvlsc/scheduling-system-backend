@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 )
 
@@ -59,26 +60,10 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	dept_id_to_room_type_to_rooms, err_dept_id_to_room_type_to_rooms := GeneticAlgorithm.GenerateMapDeptIdToRoomTypeToRooms(&persistence)
+	encoding_resource, encoding_resource_err := GeneticAlgorithm.ReadDefaultEncodingResource(&persistence)
 
-	if err_dept_id_to_room_type_to_rooms != nil {
-		t.Fatal(err_dept_id_to_room_type_to_rooms)
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////
-
-	dept_id_to_instructors, err_dept_id_to_instructors := GeneticAlgorithm.GenerateMapDeptIdToInstructors(&persistence)
-
-	if err_dept_id_to_instructors != nil {
-		t.Fatal(err_dept_id_to_instructors)
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////
-
-	dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(&persistence)
-
-	if err_dept_id_to_department != nil {
-		t.Fatal(err_dept_id_to_department)
+	if encoding_resource_err != nil {
+		t.Fatal(encoding_resource_err)
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -88,11 +73,25 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 			fmt.Printf("Generating schedules (%d)..................................\n", (i + 1))
 		}
 
-		university_schedules, err := GeneticAlgorithm.EncodeIndividualGenome(
+		total_sections_calculated := Curriculum.GetTotalNumberOfSections(curriculums, target_semester)
+		empty_university_schedule := GeneticAlgorithm.NewEmptyIndividual(curriculums, target_semester)
+
+		t.Logf(
+			"the calculated total sections for the semester index %d is %d, and the generated empty schedules contains %d",
+			target_semester, total_sections_calculated, len(empty_university_schedule),
+		)
+
+		if total_sections_calculated != len(empty_university_schedule) {
+			t.Fatalf(
+				"the calculated total sections for the semester index %d is %d, but the generated empty schedules only contains %d which is a mismatch",
+				target_semester, total_sections_calculated, len(empty_university_schedule),
+			)
+		}
+
+		university_schedules, _, err := GeneticAlgorithm.EncodeIndividualGenome(
+			empty_university_schedule,
 			curriculums,
-			dept_id_to_department,
-			dept_id_to_instructors,
-			dept_id_to_room_type_to_rooms,
+			encoding_resource,
 			target_semester, 0,
 		)
 
@@ -113,7 +112,7 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 			t.Fatalf("returned an empty university schedule : loop iteration %d\n", i)
 		}
 
-		t.Logf("Schedules Generated : %d", len(university_schedules))
+		// t.Logf("Schedules Generated : %d,    Calculated Total Number Of Sections : %d", len(university_schedules), total_sections_calculated)
 
 		err_vertical_validations := university_schedules.VerticalValidation(&persistence)
 
@@ -169,36 +168,54 @@ func BenchmarkNewPopulationFirstSem(b *testing.B) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	dept_id_to_room_type_to_rooms, err_dept_id_to_room_type_to_rooms := GeneticAlgorithm.GenerateMapDeptIdToRoomTypeToRooms(&persistence)
+	encoding_resource, encoding_resource_err := GeneticAlgorithm.ReadDefaultEncodingResource(&persistence)
 
-	if err_dept_id_to_room_type_to_rooms != nil {
-		b.Fatal(err_dept_id_to_room_type_to_rooms)
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////
-
-	dept_id_to_instructors, err_dept_id_to_instructors := GeneticAlgorithm.GenerateMapDeptIdToInstructors(&persistence)
-
-	if err_dept_id_to_instructors != nil {
-		b.Fatal(err_dept_id_to_instructors)
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////
-
-	dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(&persistence)
-
-	if err_dept_id_to_department != nil {
-		b.Fatal(err_dept_id_to_department)
+	if encoding_resource_err != nil {
+		b.Fatal(encoding_resource_err)
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
 	for i := 0; i < b.N; i++ {
+		empty_university_schedule := GeneticAlgorithm.NewEmptyIndividual(curriculums, GeneticAlgorithm.TERM_1ST_SEMESTER)
+
 		GeneticAlgorithm.EncodeIndividualGenome(
+			empty_university_schedule,
 			curriculums,
-			dept_id_to_department,
-			dept_id_to_instructors,
-			dept_id_to_room_type_to_rooms,
+			encoding_resource,
+			GeneticAlgorithm.TERM_1ST_SEMESTER, 0,
+		)
+	}
+}
+
+func BenchmarkNewPopulationSecondSem(b *testing.B) {
+	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	curriculums, err_curriculums := persistence.ReaderService.GetAllCurriculum()
+
+	if err_curriculums != nil {
+		b.Fatal(err_curriculums)
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	encoding_resource, encoding_resource_err := GeneticAlgorithm.ReadDefaultEncodingResource(&persistence)
+
+	if encoding_resource_err != nil {
+		b.Fatal(encoding_resource_err)
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	for i := 0; i < b.N; i++ {
+		empty_university_schedule := GeneticAlgorithm.NewEmptyIndividual(curriculums, GeneticAlgorithm.TERM_2ND_SEMESTER)
+
+		GeneticAlgorithm.EncodeIndividualGenome(
+			empty_university_schedule,
+			curriculums,
+			encoding_resource,
 			GeneticAlgorithm.TERM_2ND_SEMESTER, 0,
 		)
 	}
