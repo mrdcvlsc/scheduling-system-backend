@@ -30,8 +30,10 @@ const (
 
 const MAX_SECTION_SCHEDULE_GENERATION_RETRY int = 3
 
+// map of department IDs and boolean values that tells the EncodeIndividualGenome function which department's schedule should be encoded.
 type DepartmentsToEncode map[uint16]bool
 
+// struct type containing members that is use to track resource allocation/utilization in a schedule.
 type EncodingResource struct {
 	IsSchedIdxToSubIdToSkip map[uint16]map[uint16]bool
 	DeptIdToDepartment      map[uint16]Departments.Department
@@ -39,6 +41,7 @@ type EncodingResource struct {
 	DeptIdToRoomtypeToRooms map[uint16]map[uint16][]Rooms.Room
 }
 
+// reads the default values of `EncodingResource` saved in a persistence instance.
 func ReadDefaultEncodingResource(resource_persistence *StorageResources.Persistence) (*EncodingResource, error) {
 	dept_id_to_room_type_to_rooms, err_dept_id_to_room_type_to_rooms := GenerateMapDeptIdToRoomTypeToRooms(resource_persistence)
 
@@ -66,19 +69,15 @@ func ReadDefaultEncodingResource(resource_persistence *StorageResources.Persiste
 	}, nil
 }
 
-// Generate individual university schedules.
-//
-// Different return types:
-//
-// (nil, any, error) - if this function returns a (nil, error) that would mean there is an
-// error that prevented the function to read the required data resources.
-//
-// (slice, any, error) - if this function returns a (slice, error) that would mean that it produced one
-// invalid section schedule due to not having enough resources available during
-// the schedule generation configuration.
-//
-// (slice, any, nil) - if this function returns a (slice, nil), that would mean it
-// successfully generated a valid university schedules.
+/*
+Generate individual university schedules.
+
+Different return types:
+
+	(nil, nil, error) // -> resources copy failed.
+	(UniTimeTables, nil, error) // -> not enough resources.
+	(UniTimeTables, DepartmentsToEncode, nil) // -> successfully generated valid university schedules.
+*/
 func EncodeIndividualGenome(
 	individual_university_schedules_arg Schedule.UniTimeTables,
 	curriculums_arg []Curriculum.Curriculum,
