@@ -19,7 +19,7 @@ func (day *DayTimeTable) GetTimeSlot(time_slot_idx int) *TimeSlot {
 		))
 	}
 
-	return &(*day)[time_slot_idx]
+	return &day[time_slot_idx]
 }
 
 func (day *DayTimeTable) IsTimeAvailable(time_slot_idx, time_slot_size int) bool {

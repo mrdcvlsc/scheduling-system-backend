@@ -19,5 +19,5 @@ func (week *WeekTimeTable) GetDayTimeTable(day_idx int) *DayTimeTable {
 		))
 	}
 
-	return &(*week)[day_idx]
+	return &week[day_idx]
 }
