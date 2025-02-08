@@ -50,25 +50,25 @@ func BenchmarkRngInt31nDefault(b *testing.B) {
 }
 
 // max number of curriculums
-const C int = 60
+const C int = 250
 
 // max number year level out of all curriculums / courses.
-const Y int = 5
+const Y int = 4
 
 // max number of section per year level.
-const X int = 20
+const X int = 7
 
 // max number of subjects in a semester.
-const S int = 22
+const S int = 10
 
 // total time slot in a week
 const T int = Const.N_WEEKLY_TIME_SLOTS
 
 // max number of instructor per department
-const I int = 80
+const I int = 40
 
 // max number of a specific room type per department
-const R = 80
+const R = 40
 
 // time complexity
 const O int = C * Y * X * S * 2 * T * (I + R)
@@ -89,7 +89,9 @@ func BenchmarkEstimatedGenPopTimeComplexity(b *testing.B) {
 				fmt.Printf("iter: %d, gen_pop_op: %d\n", i, gen_pop_op)
 			}
 
-			total += uint64(rng.Int31n(10_000_000))
+			if (i % 3) == 0 {
+				total += uint64(rng.Int31n(10_000_000))
+			}
 		}
 	}
 }

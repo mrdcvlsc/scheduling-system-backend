@@ -47,7 +47,8 @@ jobs:
       - name: Run Tests
         run: make test
 
-        # build test
+      - name: Run Benchmarks
+        run: make bench
 
       - name: Run Build
         run: make build
