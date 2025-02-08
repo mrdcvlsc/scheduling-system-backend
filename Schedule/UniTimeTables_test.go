@@ -42,7 +42,7 @@ func Test_UniTimeTablesSerializationAndDeserialization(t *testing.T) {
 		uni_sched, _, err := GeneticAlgorithm.EncodeIndividualGenome(
 			empty_university_schedule,
 			curriculums,
-			encoding_resource,
+			encoding_resource, nil,
 			GeneticAlgorithm.TERM_1ST_SEMESTER, 0,
 		)
 

@@ -71,7 +71,7 @@ func generate_schedule(semester int) {
 		university_schedule, _, err := GeneticAlgorithm.EncodeIndividualGenome(
 			empty_university_schedule,
 			curriculums,
-			encoding_resource,
+			encoding_resource, nil,
 			semester, 0,
 		)
 

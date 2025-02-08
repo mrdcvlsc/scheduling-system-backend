@@ -91,7 +91,7 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 		university_schedules, _, err := GeneticAlgorithm.EncodeIndividualGenome(
 			empty_university_schedule,
 			curriculums,
-			encoding_resource,
+			encoding_resource, nil,
 			target_semester, 0,
 		)
 
@@ -155,6 +155,202 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 	t.Logf("There are a total of %d validation errors detected when generating university schedules", len(validation_error_list))
 }
 
+//////////////////////////////////////
+// WITH DEPARTMENT SPECIFIC ENCODING
+/////////////////////////////////////
+
+func TestNewPopulationFirstSemWithDepartmentSelection(t *testing.T) {
+	GeneratePopulationsWithDepartmentSelection(t, GeneticAlgorithm.TERM_1ST_SEMESTER)
+}
+
+func TestNewPopulationSecondSemWithDepartmentSelection(t *testing.T) {
+	GeneratePopulationsWithDepartmentSelection(t, GeneticAlgorithm.TERM_2ND_SEMESTER)
+}
+
+func GeneratePopulationsWithDepartmentSelection(t *testing.T, target_semester int) {
+	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+
+	t.Logf("Semester : %d\n\n", target_semester)
+
+	total_test_iterations := 512
+	allowed_generation_errors := 0.8 // 80% error rate allowed.
+
+	generation_error_list := make([]error, 0, 8)
+	validation_error_list := make([]error, 0, 8)
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	curriculums, err_curriculums := persistence.ReaderService.GetAllCurriculum()
+
+	if err_curriculums != nil {
+		t.Fatal(err_curriculums)
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	encoding_resource, encoding_resource_err := GeneticAlgorithm.ReadDefaultEncodingResource(&persistence)
+
+	if encoding_resource_err != nil {
+		t.Fatal(encoding_resource_err)
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	for i := 0; i < total_test_iterations; i++ {
+		if (i == 0) || (((i + 1) % 32) == 0) {
+			fmt.Printf("Generating schedules (%d)..................................\n", (i + 1))
+		}
+
+		total_sections_calculated := Curriculum.GetTotalNumberOfSections(curriculums, target_semester)
+		empty_university_schedule := GeneticAlgorithm.NewEmptyIndividual(curriculums, target_semester)
+
+		if total_sections_calculated != len(empty_university_schedule) {
+			t.Fatalf(
+				"the calculated total sections for the semester index %d is %d, but the generated empty schedules only contains %d which is a mismatch",
+				target_semester, total_sections_calculated, len(empty_university_schedule),
+			)
+		}
+
+		all_departments, all_departments_err := persistence.ReaderService.GetAllDepartments()
+
+		if all_departments_err != nil {
+			t.Fatal(all_departments_err)
+		}
+
+		is_department_id_to_has_curriculum := make(map[uint16]bool)
+
+		for _, curriculum := range curriculums {
+			is_department_id_to_has_curriculum[curriculum.DepartmentID] = true
+		}
+
+		track_resources := encoding_resource
+		track_schedules := empty_university_schedule
+
+		for department_idx, department := range all_departments {
+			fmt.Printf("Generating schedule for %s [%d]\n", department.Code, department_idx)
+
+			if has_curriculum := is_department_id_to_has_curriculum[department.DepartmentID]; !has_curriculum {
+				continue // skip departments that don't have curriculums yet
+			}
+
+			department_to_encode := make(GeneticAlgorithm.DepartmentsToEncode)
+			department_to_encode[department.DepartmentID] = true
+
+			if department_idx <= 0 {
+				if !track_schedules.IsEmpty() {
+					t.Fatalf("returned a not empty university schedule : loop iteration %d\n", i)
+				}
+			} else {
+				if track_schedules.IsEmpty() {
+					t.Fatalf("returned an empty university schedule : loop iteration %d\n", i)
+				}
+			}
+
+			retries := 0
+
+			var resource_copy_err error
+			var not_enough_resource_err error
+
+			for {
+				resource_copy_err = nil
+				not_enough_resource_err = nil
+
+				if retries > 50 {
+					t.Fatalf("failed to generate partial departamental schedules after %d tries", retries)
+				}
+
+				output_schedules, output_resources, inner_gen_err := GeneticAlgorithm.EncodeIndividualGenome(
+					track_schedules,
+					curriculums,
+					track_resources, department_to_encode,
+					target_semester, 0,
+				)
+
+				if output_schedules == nil && output_resources == nil && inner_gen_err != nil {
+					resource_copy_err = inner_gen_err
+				} else if output_schedules != nil && output_resources == nil && inner_gen_err != nil {
+					not_enough_resource_err = inner_gen_err
+				}
+
+				if resource_copy_err != nil {
+					t.Fatal(resource_copy_err)
+				}
+
+				if not_enough_resource_err == nil {
+					track_schedules = output_schedules
+					track_resources = output_resources
+					break
+				}
+
+				retries++
+			}
+
+			if len(track_schedules) == 0 {
+				t.Fatal("No university schedules generated")
+			}
+
+			if track_schedules == nil {
+				t.Fatalf("returned a nil university schedule : loop iteration %d\n", i)
+			}
+
+			err_vertical_validations := track_schedules.VerticalValidation(&persistence)
+
+			for _, e := range err_vertical_validations {
+				t.Error(e)
+				validation_error_list = append(validation_error_list, e)
+			}
+
+			if department_idx < len(all_departments)-1 {
+				fmt.Printf("Generated schedules for %s\n", department.Name)
+
+				err_horizontal_validations := track_schedules.HorizontalValidation(&persistence, target_semester)
+
+				if err_horizontal_validations == nil {
+					t.Fatal("there should be a missing subject error here since the university schedule is not complete yet")
+				}
+
+			} else {
+				fmt.Printf("Generated schedules for %s, the last department\n", department.Name)
+
+				if track_schedules.IsEmpty() {
+					t.Fatalf("returned an empty university schedule : loop iteration %d\n", i)
+				}
+
+				err_horizontal_validations := track_schedules.HorizontalValidation(&persistence, target_semester)
+
+				for _, e := range err_horizontal_validations {
+					t.Fatal(e)
+				}
+			}
+		}
+	}
+
+	failed_individuals := float64(len(generation_error_list))
+	successful_individuals := total_test_iterations - int(failed_individuals)
+
+	if failed_individuals > (float64(total_test_iterations) * allowed_generation_errors) {
+		t.Errorf(
+			"total of %d fails (%.2f%%) and %d success (%.2f%%) out of the %d populations generated which is above the maximum error treashold of %.2f%%",
+			int(failed_individuals), failed_individuals/float64(total_test_iterations)*100.0,
+			successful_individuals, float64(successful_individuals)/float64(total_test_iterations)*100.0,
+			total_test_iterations, allowed_generation_errors*100.0,
+		)
+	} else {
+		fmt.Printf(
+			"total of %d fails (%.2f%%) and %d success (%.2f%%) out of the %d populations generated which is below the maximum error treashold of %.2f%%\n",
+			int(failed_individuals), failed_individuals/float64(total_test_iterations)*100.0,
+			successful_individuals, float64(successful_individuals)/float64(total_test_iterations)*100.0,
+			total_test_iterations, allowed_generation_errors*100.0,
+		)
+	}
+
+	t.Logf("There are a total of %d validation errors detected when generating university schedules", len(validation_error_list))
+}
+
+////////////////////////////////
+// BENCHMARK
+/////////////////////////////////
+
 func BenchmarkNewPopulationFirstSem(b *testing.B) {
 	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
 
@@ -182,7 +378,7 @@ func BenchmarkNewPopulationFirstSem(b *testing.B) {
 		GeneticAlgorithm.EncodeIndividualGenome(
 			empty_university_schedule,
 			curriculums,
-			encoding_resource,
+			encoding_resource, nil,
 			GeneticAlgorithm.TERM_1ST_SEMESTER, 0,
 		)
 	}
@@ -215,7 +411,7 @@ func BenchmarkNewPopulationSecondSem(b *testing.B) {
 		GeneticAlgorithm.EncodeIndividualGenome(
 			empty_university_schedule,
 			curriculums,
-			encoding_resource,
+			encoding_resource, nil,
 			GeneticAlgorithm.TERM_2ND_SEMESTER, 0,
 		)
 	}

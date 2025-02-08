@@ -30,6 +30,8 @@ const (
 
 const MAX_SECTION_SCHEDULE_GENERATION_RETRY int = 3
 
+type DepartmentsToEncode map[uint16]bool
+
 type EncodingResource struct {
 	IsSchedIdxToSubIdToSkip map[uint16]map[uint16]bool
 	DeptIdToDepartment      map[uint16]Departments.Department
@@ -81,6 +83,7 @@ func EncodeIndividualGenome(
 	individual_university_schedules_arg Schedule.UniTimeTables,
 	curriculums_arg []Curriculum.Curriculum,
 	input_encoding_resource *EncodingResource,
+	department_to_encode DepartmentsToEncode,
 	selected_semester,
 	distribution_type int,
 ) (Schedule.UniTimeTables, *EncodingResource, error) {
@@ -192,6 +195,15 @@ func EncodeIndividualGenome(
 
 			section_loop:
 				for section_idx = 0; section_idx < semester.Sections; section_idx++ {
+
+					if department_to_encode != nil {
+						is_to_encode := department_to_encode[curriculum.DepartmentID]
+
+						if !is_to_encode {
+							counted_sections++
+							continue
+						}
+					}
 
 					week_time_table := Schedule.WeekTimeTable{}
 
