@@ -299,9 +299,9 @@ func EncodeIndividualGenome(
 
 								day_sched := week_time_table.GetDayTimeTable(day)
 
-								for time_slot := 0; time_slot < (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots); time_slot++ {
+								for time_slot := 0; time_slot <= (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots); time_slot++ {
 
-									if !day_sched.IsTimeAvailable(time_slot, subject_total_time_slots) && (time_slot >= (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
+									if !day_sched.IsTimeAvailable(time_slot, subject_total_time_slots) && (time_slot > (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
 										if section_generation_retries < MAX_SECTION_SCHEDULE_GENERATION_RETRY {
 											section_generation_retries++
 											section_idx--
@@ -352,7 +352,7 @@ func EncodeIndividualGenome(
 
 										instructor_search_iteration++
 
-										if (!is_available_instructor && ((instructor_idx == len(instructors)-1) || selected_instructor != nil)) && (time_slot >= (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
+										if (!is_available_instructor && ((instructor_idx == len(instructors)-1) || selected_instructor != nil)) && (time_slot > (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
 
 											if section_generation_retries < MAX_SECTION_SCHEDULE_GENERATION_RETRY {
 												section_generation_retries++
@@ -448,7 +448,7 @@ func EncodeIndividualGenome(
 
 									room_search_iteration++
 
-									if !has_available_room && (time_slot >= (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
+									if !has_available_room && (time_slot > (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
 
 										if section_generation_retries < MAX_SECTION_SCHEDULE_GENERATION_RETRY {
 											section_generation_retries++
