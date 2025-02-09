@@ -28,17 +28,265 @@ const (
 	DIST_BACK_LOOSE       int = 3
 )
 
-const MAX_SECTION_SCHEDULE_GENERATION_RETRY int = 3
-
 // map of department IDs and boolean values that tells the EncodeIndividualGenome function which department's schedule should be encoded.
 type DepartmentsToEncode map[uint16]bool
 
 // struct type containing members that is use to track resource allocation/utilization in a schedule.
 type EncodingResource struct {
 	IsSchedIdxToSubIdToSkip map[uint16]map[uint16]bool
-	DeptIdToDepartment      map[uint16]Departments.Department
 	DeptIdToInstructors     map[uint16][]Instructors.Instructor
 	DeptIdToRoomtypeToRooms map[uint16]map[uint16][]Rooms.Room
+}
+
+// TODO: make a function to compare two `EncodingResource`.
+func IsEqualEncodingResource(a, b *EncodingResource) bool {
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	if len(a.IsSchedIdxToSubIdToSkip) != len(b.IsSchedIdxToSubIdToSkip) {
+		log.Print("111111111111111111111111111111111111111111")
+		return false
+	}
+
+	for a_out_k, a_out_v := range a.IsSchedIdxToSubIdToSkip {
+
+		b_out_v, has_b_out_k := b.IsSchedIdxToSubIdToSkip[a_out_k]
+
+		if !has_b_out_k {
+			log.Print("222222222222222222222222222222222222222222")
+			return false
+		}
+
+		if len(a_out_v) != len(b_out_v) {
+			log.Print("333333333333333333333333333333333333333333")
+			return false
+		}
+
+		for a_in_k, a_in_v := range a_out_v {
+
+			b_in_v, has_b_in_k := b_out_v[a_in_k]
+
+			if !has_b_in_k {
+				log.Print("444444444444444444444444444444444444444444")
+				return false
+			}
+
+			if b_in_v != a_in_v {
+				log.Print("555555555555555555555555555555555555555555")
+				return false
+			}
+		}
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	for a_out_k, a_out_v := range a.DeptIdToRoomtypeToRooms {
+		b_out_v, has_b_out_k := b.DeptIdToRoomtypeToRooms[a_out_k]
+
+		if !has_b_out_k {
+			log.Print("666666666666666666666666666666666666666666")
+			return false
+		}
+
+		if len(a_out_v) != len(b_out_v) {
+			log.Print("777777777777777777777777777777777777777777")
+			return false
+		}
+
+		for a_in_k, a_in_v := range a_out_v {
+
+			b_in_v, has_b_in_k := b_out_v[a_in_k]
+
+			if !has_b_in_k {
+				log.Print("888888888888888888888888888888888888888888")
+				return false
+			}
+
+			if len(a_in_v) != len(b_in_v) {
+				log.Print("999999999999999999999999999999999999999999")
+				return false
+			}
+
+			sort.Slice(a_in_v, func(i, j int) bool {
+				return a_in_v[i].RoomID < a_in_v[j].RoomID
+			})
+
+			sort.Slice(b_in_v, func(i, j int) bool {
+				return b_in_v[i].RoomID < b_in_v[j].RoomID
+			})
+
+			for a_room_idx, a_room := range a_in_v {
+				if a_room != b_in_v[a_room_idx] {
+					log.Printf("000000000000000000000000000000000000000000: room_idx = %d", a_room_idx)
+					log.Printf("\na_v :\n%v\n", a_room)
+					log.Printf("\nb_v :\n%v\n\n", b_in_v[a_room_idx])
+
+					for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
+						for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
+							if a_room.GetTimeSlotClassCount(day, time_slot) != b_in_v[a_room_idx].GetTimeSlotClassCount(day, time_slot) {
+								fmt.Printf("RIDX: %d, room_id: %d | d(%d), t(%d) => a(%d), b(%d)\n", a_room_idx, a_room.RoomID, day, time_slot, a_room.GetTimeSlotClassCount(day, time_slot), b_in_v[a_room_idx].GetTimeSlotClassCount(day, time_slot))
+								return false
+							}
+						}
+					}
+					return false
+				}
+			}
+		}
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	if len(a.DeptIdToInstructors) != len(b.DeptIdToInstructors) {
+		log.Print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+		return false
+	}
+
+	for a_k, a_v := range a.DeptIdToInstructors {
+
+		b_v, has_b_k := b.DeptIdToInstructors[a_k]
+
+		if !has_b_k {
+			log.Print("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
+			return false
+		}
+
+		if len(a_v) != len(b_v) {
+			log.Print("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC")
+			return false
+		}
+
+		sort.Slice(a_v, func(i, j int) bool {
+			return a_v[i].InstructorID < a_v[j].InstructorID
+		})
+
+		sort.Slice(b_v, func(i, j int) bool {
+			return b_v[i].InstructorID < b_v[j].InstructorID
+		})
+
+		for instructor_idx, instructor := range a_v {
+			if instructor != b_v[instructor_idx] {
+				log.Print("DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD")
+				log.Printf("\na_v :\n%v\n", a_v)
+				log.Printf("\nb_v :\n%v\n\n", b_v)
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
+// use to generate an `EncodingResource` for a `UniTimeTables`, can be used for user
+// configured university schedules or university schedules loaded from the persistence
+// since they don't have any associated `EncodingResource` instance.
+func GenerateEncodingResourceFromUniTimeTable(
+	university_schedules Schedule.UniTimeTables,
+	curriculums []Curriculum.Curriculum,
+	selected_semester int,
+	resource_persistence *StorageResources.Persistence,
+) (*EncodingResource, error) {
+
+	encode_resource, encoding_resource_read_err := ReadDefaultEncodingResource(resource_persistence)
+
+	if encoding_resource_read_err != nil {
+		return nil, encoding_resource_read_err
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////////
+	//                              FLATTEN ENCODING RESOURCES
+	//////////////////////////////////////////////////////////////////////////////////////
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	room_id_to_room := make(map[uint16]*Rooms.Room)
+
+	for out_key, out_v := range encode_resource.DeptIdToRoomtypeToRooms {
+		for in_key, in_v := range out_v {
+			for room_idx, room := range in_v {
+				room_id_to_room[room.RoomID] = &encode_resource.DeptIdToRoomtypeToRooms[out_key][in_key][room_idx]
+			}
+		}
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	instructor_id_to_instructor := make(map[uint16]*Instructors.Instructor)
+
+	for k, v := range encode_resource.DeptIdToInstructors {
+		for instructor_idx, instructor := range v {
+			instructor_id_to_instructor[instructor.InstructorID] = &encode_resource.DeptIdToInstructors[k][instructor_idx]
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////////
+	//                           RE-CREATE ENCODING RESOURCE DATA
+	//////////////////////////////////////////////////////////////////////////////////////
+
+	counted_sections := 0
+
+	for _, curriculum := range curriculums {
+		for _, year_level := range curriculum.YearLevels {
+
+			if !year_level.IsActive {
+				continue // skip inactive year levels
+			}
+
+			for semester_idx, semester := range year_level.Semesters {
+
+				if selected_semester != semester_idx {
+					continue // skip not selected semesters
+				}
+
+				for section_idx := 0; section_idx < semester.Sections; section_idx++ {
+
+					for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
+						for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
+							subject_id := university_schedules[counted_sections][day].GetTimeSlot(time_slot).GetSubjectID()
+
+							if subject_id != 0 {
+								instructor_id := university_schedules[counted_sections][day].GetTimeSlot(time_slot).GetInstructorID()
+								room_id := university_schedules[counted_sections][day].GetTimeSlot(time_slot).GetRoomID()
+
+								selected_instructor := instructor_id_to_instructor[instructor_id]
+								selected_room := room_id_to_room[room_id]
+
+								if instructor_id == 0 {
+									log.Panic("there should be an instructor allocation here, why there is none?")
+								}
+
+								if room_id == 0 {
+									log.Panic("there should be a room allocation here, why there is none?")
+								}
+
+								selected_instructor.Time.SetAvailability(false, day, time_slot)
+								selected_room.IncTimeSlotClassCount(day, time_slot)
+
+								_, has_sched_idx := encode_resource.IsSchedIdxToSubIdToSkip[uint16(counted_sections)]
+
+								if !has_sched_idx {
+									encode_resource.IsSchedIdxToSubIdToSkip[uint16(counted_sections)] = make(map[uint16]bool)
+								}
+
+								_, has_subject_id := encode_resource.IsSchedIdxToSubIdToSkip[uint16(counted_sections)][subject_id]
+
+								if !has_subject_id {
+									encode_resource.IsSchedIdxToSubIdToSkip[uint16(counted_sections)][subject_id] = true
+									selected_instructor.AssignedSubjects++
+								}
+
+								selected_instructor.TotalTeachingHours += (1.0 / Const.N_HOUR_TIME_SLOTS)
+							}
+						} // ------------- end of time_slot loop -------------
+					} // ------------- end of day loop -------------
+
+					counted_sections++
+				} // ------------- end of section_idx loop -------------
+			} // ------------- end of semester_idx loop -------------
+		} // ------------- end of year_level loop -------------
+	} // ------------- end of curriculum loop -------------
+
+	return encode_resource, nil
 }
 
 // reads the default values of `EncodingResource` saved in a persistence instance.
@@ -55,15 +303,8 @@ func ReadDefaultEncodingResource(resource_persistence *StorageResources.Persiste
 		return nil, err_dept_id_to_instructors
 	}
 
-	dept_id_to_department, err_dept_id_to_department := GenerateMapDeptIdToDepartment(resource_persistence)
-
-	if err_dept_id_to_department != nil {
-		return nil, err_dept_id_to_department
-	}
-
 	return &EncodingResource{
 		IsSchedIdxToSubIdToSkip: make(map[uint16]map[uint16]bool),
-		DeptIdToDepartment:      dept_id_to_department,
 		DeptIdToInstructors:     dept_id_to_instructors,
 		DeptIdToRoomtypeToRooms: dept_id_to_room_type_to_rooms,
 	}, nil
@@ -81,6 +322,7 @@ Different return types:
 func EncodeIndividualGenome(
 	individual_university_schedules_arg Schedule.UniTimeTables,
 	curriculums_arg []Curriculum.Curriculum,
+	dept_id_to_department map[uint16]Departments.Department,
 	input_encoding_resource *EncodingResource,
 	department_to_encode DepartmentsToEncode,
 	selected_semester,
@@ -111,6 +353,7 @@ func EncodeIndividualGenome(
 		for in_k, in_v := range out_v {
 			dept_id_to_room_type_to_rooms[out_k][in_k] = make([]Rooms.Room, len(in_v))
 			copies := copy(dept_id_to_room_type_to_rooms[out_k][in_k], in_v)
+
 			if copies != len(in_v) {
 				log.Printf("copies : %d\tlen(dept_id_to_room_type_to_rooms[out_k][in_k] = %d/%d = in_v)\n", copies, len(dept_id_to_room_type_to_rooms[out_k][in_k]), len(in_v))
 				return nil, nil, fmt.Errorf("slice elements copied %d, internal department id to rooms map copy operation failed in generate new individual function", copies)
@@ -128,14 +371,6 @@ func EncodeIndividualGenome(
 		if copies != len(v) {
 			return nil, nil, fmt.Errorf("slice elements copied %d, internal department id to instructors map copy operation failed in generate new individual function", copies)
 		}
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////
-
-	dept_id_to_department := make(map[uint16]Departments.Department)
-
-	for k, v := range input_encoding_resource.DeptIdToDepartment {
-		dept_id_to_department[k] = v
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -161,7 +396,6 @@ func EncodeIndividualGenome(
 
 	output_encoding_resource := &EncodingResource{
 		IsSchedIdxToSubIdToSkip: is_sched_idx_to_sub_id_to_skip,
-		DeptIdToDepartment:      dept_id_to_department,
 		DeptIdToInstructors:     dept_id_to_instructors,
 		DeptIdToRoomtypeToRooms: dept_id_to_room_type_to_rooms,
 	}
@@ -189,11 +423,7 @@ func EncodeIndividualGenome(
 
 				// generate week time table for each sections
 
-				section_generation_retries := 0
-				var section_idx int
-
-			section_loop:
-				for section_idx = 0; section_idx < semester.Sections; section_idx++ {
+				for section_idx := 0; section_idx < semester.Sections; section_idx++ {
 
 					if department_to_encode != nil {
 						is_to_encode := department_to_encode[curriculum.DepartmentID]
@@ -268,6 +498,7 @@ func EncodeIndividualGenome(
 						})
 
 						// iterate over the class type of the subject lec = 0 or lab = 1
+						is_subject_type_added_once := false
 
 						rand_class_type := int(rng.Int31n(2))
 
@@ -302,13 +533,6 @@ func EncodeIndividualGenome(
 								for time_slot := 0; time_slot <= (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots); time_slot++ {
 
 									if !day_sched.IsTimeAvailable(time_slot, subject_total_time_slots) && (time_slot > (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
-										if section_generation_retries < MAX_SECTION_SCHEDULE_GENERATION_RETRY {
-											section_generation_retries++
-											section_idx--
-											delete(is_sched_idx_to_sub_id_to_skip, non_final_sched_idx)
-											continue section_loop
-										}
-
 										return individual_university_schedules, nil, fmt.Errorf(
 											"no time slot found for %s in %s for %s %s %s section[%d] after generating schedules for %d other sections",
 											subject.Code, dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
@@ -353,14 +577,6 @@ func EncodeIndividualGenome(
 										instructor_search_iteration++
 
 										if (!is_available_instructor && ((instructor_idx == len(instructors)-1) || selected_instructor != nil)) && (time_slot > (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
-
-											if section_generation_retries < MAX_SECTION_SCHEDULE_GENERATION_RETRY {
-												section_generation_retries++
-												section_idx--
-												delete(is_sched_idx_to_sub_id_to_skip, non_final_sched_idx)
-												continue section_loop
-											}
-
 											return individual_university_schedules, nil, fmt.Errorf(
 												"not enough instructors (%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
 												instructor_idx, dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
@@ -449,14 +665,6 @@ func EncodeIndividualGenome(
 									room_search_iteration++
 
 									if !has_available_room && (time_slot > (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
-
-										if section_generation_retries < MAX_SECTION_SCHEDULE_GENERATION_RETRY {
-											section_generation_retries++
-											section_idx--
-											delete(is_sched_idx_to_sub_id_to_skip, non_final_sched_idx)
-											continue section_loop
-										}
-
 										return individual_university_schedules, nil, fmt.Errorf(
 											"not enough rooms (%d)-(type:%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
 											len(room_type_to_rooms[room_type]), room_type, dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
@@ -505,7 +713,7 @@ func EncodeIndividualGenome(
 										}
 
 										if day_sched.GetTimeSlot(selected_time_slot).GetInstructorID() != 0 {
-											panic("woah woah woah! you are overwriting a instructor allocated in that time slot")
+											panic("woah woah woah! you are overwriting an instructor allocated in that time slot")
 										}
 
 										if day_sched.GetTimeSlot(selected_time_slot).GetRoomID() != 0 {
@@ -515,10 +723,15 @@ func EncodeIndividualGenome(
 										selected_instructor.Time.SetAvailability(false, day, selected_time_slot)
 										selected_room.IncTimeSlotClassCount(day, selected_time_slot)
 
+										if subject.ID == 0 {
+											panic("that subject.ID should never be zero")
+										}
+
 										day_sched.GetTimeSlot(selected_time_slot).SetSubjectID(subject.ID)
-										time_slot_assignment_sanity_counter++
 										day_sched.GetTimeSlot(selected_time_slot).SetInstructorID(selected_instructor.InstructorID)
 										day_sched.GetTimeSlot(selected_time_slot).SetRoomID(selected_room.RoomID)
+
+										time_slot_assignment_sanity_counter++
 									}
 
 									if time_slot_assignment_sanity_counter != subject_total_time_slots {
@@ -527,8 +740,12 @@ func EncodeIndividualGenome(
 										)
 									}
 
-									selected_instructor.AssignedSubjects++
-									selected_instructor.TotalTeachingHours += subject_hours
+									if !is_subject_type_added_once {
+										selected_instructor.AssignedSubjects++
+										is_subject_type_added_once = true
+									}
+
+									selected_instructor.TotalTeachingHours += float32(subject_hours)
 
 									subject_recorder[subject.ID] = subject
 
@@ -538,7 +755,6 @@ func EncodeIndividualGenome(
 									//                 BREAK day AND time_slot LOOP
 									/////////////////////////////////////////////////////////////////////////////////
 
-									section_generation_retries = 0
 									day = 9999
 									time_slot = 9999
 								} // ------------- end of time_slot loop -------------

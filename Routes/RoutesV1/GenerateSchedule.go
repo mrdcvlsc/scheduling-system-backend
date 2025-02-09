@@ -55,6 +55,12 @@ func generate_schedule(semester int) {
 		log.Fatal("generate_schedule:", err_curriculums)
 	}
 
+	dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(RouteGlobals.ResourcesPersistence)
+
+	if err_dept_id_to_department != nil {
+		log.Fatal(err_dept_id_to_department)
+	}
+
 	////////////////////////////////////////////////////////////////////////////////////////
 
 	encoding_resource, encoding_resource_err := GeneticAlgorithm.ReadDefaultEncodingResource(RouteGlobals.ResourcesPersistence)
@@ -70,7 +76,7 @@ func generate_schedule(semester int) {
 
 		university_schedule, _, err := GeneticAlgorithm.EncodeIndividualGenome(
 			empty_university_schedule,
-			curriculums,
+			curriculums, dept_id_to_department,
 			encoding_resource, nil,
 			semester, 0,
 		)

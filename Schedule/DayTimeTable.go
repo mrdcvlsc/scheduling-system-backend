@@ -30,7 +30,7 @@ func (day *DayTimeTable) IsTimeAvailable(time_slot_idx, time_slot_size int) bool
 		))
 	}
 
-	if (time_slot_idx + time_slot_size - 1) >= Const.N_DAILY_TIME_SLOTS {
+	if (time_slot_idx + time_slot_size) > Const.N_DAILY_TIME_SLOTS {
 		panic(fmt.Sprintf(
 			"GetTimeSlot(time_slot_size = %d + time_slot_idx = %d): error `time_slot_size + time_slot_idx` out of bounds",
 			time_slot_size, time_slot_idx,
@@ -45,5 +45,5 @@ func (day *DayTimeTable) IsTimeAvailable(time_slot_idx, time_slot_size int) bool
 		}
 	}
 
-	return counted_time_slots == time_slot_size
+	return true
 }

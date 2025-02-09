@@ -26,6 +26,12 @@ func Test_UniTimeTablesSerializationAndDeserialization(t *testing.T) {
 		t.Fatal(err_curriculums)
 	}
 
+	dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(&resource_persistence)
+
+	if err_dept_id_to_department != nil {
+		t.Fatal(err_dept_id_to_department)
+	}
+
 	////////////////////////////////////////////////////////////////////////////////////////
 
 	encoding_resource, encoding_resource_err := GeneticAlgorithm.ReadDefaultEncodingResource(&resource_persistence)
@@ -39,9 +45,9 @@ func Test_UniTimeTablesSerializationAndDeserialization(t *testing.T) {
 	{
 		empty_university_schedule := GeneticAlgorithm.NewEmptyIndividual(curriculums, GeneticAlgorithm.TERM_1ST_SEMESTER)
 
-		uni_sched, _, err := GeneticAlgorithm.EncodeIndividualGenome(
+		uni_sched, encoding_resource_output, err := GeneticAlgorithm.EncodeIndividualGenome(
 			empty_university_schedule,
-			curriculums,
+			curriculums, dept_id_to_department,
 			encoding_resource, nil,
 			GeneticAlgorithm.TERM_1ST_SEMESTER, 0,
 		)
@@ -73,6 +79,24 @@ func Test_UniTimeTablesSerializationAndDeserialization(t *testing.T) {
 				t.Error(e)
 			}
 		}
+
+		///////////////////////
+
+		generated_encoding_resource, output_resources := GeneticAlgorithm.GenerateEncodingResourceFromUniTimeTable(
+			uni_sched, curriculums, GeneticAlgorithm.TERM_1ST_SEMESTER, &resource_persistence,
+		)
+
+		if output_resources != nil {
+			t.Fatal(output_resources)
+		}
+
+		if encoding_resource_output != nil {
+			if !GeneticAlgorithm.IsEqualEncodingResource(generated_encoding_resource, encoding_resource_output) {
+				t.Fatal("generated encoding resource from bare university schedule is not equal to the produced encoding resource of GA")
+			}
+		}
+
+		/////////////////
 
 		serialized_data := Schedule.SerializeUniversitySchedule(uni_sched)
 

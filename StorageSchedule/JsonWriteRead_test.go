@@ -37,6 +37,12 @@ func Test_JsonReadWriteUniversitySchedules(t *testing.T) {
 			t.Fatal(err_curriculums)
 		}
 
+		dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(&persistence)
+
+		if err_dept_id_to_department != nil {
+			t.Fatal(err_dept_id_to_department)
+		}
+
 		////////////////////////////////////////////////////////////////////////////////////////
 
 		encoding_resource, encoding_resource_err := GeneticAlgorithm.ReadDefaultEncodingResource(&persistence)
@@ -54,7 +60,7 @@ func Test_JsonReadWriteUniversitySchedules(t *testing.T) {
 
 			university_schedule, _, err := GeneticAlgorithm.EncodeIndividualGenome(
 				empty_university_schedule,
-				curriculums,
+				curriculums, dept_id_to_department,
 				encoding_resource, nil,
 				GeneticAlgorithm.TERM_1ST_SEMESTER, 0,
 			)

@@ -12,7 +12,7 @@ type Instructor struct {
 	AssignedSubjects int
 
 	// the total teaching hours assigned for all assigned subjects.
-	TotalTeachingHours int
+	TotalTeachingHours float32
 
 	// AvailableDay, each bits represent the boolean value if the instructor
 	// is available.

@@ -148,11 +148,11 @@ func (university_sched UniTimeTables) VerticalValidation(resource_persistence *S
 
 			for section_idx := 0; section_idx < len(university_sched); section_idx++ {
 
-				subject_id := university_sched[section_idx][day][time_slot].subjectID
+				subject_id := university_sched[section_idx][day][time_slot].GetSubjectID()
 
-				instructor_id := university_sched[section_idx][day][time_slot].instructorID
+				instructor_id := university_sched[section_idx][day][time_slot].GetInstructorID()
 
-				room_id := university_sched[section_idx][day][time_slot].roomID
+				room_id := university_sched[section_idx][day][time_slot].GetRoomID()
 
 				if subject_id == 0 && instructor_id != 0 {
 					err_json := &UniInstructorValidationError{

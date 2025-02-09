@@ -1,6 +1,10 @@
 package Rooms
 
-import "github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
+import (
+	"fmt"
+
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
+)
 
 // the maximum room capacity.
 const MAX_ROOM_CAPACITY int = 15 // = 0b1111 (4 bits only)
@@ -42,6 +46,13 @@ func (room *Room) IncTimeSlotClassCount(day, time_slot int) {
 	idx_2D_to_1D := (day * Const.N_DAILY_TIME_SLOTS) + time_slot
 	limb_idx := idx_2D_to_1D / 2
 	shift_multiplier := idx_2D_to_1D % 2
+
+	if int(room.GetTimeSlotClassCount(day, time_slot)) == MAX_ROOM_CAPACITY {
+		panic(fmt.Sprintf(
+			"(%s - [id:%d, type:%d])IncTimeSlotClassCount(%d, %d) - uint4 overflow, cannot increment to higher room capacity",
+			room.Name, room.RoomID, room.RoomType, day, time_slot,
+		))
+	}
 
 	room.timeSlotClassCount[limb_idx] += (0b1 << (4 * shift_multiplier))
 }
