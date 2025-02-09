@@ -127,7 +127,7 @@ func GetJsonClassSchedule(ctx *gin.Context) {
 
 	for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
 		for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
-			slot := selected_class_schedule[0][day][time_slot]
+			slot := selected_class_schedule[0][day].GetTimeSlot(time_slot)
 
 			if slot.GetSubjectID() == 0 {
 				continue
@@ -143,12 +143,17 @@ func GetJsonClassSchedule(ctx *gin.Context) {
 			}
 
 			for forward_time_slot := time_slot + 1; forward_time_slot < Const.N_DAILY_TIME_SLOTS; forward_time_slot++ {
-				forward_slot := selected_class_schedule[0][day][forward_time_slot]
+				forward_slot := selected_class_schedule[0][day].GetTimeSlot(forward_time_slot)
 
-				if forward_slot.GetSubjectID() == slot.GetSubjectID() && forward_slot.GetRoomID() == slot.GetRoomID() {
+				if forward_slot.GetSubjectID() == slot.GetSubjectID() && forward_slot.GetInstructorID() == slot.GetInstructorID() && forward_slot.GetRoomID() == slot.GetRoomID() {
 					new_sub_assignment.SubjectTimeSlots++
 				} else {
 					time_slot = forward_time_slot - 1
+					break
+				}
+
+				if forward_time_slot == (Const.N_DAILY_TIME_SLOTS - 1) {
+					time_slot = 9999
 					break
 				}
 			}
