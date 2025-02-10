@@ -14,7 +14,7 @@ import (
 /*
 POST:
 
-	"/generate_schedule"
+	"/generate_schedule?semester[0-1]"
 */
 func GenerateSchedule(ctx *gin.Context) {
 
