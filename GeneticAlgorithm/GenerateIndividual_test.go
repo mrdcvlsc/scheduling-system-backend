@@ -226,6 +226,7 @@ func GeneratePopWithDepartmentSelection(t *testing.T, target_semester int) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
+new_population_loop:
 	for i := 0; i < total_test_iterations; i++ {
 		if (i == 0) || (((i + 1) % 32) == 0) {
 			fmt.Printf("Generating schedules (%d)..................................\n", (i + 1))
@@ -257,7 +258,6 @@ func GeneratePopWithDepartmentSelection(t *testing.T, target_semester int) {
 		track_schedules := empty_university_schedule
 
 		for department_idx, department := range all_departments {
-			fmt.Printf("Generating schedule for %s [%d]\n", department.Code, department_idx)
 
 			if has_curriculum := is_department_id_to_has_curriculum[department.DepartmentID]; !has_curriculum {
 				continue // skip departments that don't have curriculums yet
@@ -281,13 +281,11 @@ func GeneratePopWithDepartmentSelection(t *testing.T, target_semester int) {
 			var resource_copy_err error
 			var not_enough_resource_err error
 
+			max_retries := 7
+
 			for {
 				resource_copy_err = nil
 				not_enough_resource_err = nil
-
-				if retries > 50 {
-					t.Fatalf("failed to generate partial departamental schedules after %d tries", retries)
-				}
 
 				output_schedules, output_resources, inner_gen_err := GeneticAlgorithm.EncodeIndividualGenome(
 					track_schedules,
@@ -312,6 +310,12 @@ func GeneratePopWithDepartmentSelection(t *testing.T, target_semester int) {
 					break
 				}
 
+				if retries > max_retries {
+					generation_error_list = append(generation_error_list, not_enough_resource_err)
+					continue new_population_loop
+				}
+
+				t.Logf("retry (%d : %s) - %s\n", retries, department.Code, not_enough_resource_err.Error())
 				retries++
 			}
 
@@ -349,7 +353,7 @@ func GeneratePopWithDepartmentSelection(t *testing.T, target_semester int) {
 			/////////////////
 
 			if department_idx < len(all_departments)-1 {
-				fmt.Printf("Generated schedules for %s\n", department.Name)
+				fmt.Printf("Generated schedules for all departments, the department %s\n", department.Name)
 
 				err_horizontal_validations := track_schedules.HorizontalValidation(&persistence, target_semester)
 
@@ -358,7 +362,7 @@ func GeneratePopWithDepartmentSelection(t *testing.T, target_semester int) {
 				}
 
 			} else {
-				fmt.Printf("Generated schedules for %s, the last department\n", department.Name)
+				fmt.Printf("Generated schedules for all departments, the last department schedules generated is %s\n", department.Name)
 
 				if track_schedules.IsEmpty() {
 					t.Fatalf("returned an empty university schedule : loop iteration %d\n", i)
