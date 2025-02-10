@@ -421,7 +421,9 @@ func EncodeIndividualGenome(
 					continue // skip not selected semesters
 				}
 
-				// generate week time table for each sections
+				/////////////////////////////////////////////////////////////////////////////////////////////////////////
+				//                           GENERATE WEEK TIME TABLE FOR EACH SECTIONS
+				/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 				for section_idx := 0; section_idx < semester.Sections; section_idx++ {
 
@@ -436,8 +438,11 @@ func EncodeIndividualGenome(
 
 					week_time_table := Schedule.WeekTimeTable{}
 
-					// shuffle the rooms
+					/////////////////////////////////////////////////////////////////////////////////////////////////////////
+					//                                    SHUFFLE ROOMS AND SUBJECT
+					/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+					// shuffle the rooms
 					for _, rooms := range room_type_to_rooms {
 						rng.Shuffle(len(rooms), func(i, j int) {
 							rooms[i], rooms[j] = rooms[j], rooms[i]
@@ -445,10 +450,11 @@ func EncodeIndividualGenome(
 					}
 
 					// shuffle the subjects
-
 					rng.Shuffle(len(semester.Subjects), func(i, j int) {
 						semester.Subjects[i], semester.Subjects[j] = semester.Subjects[j], semester.Subjects[i]
 					})
+
+					/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 					// TODO: implement distribution types
 					//
@@ -481,21 +487,57 @@ func EncodeIndividualGenome(
 							}
 						}
 
-						// fmt.Printf("assigning subject : %s", subject.Code) // DEBUG SUBJECT UNASSIGNED PROBLEM
-
 						var selected_instructor *Instructors.Instructor
 
-						// shuffle instructors
+						// fmt.Printf("assigning subject : %s", subject.Code) // DEBUG SUBJECT UNASSIGNED PROBLEM
 
-						rng.Shuffle(len(instructors), func(i, j int) {
-							instructors[i], instructors[j] = instructors[j], instructors[i]
-						})
+						/////////////////////////////////////////////////////////////////////////////////////////////////////////
+						//               POPULATE SPECIALIZED INSTRUCTOR LIST FOR THE SUBJECT IF THEY EXIST
+						/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-						// sort the instructors based on the number of subjects they are assigned
+						specialized_instructors := make([]*Instructors.Instructor, 0)
 
-						sort.Slice(instructors, func(i, j int) bool {
-							return instructors[i].TotalTeachingHours < instructors[j].TotalTeachingHours
-						})
+						if subject.DesignatedInstructors != nil {
+							instructor_id_to_instructor := make(map[uint16]*Instructors.Instructor)
+
+							for i := range instructors {
+								instructor_id_to_instructor[instructors[i].InstructorID] = &instructors[i]
+							}
+
+							for i := range dept_id_to_instructors[0] {
+								instructor_id_to_instructor[dept_id_to_instructors[0][i].InstructorID] = &dept_id_to_instructors[0][i]
+							}
+
+							for _, specialized_id := range subject.DesignatedInstructors {
+								if _, has_id := instructor_id_to_instructor[specialized_id]; has_id {
+									specialized_instructors = append(specialized_instructors, instructor_id_to_instructor[specialized_id])
+								}
+							}
+
+							// shuffle specialized instructors
+							rng.Shuffle(len(specialized_instructors), func(i, j int) {
+								specialized_instructors[i], specialized_instructors[j] = specialized_instructors[j], specialized_instructors[i]
+							})
+
+							// sort the specialized_instructors based on the number of subjects they are assigned
+							sort.Slice(specialized_instructors, func(i, j int) bool {
+								return specialized_instructors[i].TotalTeachingHours < specialized_instructors[j].TotalTeachingHours
+							})
+						} else {
+							// shuffle instructors
+							rng.Shuffle(len(instructors), func(i, j int) {
+								instructors[i], instructors[j] = instructors[j], instructors[i]
+							})
+
+							// sort the instructors based on the number of subjects they are assigned
+							sort.Slice(instructors, func(i, j int) bool {
+								return instructors[i].TotalTeachingHours < instructors[j].TotalTeachingHours
+							})
+						}
+
+						/////////////////////////////////////////////////////////////////////////////////////////////////////////
+						//                         RANDOMIZE LECTURE AND LABORATORY ASSIGNMENT ORDER
+						/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 						// iterate over the class type of the subject lec = 0 or lab = 1
 						is_subject_type_added_once := false
@@ -524,13 +566,19 @@ func EncodeIndividualGenome(
 
 							subject_total_time_slots := subject_hours * Const.N_HOUR_TIME_SLOTS
 
-							// search an available time slot for the current subject
+							/////////////////////////////////////////////////////////////////////////////////////////////////////////
+							//                                ITERATE THROUGH THE WEEKLY TIME SLOTS
+							/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 							for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
 
 								day_sched := week_time_table.GetDayTimeTable(day)
 
 								for time_slot := 0; time_slot <= (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots); time_slot++ {
+
+									/////////////////////////////////////////////////////////////////////////////////////////////////////////
+									//                      CHECK IF CURRENT TIME SLOT IS AVAILABLE FOR THE SUBJECT
+									/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 									if !day_sched.IsTimeAvailable(time_slot, subject_total_time_slots) && (time_slot > (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
 										return individual_university_schedules, nil, fmt.Errorf(
@@ -540,15 +588,14 @@ func EncodeIndividualGenome(
 									}
 
 									if !day_sched.IsTimeAvailable(time_slot, subject_total_time_slots) {
-										continue // if the current time slot is not available go to the next
+										continue // if the current time slot is not available, go to the next time slot
 									}
 
-									/////////////////////////////////////////////////////////////////////////////////
-									//                 FIND AVAILABLE INSTRUCTOR FOR THE TIME SLOT
-									/////////////////////////////////////////////////////////////////////////////////
+									/////////////////////////////////////////////////////////////////////////////////////////////////////////
+									//                          FIND AVAILABLE INSTRUCTOR FOR THE TIME SLOT
+									/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-									// if the time slot is available proceed to assign an available instructor,
-									// check if there is already an assigned instructor for the current subject
+									// if the time slot is available proceed to find then assign an available instructor
 
 									instructor_search_iteration := 0
 
@@ -557,54 +604,107 @@ func EncodeIndividualGenome(
 									selected_instructor_idx := -1
 									var is_available_instructor bool
 
-									for instructor_idx := range instructors {
+									if subject.DesignatedInstructors != nil {
 
-										is_available_instructor = true
+										/////////////////////////////////////////////////////////////////////////////////////////////////////////
+										//                               find available specialized instructors
+										/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-										if selected_instructor == nil {
-											// fmt.Printf("searching the available time slot for the iterated instructor [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
-											for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
-												is_available_instructor = is_available_instructor && instructors[instructor_idx].Time.GetAvailability(day, instructor_time_slot)
+										for instructor_idx := range specialized_instructors {
+
+											is_available_instructor = true
+
+											if selected_instructor == nil {
+												// fmt.Printf("searching the available time slot for the iterated instructor [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
+												for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
+													is_available_instructor = is_available_instructor && specialized_instructors[instructor_idx].Time.GetAvailability(day, instructor_time_slot)
+												}
+											} else {
+												// fmt.Printf("searching the available time slot for the selected instructor [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
+												for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
+													is_available_instructor = is_available_instructor && selected_instructor.Time.GetAvailability(day, instructor_time_slot)
+												}
 											}
 
-										} else {
-											// fmt.Printf("searching the available time slot for the selected instructor [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
-											for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
-												is_available_instructor = is_available_instructor && selected_instructor.Time.GetAvailability(day, instructor_time_slot)
+											instructor_search_iteration++
+
+											if (!is_available_instructor && ((instructor_idx == len(specialized_instructors)-1) || selected_instructor != nil)) && (time_slot > (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
+												return individual_university_schedules, nil, fmt.Errorf(
+													"not enough specialized_instructors (%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
+													instructor_idx, dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
+												)
 											}
+
+											if !is_available_instructor && selected_instructor != nil {
+												break // immediately find other time slots if there is already a selected instructor yet is not available
+											}
+
+											if !is_available_instructor {
+												// fmt.Printf("No instructor found available for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
+												continue // find another instructor if not available for the time slot
+											}
+
+											// fmt.Printf("instructor found available for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
+
+											selected_instructor_idx = instructor_idx
+											break
 										}
+									} else {
+										/////////////////////////////////////////////////////////////////////////////////////////////////////////
+										//                                find available department instructors
+										/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-										instructor_search_iteration++
+										for instructor_idx := range instructors {
 
-										if (!is_available_instructor && ((instructor_idx == len(instructors)-1) || selected_instructor != nil)) && (time_slot > (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
-											return individual_university_schedules, nil, fmt.Errorf(
-												"not enough instructors (%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
-												instructor_idx, dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
-											)
+											is_available_instructor = true
+
+											if selected_instructor == nil {
+												// fmt.Printf("searching the available time slot for the iterated instructor [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
+												for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
+													is_available_instructor = is_available_instructor && instructors[instructor_idx].Time.GetAvailability(day, instructor_time_slot)
+												}
+
+											} else {
+												// fmt.Printf("searching the available time slot for the selected instructor [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
+												for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
+													is_available_instructor = is_available_instructor && selected_instructor.Time.GetAvailability(day, instructor_time_slot)
+												}
+											}
+
+											instructor_search_iteration++
+
+											if (!is_available_instructor && ((instructor_idx == len(instructors)-1) || selected_instructor != nil)) && (time_slot > (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
+												return individual_university_schedules, nil, fmt.Errorf(
+													"not enough instructors (%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
+													instructor_idx, dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
+												)
+											}
+
+											if !is_available_instructor && selected_instructor != nil {
+												break // immediately find other time slots if there is already a selected instructor yet is not available
+											}
+
+											if !is_available_instructor {
+												// fmt.Printf("No instructor found available for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
+												continue // find another instructor if not available for the time slot
+											}
+
+											// fmt.Printf("instructor found available for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
+
+											selected_instructor_idx = instructor_idx
+											break
 										}
-
-										if !is_available_instructor && selected_instructor != nil {
-											break // immediately find other time slots if there is already a selected instructor yet is not available
-										}
-
-										if !is_available_instructor {
-											// fmt.Printf("No instructor found available for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
-											continue // find another instructor if not available for the time slot
-										}
-
-										// fmt.Printf("instructor found available for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
-
-										selected_instructor_idx = instructor_idx
-										break
 									}
+
+									// TODO: analyze if this is really needed?
 
 									if !is_available_instructor {
-										continue
+										continue // find other time slot if there is no available instructor
 									}
 
-									/////////////////////////////////////////////////////////////////////////////////
-									//                 FIND AVAILABLE ROOM FOR THE TIME SLOT
-									/////////////////////////////////////////////////////////////////////////////////
+									/////////////////////////////////////////////////////////////////////////////////////////////////////////
+									//                             FIND AVAILABLE ROOM FOR THE TIME SLOT
+									/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 									room_search_iteration := 0
 									room_type := uint16(class_type)
@@ -612,6 +712,11 @@ func EncodeIndividualGenome(
 									var has_available_room bool
 
 									if subject.IsGymType() {
+
+										/////////////////////////////////////////////////////////////////////////////////////////////////////////
+										//                                       find available gym room
+										/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 										// fmt.Printf("searching available gym rooms for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
 
 										// search available gym for physical education subjects
@@ -635,6 +740,10 @@ func EncodeIndividualGenome(
 											break
 										}
 									} else {
+
+										/////////////////////////////////////////////////////////////////////////////////////////////////////////
+										//                                  find available department rooms
+										/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 										// fmt.Printf("searching available room[type:%d] for the time slot [d:%d, ts:%d]...\n", room_type, day, time_slot) // DEBUG PRINTS
 
@@ -676,16 +785,25 @@ func EncodeIndividualGenome(
 										continue // find another time slot
 									}
 
+									/////////////////////////////////////////////////////////////////////////////////////////////////////////
+									//   if there is an available room then finalize instructor selection if there is no one selected yet
+									/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 									// fmt.Printf("room found for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
 
 									if selected_instructor == nil {
 										// fmt.Printf("selecting the instructor found for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
-										selected_instructor = &instructors[selected_instructor_idx]
+
+										if subject.DesignatedInstructors != nil {
+											selected_instructor = specialized_instructors[selected_instructor_idx]
+										} else {
+											selected_instructor = &instructors[selected_instructor_idx]
+										}
 									}
 
-									/////////////////////////////////////////////////////////////////////////////////
-									//                 ASSING AVAILABLE INSTRUCTOR FOR THE TIME SLOT
-									/////////////////////////////////////////////////////////////////////////////////
+									/////////////////////////////////////////////////////////////////////////////////////////////////////////
+									//                       ALLOCATE THE FINAL AVAILABLE INSTRUCTOR FOR THE TIME SLOT
+									/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 									// fmt.Printf( // DEBUG PRINTS
 									// "[%s]-[%s]-Section:[%d] | [%s][hours(%d):%d] : day(%d):timeslot(%d) | Instructor : (%s %s %s) found after %d iterations\n", // DEBUG PRINTS
@@ -751,9 +869,9 @@ func EncodeIndividualGenome(
 
 									// fmt.Printf("\t\tassigned : %s", subject.Code) // DEBUG SUBJECT UNASSIGNED PROBLEM
 
-									/////////////////////////////////////////////////////////////////////////////////
-									//                 BREAK day AND time_slot LOOP
-									/////////////////////////////////////////////////////////////////////////////////
+									/////////////////////////////////////////////////////////////////////////////////////////////////////////
+									//                                  BREAK day AND time_slot LOOP
+									/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 									day = 9999
 									time_slot = 9999
