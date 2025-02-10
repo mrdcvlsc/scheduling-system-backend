@@ -6,18 +6,14 @@ import (
 	"sync/atomic"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
-	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
-	"github.com/mrdcvlsc/scheduling-system-backend/StorageSchedule"
 )
-
-var ResourcesPersistence *StorageResources.Persistence
-var SchedulePersistence *StorageSchedule.Persistence
 
 const NUM_OF_SEMESTERS int = 2
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 var IsGeneratingSchedule atomic.Bool
+var RecentScheduleUpdate atomic.Uint64
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
