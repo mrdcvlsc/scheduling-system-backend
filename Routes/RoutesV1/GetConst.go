@@ -8,6 +8,11 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 )
 
+/*
+GET:
+
+	"/const"
+*/
 func GetConst(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"time_slot_bytes":    Schedule.TIME_SLOT_BYTE_SIZE,

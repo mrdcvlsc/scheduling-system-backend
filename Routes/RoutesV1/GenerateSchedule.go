@@ -11,6 +11,11 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 )
 
+/*
+POST:
+
+	"/generate_schedule"
+*/
 func GenerateSchedule(ctx *gin.Context) {
 
 	semester, is_valid_semester_idx := IsValidParameterSemesterIndex(ctx)

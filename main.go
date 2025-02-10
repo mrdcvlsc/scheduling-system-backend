@@ -115,6 +115,7 @@ func main() {
 
 	v1.GET("/const", RoutesV1.GetConst)
 
+	v1.GET("/all_departments", RoutesV1.GetAllDepartments)
 	v1.GET("/department_data", RoutesV1.GetDepartmentData)
 
 	v1.GET("/university_schedule", RoutesV1.GetUniversitySchedule)

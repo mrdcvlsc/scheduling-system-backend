@@ -20,9 +20,9 @@ type SubjectAssignmentInfo struct {
 }
 
 /*
-GET :
+GET:
 
-	"/v1/class_json_schedule?department_id=D&semester=S&schedule_idx=I"
+	"/class_json_schedule?department_id=D&semester=S&schedule_idx=I"
 */
 func GetJsonClassSchedule(ctx *gin.Context) {
 
@@ -165,7 +165,11 @@ func GetJsonClassSchedule(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, sub_assign_info)
 }
 
-// GET : /v1/class_schedule?department_id=D&semester=S&schedule_idx=I
+/*
+GET:
+
+	"/class_schedule?department_id=D&semester=[0-1]&schedule_idx=I"
+*/
 func GetClassSchedule(ctx *gin.Context) {
 
 	// parse semester parameter

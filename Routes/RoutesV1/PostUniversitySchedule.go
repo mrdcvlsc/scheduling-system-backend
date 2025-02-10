@@ -10,6 +10,11 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 )
 
+/*
+POST:
+
+	"/university_schedule"
+*/
 func PostUniversitySchedule(ctx *gin.Context) {
 
 	////////////////////////////////////////////////////////////////////////////////////////

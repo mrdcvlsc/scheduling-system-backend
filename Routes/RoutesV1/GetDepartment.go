@@ -1,9 +1,11 @@
 package RoutesV1
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Departments"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 )
 
@@ -19,7 +21,38 @@ type YearLevelMicroData struct {
 	SectionsUniversityScheduleIndex []int  `json:"Sections"`
 }
 
-// GET : /v1/department_data?department_id=D&semester=S
+/*
+GET:
+
+	"/all_departments"
+*/
+func GetAllDepartments(ctx *gin.Context) {
+	all_departments, get_all_departments_err := RouteGlobals.ResourcesPersistence.ReaderService.GetAllDepartments()
+
+	if get_all_departments_err != nil {
+		log.Printf("error - %s", get_all_departments_err.Error())
+		ctx.String(http.StatusInternalServerError, "we're currently unable to get the list of all departments")
+		return
+	}
+
+	departments_json := make([]Departments.Department, 0)
+
+	for _, department := range all_departments {
+		departments_json = append(departments_json, Departments.Department{
+			DepartmentID: department.DepartmentID,
+			Name:         department.Name,
+			Code:         department.Code,
+		})
+	}
+
+	ctx.JSON(http.StatusOK, departments_json)
+}
+
+/*
+GET:
+
+	"/department_data?department_id=D&semester=[0-1]"
+*/
 func GetDepartmentData(ctx *gin.Context) {
 
 	department_id, is_valid_department_id_param := IsValidParameterDepartmentID(ctx)

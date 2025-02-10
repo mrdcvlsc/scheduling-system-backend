@@ -8,7 +8,11 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 )
 
-// GET:  /v1/university_schedule?semester=0  or  /v1/university_schedule?semester=1
+/*
+GET:
+
+	"/university_schedule?semester=[0-1]"
+*/
 func GetUniversitySchedule(ctx *gin.Context) {
 
 	selected_semester, is_valid_semester_para := IsValidParameterSemesterIndex(ctx)
