@@ -82,6 +82,24 @@ func (s *JsonReader) GetAllInstructors() ([]Instructors.Instructor, error) {
 	return instructors, nil
 }
 
+func (s *JsonReader) GetDepartmentInstructors(department_id int) ([]Instructors.Instructor, error) {
+	all_instructors, err := s.GetAllInstructors()
+
+	if err != nil {
+		return nil, err
+	}
+
+	department_instructors := make([]Instructors.Instructor, 0)
+
+	for _, instructor := range all_instructors {
+		if instructor.DepartmentID == uint16(department_id) {
+			department_instructors = append(department_instructors, instructor)
+		}
+	}
+
+	return department_instructors, nil
+}
+
 func (s *JsonReader) GetAllCurriculum() ([]Curriculum.Curriculum, error) {
 
 	// map for getting subject id using subject code

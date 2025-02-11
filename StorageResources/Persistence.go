@@ -13,6 +13,7 @@ type readerRepository interface {
 	GetAllSubjects() ([]Curriculum.Subject, error)
 	GetAllDepartments() ([]Departments.Department, error)
 	GetAllInstructors() ([]Instructors.Instructor, error)
+	GetDepartmentInstructors(department_id int) ([]Instructors.Instructor, error)
 	GetAllRooms() ([]Rooms.Room, error)
 }
 
