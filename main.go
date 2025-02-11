@@ -118,6 +118,9 @@ func main() {
 	v1.GET("/all_departments", RoutesV1.GetAllDepartments)
 	v1.GET("/department_data", RoutesV1.GetDepartmentData)
 
+	v1.GET("/instructor_erd", RoutesV1.GetDepartmentInstructorsEncodingResourceDefault)
+	v1.GET("/instructor_era", RoutesV1.GetDepartmentInstructorsEncodingResourceAllocation)
+
 	v1.GET("/university_schedule", RoutesV1.GetUniversitySchedule)
 	v1.POST("/university_schedule", RoutesV1.PostUniversitySchedule)
 
