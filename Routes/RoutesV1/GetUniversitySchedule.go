@@ -22,7 +22,7 @@ func GetUniversitySchedule(ctx *gin.Context) {
 	}
 
 	log.Print("GetUniversitySchedule: trying to obtain a university schedule")
-	university_schedules, has_obtained := ObtainUniversitySchedule(ctx, selected_semester)
+	university_schedules, has_obtained := ObtainUniversitySchedule(ctx, nil, selected_semester)
 
 	if !has_obtained {
 		log.Print("GetUniversitySchedule: failed to obtain a university schedule")

@@ -107,7 +107,7 @@ func Test_JsonReadWriteUniversitySchedules(t *testing.T) {
 			t.Fatal(e)
 		}
 
-		horizontal_validation_err := first_university_schedule.HorizontalValidation(&resource_persistence, GeneticAlgorithm.TERM_1ST_SEMESTER)
+		horizontal_validation_err := first_university_schedule.HorizontalValidation(&resource_persistence, nil, GeneticAlgorithm.TERM_1ST_SEMESTER)
 
 		for e := range horizontal_validation_err {
 			t.Fatal(e)
@@ -144,7 +144,7 @@ func Test_JsonReadWriteUniversitySchedules(t *testing.T) {
 		}
 
 		if load_err == nil {
-			horizontal_validation_err := load_university_schedules.HorizontalValidation(&resource_persistence, GeneticAlgorithm.TERM_1ST_SEMESTER)
+			horizontal_validation_err := load_university_schedules.HorizontalValidation(&resource_persistence, nil, GeneticAlgorithm.TERM_1ST_SEMESTER)
 
 			for e := range horizontal_validation_err {
 				t.Fatal(e)

@@ -28,9 +28,6 @@ const (
 	DIST_BACK_LOOSE       int = 3
 )
 
-// map of department IDs and boolean values that tells the EncodeIndividualGenome function which department's schedule should be encoded.
-type DepartmentsToEncode map[uint16]bool
-
 // struct type containing members that is use to track resource allocation/utilization in a schedule.
 type EncodingResource struct {
 	IsSchedIdxToSubIdToSkip map[uint16]map[uint16]bool
@@ -158,9 +155,19 @@ func IsEqualEncodingResource(a, b *EncodingResource) bool {
 	return true
 }
 
-// use to generate an `EncodingResource` for a `UniTimeTables`, can be used for user
-// configured university schedules or university schedules loaded from the persistence
-// since they don't have any associated `EncodingResource` instance.
+/*
+use to generate an `EncodingResource` for a `UniTimeTables`, can be used for user
+configured university schedules or university schedules loaded from the persistence
+since they don't have any associated `EncodingResource` instance.
+
+NOTE TO SELF IN THE FUTURE:
+
+if you want this function to support department specific encoding resource generation... DON'T DO IT!
+because generating encoding resource can't be department specific, to give an example,
+general instructors can be assigned to multiple class / section on different departments (like FITT teachers),
+if you only generate encoding resource that is department specific, the other allocations to different
+departments will not be reflected, this also applies to general rooms.
+*/
 func GenerateEncodingResourceFromUniTimeTable(
 	university_schedules Schedule.UniTimeTables,
 	curriculums []Curriculum.Curriculum,
@@ -299,13 +306,17 @@ Different return types:
 	(nil, nil, error) // -> resources copy failed.
 	(UniTimeTables, nil, error) // -> not enough resources.
 	(UniTimeTables, DepartmentsToEncode, nil) // -> successfully generated valid university schedules.
+
+to generate whole university schedules, set department to encode to nil:
+
+	department_to_encode = nil
 */
 func EncodeIndividualGenome(
 	individual_university_schedules_arg Schedule.UniTimeTables,
 	curriculums_arg []Curriculum.Curriculum,
 	dept_id_to_department map[uint16]Departments.Department,
 	input_encoding_resource *EncodingResource,
-	department_to_encode DepartmentsToEncode,
+	department_to_encode map[uint16]bool,
 	selected_semester,
 	distribution_type int,
 ) (Schedule.UniTimeTables, *EncodingResource, error) {

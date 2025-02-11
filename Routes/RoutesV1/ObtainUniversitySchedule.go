@@ -21,7 +21,7 @@ example usage inside a gin route:
 		return
 	}
 */
-func ObtainUniversitySchedule(ctx *gin.Context, semester int) (Schedule.UniTimeTables, bool) {
+func ObtainUniversitySchedule(ctx *gin.Context, department_to_encode map[uint16]bool, semester int) (Schedule.UniTimeTables, bool) {
 	var university_schedules Schedule.UniTimeTables = nil
 
 	cached_university_schedule, has_cache, cache_err := RouteGlobals.GetCachedUniversitySchedule(semester)
@@ -68,7 +68,7 @@ func ObtainUniversitySchedule(ctx *gin.Context, semester int) (Schedule.UniTimeT
 		}
 	}
 
-	for _, validation_err := range university_schedules.HorizontalValidation(RouteGlobals.ResourcesPersistence, semester) {
+	for _, validation_err := range university_schedules.HorizontalValidation(RouteGlobals.ResourcesPersistence, department_to_encode, semester) {
 		if validation_err != nil {
 			log.Println("invalid schedule detected")
 			ctx.String(http.StatusConflict, "server detected an invalid schedule with wrong horizontal data allocations")

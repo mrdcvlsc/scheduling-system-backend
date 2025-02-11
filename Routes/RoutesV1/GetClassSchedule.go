@@ -46,7 +46,7 @@ func GetJsonClassSchedule(ctx *gin.Context) {
 
 	// load university schedules
 
-	university_schedules, has_obtained := ObtainUniversitySchedule(ctx, semester)
+	university_schedules, has_obtained := ObtainUniversitySchedule(ctx, nil, semester)
 
 	if !has_obtained {
 		return
@@ -192,7 +192,7 @@ func GetClassSchedule(ctx *gin.Context) {
 
 	// load university schedules
 
-	university_schedules, has_obtained := ObtainUniversitySchedule(ctx, semester)
+	university_schedules, has_obtained := ObtainUniversitySchedule(ctx, nil, semester)
 
 	if !has_obtained {
 		return

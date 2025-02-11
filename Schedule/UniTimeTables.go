@@ -260,11 +260,17 @@ func (university_sched UniTimeTables) VerticalValidation(resource_persistence *S
 	return list_of_errors
 }
 
-// validate assigned subjects to every section schedules in the whole university.
-//
-// warnning: this method should only be called if you're validating a whole university schedule that contains all of the sections,
-// this function should not be use if you're just validating a slice of a whole university schedules.
-func (university_sched UniTimeTables) HorizontalValidation(resource_persistence *StorageResources.Persistence, selected_semester int) []error {
+/*
+validate assigned subjects to every section schedules in the whole university.
+
+to validate whole university schedules, set department to encode to nil:
+
+	department_to_encode = nil
+*/
+func (university_sched UniTimeTables) HorizontalValidation(
+	resource_persistence *StorageResources.Persistence,
+	department_to_encode map[uint16]bool, selected_semester int,
+) []error {
 
 	list_of_errors := make([]error, 0, 16)
 
@@ -302,6 +308,16 @@ func (university_sched UniTimeTables) HorizontalValidation(resource_persistence 
 				}
 
 				for section_idx := 0; section_idx < semester.Sections; section_idx++ {
+
+					if department_to_encode != nil {
+						is_to_encode := department_to_encode[curriculum.DepartmentID]
+
+						if !is_to_encode {
+							schedule_idx++
+							continue // skip section that does not need horizontal validation
+						}
+					}
+
 					subject_id_to_time_slot_count := make(map[uint16]int)
 
 					for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {

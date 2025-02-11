@@ -149,7 +149,7 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 		/////////////////
 
 		if err == nil {
-			err_horizontal_validations := university_schedules.HorizontalValidation(&persistence, target_semester)
+			err_horizontal_validations := university_schedules.HorizontalValidation(&persistence, nil, target_semester)
 
 			for _, e := range err_horizontal_validations {
 				t.Fatal(e)
@@ -263,7 +263,7 @@ new_population_loop:
 				continue // skip departments that don't have curriculums yet
 			}
 
-			department_to_encode := make(GeneticAlgorithm.DepartmentsToEncode)
+			department_to_encode := make(map[uint16]bool)
 			department_to_encode[department.DepartmentID] = true
 
 			if department_idx <= 0 {
@@ -355,12 +355,20 @@ new_population_loop:
 			if department_idx < len(all_departments)-1 {
 				fmt.Printf("Generated schedules for all departments, the department %s\n", department.Name)
 
-				err_horizontal_validations := track_schedules.HorizontalValidation(&persistence, target_semester)
+				forced_err_horizontal_validations_test := track_schedules.HorizontalValidation(&persistence, nil, target_semester)
 
-				if err_horizontal_validations == nil {
+				if forced_err_horizontal_validations_test == nil {
 					t.Fatal("there should be a missing subject error here since the university schedule is not complete yet")
 				}
 
+				department_to_validate := make(map[uint16]bool)
+				department_to_validate[department.DepartmentID] = true
+
+				err_department_horizontal_validations := track_schedules.HorizontalValidation(&persistence, department_to_validate, target_semester)
+
+				for _, e := range err_department_horizontal_validations {
+					t.Fatal(e)
+				}
 			} else {
 				fmt.Printf("Generated schedules for all departments, the last department schedules generated is %s\n", department.Name)
 
@@ -368,7 +376,7 @@ new_population_loop:
 					t.Fatalf("returned an empty university schedule : loop iteration %d\n", i)
 				}
 
-				err_horizontal_validations := track_schedules.HorizontalValidation(&persistence, target_semester)
+				err_horizontal_validations := track_schedules.HorizontalValidation(&persistence, nil, target_semester)
 
 				for _, e := range err_horizontal_validations {
 					t.Fatal(e)

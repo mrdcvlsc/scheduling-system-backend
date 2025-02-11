@@ -115,7 +115,7 @@ func generate_schedule(semester int) {
 		log.Print("generate_schedule:", e.Error())
 	}
 
-	for _, e := range generate_university_schedule.HorizontalValidation(RouteGlobals.ResourcesPersistence, semester) {
+	for _, e := range generate_university_schedule.HorizontalValidation(RouteGlobals.ResourcesPersistence, nil, semester) {
 		log.Print("generate_schedule:", e.Error())
 	}
 

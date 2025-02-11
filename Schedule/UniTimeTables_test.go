@@ -71,7 +71,7 @@ func Test_UniTimeTablesSerializationAndDeserialization(t *testing.T) {
 		}
 
 		if err == nil {
-			list_of_errors = append(list_of_errors, uni_sched.HorizontalValidation(&resource_persistence, GeneticAlgorithm.TERM_1ST_SEMESTER)...)
+			list_of_errors = append(list_of_errors, uni_sched.HorizontalValidation(&resource_persistence, nil, GeneticAlgorithm.TERM_1ST_SEMESTER)...)
 		}
 
 		if len(list_of_errors) > 0 {
