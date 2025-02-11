@@ -44,7 +44,6 @@ func IsEqualEncodingResource(a, b *EncodingResource) bool {
 	////////////////////////////////////////////////////////////////////////////////////////
 
 	if len(a.IsSchedIdxToSubIdToSkip) != len(b.IsSchedIdxToSubIdToSkip) {
-		log.Print("111111111111111111111111111111111111111111")
 		return false
 	}
 
@@ -53,12 +52,10 @@ func IsEqualEncodingResource(a, b *EncodingResource) bool {
 		b_out_v, has_b_out_k := b.IsSchedIdxToSubIdToSkip[a_out_k]
 
 		if !has_b_out_k {
-			log.Print("222222222222222222222222222222222222222222")
 			return false
 		}
 
 		if len(a_out_v) != len(b_out_v) {
-			log.Print("333333333333333333333333333333333333333333")
 			return false
 		}
 
@@ -67,12 +64,10 @@ func IsEqualEncodingResource(a, b *EncodingResource) bool {
 			b_in_v, has_b_in_k := b_out_v[a_in_k]
 
 			if !has_b_in_k {
-				log.Print("444444444444444444444444444444444444444444")
 				return false
 			}
 
 			if b_in_v != a_in_v {
-				log.Print("555555555555555555555555555555555555555555")
 				return false
 			}
 		}
@@ -84,12 +79,10 @@ func IsEqualEncodingResource(a, b *EncodingResource) bool {
 		b_out_v, has_b_out_k := b.DeptIdToRoomtypeToRooms[a_out_k]
 
 		if !has_b_out_k {
-			log.Print("666666666666666666666666666666666666666666")
 			return false
 		}
 
 		if len(a_out_v) != len(b_out_v) {
-			log.Print("777777777777777777777777777777777777777777")
 			return false
 		}
 
@@ -98,12 +91,10 @@ func IsEqualEncodingResource(a, b *EncodingResource) bool {
 			b_in_v, has_b_in_k := b_out_v[a_in_k]
 
 			if !has_b_in_k {
-				log.Print("888888888888888888888888888888888888888888")
 				return false
 			}
 
 			if len(a_in_v) != len(b_in_v) {
-				log.Print("999999999999999999999999999999999999999999")
 				return false
 			}
 
@@ -117,10 +108,6 @@ func IsEqualEncodingResource(a, b *EncodingResource) bool {
 
 			for a_room_idx, a_room := range a_in_v {
 				if a_room != b_in_v[a_room_idx] {
-					log.Printf("000000000000000000000000000000000000000000: room_idx = %d", a_room_idx)
-					log.Printf("\na_v :\n%v\n", a_room)
-					log.Printf("\nb_v :\n%v\n\n", b_in_v[a_room_idx])
-
 					for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
 						for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
 							if a_room.GetTimeSlotClassCount(day, time_slot) != b_in_v[a_room_idx].GetTimeSlotClassCount(day, time_slot) {
@@ -138,7 +125,6 @@ func IsEqualEncodingResource(a, b *EncodingResource) bool {
 	////////////////////////////////////////////////////////////////////////////////////////
 
 	if len(a.DeptIdToInstructors) != len(b.DeptIdToInstructors) {
-		log.Print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 		return false
 	}
 
@@ -147,12 +133,10 @@ func IsEqualEncodingResource(a, b *EncodingResource) bool {
 		b_v, has_b_k := b.DeptIdToInstructors[a_k]
 
 		if !has_b_k {
-			log.Print("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
 			return false
 		}
 
 		if len(a_v) != len(b_v) {
-			log.Print("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC")
 			return false
 		}
 
@@ -166,9 +150,6 @@ func IsEqualEncodingResource(a, b *EncodingResource) bool {
 
 		for instructor_idx, instructor := range a_v {
 			if instructor != b_v[instructor_idx] {
-				log.Print("DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD")
-				log.Printf("\na_v :\n%v\n", a_v)
-				log.Printf("\nb_v :\n%v\n\n", b_v)
 				return false
 			}
 		}
