@@ -32,17 +32,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
 
       - name: Download Test Resources
-        run: gh release --repo github.com/mrdcvlsc/scheduling-system-temporary-data download --pattern *.zip
+        run: make devr
         env:
           GITHUB_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
-
-      - name: View Files
-        run: ls
-
-      - name: Extract Release
-        run: |
-          mkdir scheduling-system-temporary-data
-          unzip release.zip -d ./scheduling-system-temporary-data
 
       - name: Run Tests
         run: make test

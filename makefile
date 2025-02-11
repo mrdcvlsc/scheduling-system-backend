@@ -15,10 +15,16 @@ project_uml.puml:
 
 devr:
 	@echo Download Test Data
-	gh release --repo github.com/mrdcvlsc/scheduling-system-temporary-data download --pattern *.zip --clobber
-	rm -rf scheduling-system-temporary-data
-	mkdir scheduling-system-temporary-data
-	unzip release.zip -d ./scheduling-system-temporary-data
+	gh release --repo github.com/mrdcvlsc/scheduling-system-temporary-data download --archive zip --clobber
+	unzip scheduling-system-temporary-data-tmp-data-v*.zip -d ./ -x '*.py' '*.md' '*.git*' '*/makefile'
+	mv scheduling-system-temporary-data-tmp-data-*9 scheduling-system-temporary-data
+	rm scheduling-system-temporary-data-tmp-data-v*.zip
+
+# old download temp data
+# gh release --repo github.com/mrdcvlsc/scheduling-system-temporary-data download --pattern *.zip --clobber
+# rm -rf scheduling-system-temporary-data
+# mkdir scheduling-system-temporary-data
+# unzip release.zip -d ./scheduling-system-temporary-data
 
 frontend:
 	@echo Download Frontend
