@@ -15,9 +15,10 @@ project_uml.puml:
 
 devr:
 	@echo Download Test Data
+	rm -rf scheduling-system-temporary-data
 	gh release --repo github.com/mrdcvlsc/scheduling-system-temporary-data download --archive zip --clobber
 	unzip scheduling-system-temporary-data-tmp-data-v*.zip -d ./ -x '*.py' '*.md' '*.git*' '*/makefile'
-	mv scheduling-system-temporary-data-tmp-data-*9 scheduling-system-temporary-data
+	mv scheduling-system-temporary-data-tmp-data-v*/ scheduling-system-temporary-data
 	rm scheduling-system-temporary-data-tmp-data-v*.zip
 
 # old download temp data
@@ -42,11 +43,11 @@ clean:
 
 test:
 	go clean -testcache
-	go test ./... -timeout 0
+	go test ./... -p 1 -timeout 0
 
 testv:
 	go clean -testcache
-	go test ./... -v -timeout 0
+	go test ./... -v -p 1 -timeout 0
 
 testvs:
 	go clean -testcache && go test -run TestNewPopulation ./GeneticAlgorithm -v -timeout 0
