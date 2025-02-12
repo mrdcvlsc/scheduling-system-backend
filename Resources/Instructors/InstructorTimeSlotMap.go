@@ -2,7 +2,9 @@ package Instructors
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 )
@@ -102,4 +104,32 @@ func (bitset *InstructorTimeSlotBitMap) Deserialize(serialized []byte) {
 
 		bitset[i] = binary.LittleEndian.Uint64(serialized[serialized_start_idx:serialized_end_idx])
 	}
+}
+
+func (bitset *InstructorTimeSlotBitMap) Stringify() []string {
+	time_stringify := make([]string, 0)
+
+	for _, limb := range bitset {
+		time_stringify = append(time_stringify, strconv.FormatUint(limb, 10))
+	}
+
+	return time_stringify
+}
+
+func (bitset *InstructorTimeSlotBitMap) StringParse(string_slice []string) error {
+	if len(string_slice) != len(bitset) {
+		return errors.New("string array length mismatch for StringParse")
+	}
+
+	for i := range bitset {
+		number, err_parse := strconv.ParseUint(string_slice[i], 10, 64)
+
+		if err_parse != nil {
+			return err_parse
+		}
+
+		bitset[i] = number
+	}
+
+	return nil
 }
