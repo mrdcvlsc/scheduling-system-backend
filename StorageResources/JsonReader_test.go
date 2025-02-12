@@ -94,6 +94,8 @@ func TestJsonFilePersistence_GetAllInstructor(t *testing.T) {
 		}
 	}
 
+	Utils.PrettyPrint(instructors)
+
 	fmt.Println("\n\nTotal Number of Instructors : ", len(instructors))
 }
 
