@@ -34,8 +34,8 @@ func main() {
 	}
 
 	RouteGlobals.SchedulePersistence = &StorageSchedule.Persistence{
-		ReaderService: &StorageSchedule.JsonReader{},
-		WriterService: &StorageSchedule.JsonWriter{},
+		SaveService: &StorageSchedule.JsonReader{},
+		LoadService: &StorageSchedule.JsonWriter{},
 	}
 
 	RouteGlobals.InitializeCachedUniversitySchedule()

@@ -16,7 +16,7 @@ import (
 // this type is for development and testing only
 type JsonReader struct{}
 
-func (s *JsonReader) GetAllRooms() ([]Rooms.Room, error) {
+func (s *JsonReader) ReadAllRooms() ([]Rooms.Room, error) {
 
 	project_root, err_project_root := Utils.FindProjectRoot()
 
@@ -49,7 +49,7 @@ func (s *JsonReader) GetAllRooms() ([]Rooms.Room, error) {
 	return rooms, nil
 }
 
-func (s *JsonReader) GetAllInstructors() ([]Instructors.Instructor, error) {
+func (s *JsonReader) ReadAllInstructors() ([]Instructors.Instructor, error) {
 
 	project_root, err_project_root := Utils.FindProjectRoot()
 
@@ -82,8 +82,8 @@ func (s *JsonReader) GetAllInstructors() ([]Instructors.Instructor, error) {
 	return instructors, nil
 }
 
-func (s *JsonReader) GetDepartmentInstructors(department_id int) ([]Instructors.Instructor, error) {
-	all_instructors, err := s.GetAllInstructors()
+func (s *JsonReader) ReadDepartmentInstructors(department_id int) ([]Instructors.Instructor, error) {
+	all_instructors, err := s.ReadAllInstructors()
 
 	if err != nil {
 		return nil, err
@@ -100,12 +100,12 @@ func (s *JsonReader) GetDepartmentInstructors(department_id int) ([]Instructors.
 	return department_instructors, nil
 }
 
-func (s *JsonReader) GetAllCurriculum() ([]Curriculum.Curriculum, error) {
+func (s *JsonReader) ReadAllCurriculum() ([]Curriculum.Curriculum, error) {
 
 	// map for getting subject id using subject code
 	subject_code_to_subject_id := make(map[string]uint16)
 
-	subjects, err_subjects := s.GetAllSubjects()
+	subjects, err_subjects := s.ReadAllSubjects()
 
 	if err_subjects != nil {
 		return nil, err_subjects
@@ -168,7 +168,7 @@ func (s *JsonReader) GetAllCurriculum() ([]Curriculum.Curriculum, error) {
 	return curriculums, nil
 }
 
-func (s *JsonReader) GetAllSubjects() ([]Curriculum.Subject, error) {
+func (s *JsonReader) ReadAllSubjects() ([]Curriculum.Subject, error) {
 
 	project_root, err_project_root := Utils.FindProjectRoot()
 
@@ -202,7 +202,7 @@ func (s *JsonReader) GetAllSubjects() ([]Curriculum.Subject, error) {
 	return subjects, nil
 }
 
-func (s *JsonReader) GetAllDepartments() ([]Departments.Department, error) {
+func (s *JsonReader) ReadAllDepartments() ([]Departments.Department, error) {
 
 	project_root, err_project_root := Utils.FindProjectRoot()
 

@@ -122,7 +122,7 @@ func (university_sched UniTimeTables) VerticalValidation(resource_persistence *S
 
 	list_of_errors := make([]error, 0, 16)
 
-	rooms, err_rooms := resource_persistence.ReaderService.GetAllRooms()
+	rooms, err_rooms := resource_persistence.ReaderService.ReadAllRooms()
 
 	if err_rooms != nil {
 		list_of_errors = append(list_of_errors, err_rooms)
@@ -278,7 +278,7 @@ func (university_sched UniTimeTables) HorizontalValidation(
 	//                            HORIZONTAL CHECKS
 	/////////////////////////////////////////////////////////////////////////////////
 
-	curriculums, curriculum_err := resource_persistence.ReaderService.GetAllCurriculum()
+	curriculums, curriculum_err := resource_persistence.ReaderService.ReadAllCurriculum()
 
 	if curriculum_err != nil {
 		list_of_errors = append(list_of_errors, curriculum_err)

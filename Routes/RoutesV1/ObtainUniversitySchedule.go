@@ -38,7 +38,7 @@ func ObtainUniversitySchedule(ctx *gin.Context, departments_to_validate map[uint
 		university_schedules = cached_university_schedule
 	} else {
 		log.Println("no cached detected loading from persistence")
-		read_university_schedules, read_err := RouteGlobals.SchedulePersistence.ReaderService.LoadSchedules(semester)
+		read_university_schedules, read_err := RouteGlobals.SchedulePersistence.SaveService.LoadSchedules(semester)
 
 		if read_err != nil {
 			log.Println(read_err)

@@ -54,7 +54,7 @@ func generate_schedule(semester int) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	curriculums, err_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.GetAllCurriculum()
+	curriculums, err_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
 
 	if err_curriculums != nil {
 		log.Fatal("generate_schedule:", err_curriculums)
@@ -121,7 +121,7 @@ func generate_schedule(semester int) {
 
 	log.Println("generate_schedule: saving schedule")
 
-	write_err := RouteGlobals.SchedulePersistence.WriterService.SaveSchedules(*generate_university_schedule, semester)
+	write_err := RouteGlobals.SchedulePersistence.LoadService.SaveSchedules(*generate_university_schedule, semester)
 
 	if write_err != nil {
 		log.Print("generate_schedule:", write_err.Error())

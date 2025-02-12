@@ -20,7 +20,7 @@ func Test_UniTimeTablesSerializationAndDeserialization(t *testing.T) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	curriculums, err_curriculums := storage_persistence.ReaderService.GetAllCurriculum()
+	curriculums, err_curriculums := storage_persistence.ReaderService.ReadAllCurriculum()
 
 	if err_curriculums != nil {
 		t.Fatal(err_curriculums)

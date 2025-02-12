@@ -27,7 +27,7 @@ GET:
 	"/all_departments"
 */
 func GetAllDepartments(ctx *gin.Context) {
-	all_departments, get_all_departments_err := RouteGlobals.ResourcesPersistence.ReaderService.GetAllDepartments()
+	all_departments, get_all_departments_err := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllDepartments()
 
 	if get_all_departments_err != nil {
 		log.Printf("error - %s", get_all_departments_err.Error())
@@ -67,7 +67,7 @@ func GetDepartmentData(ctx *gin.Context) {
 		return
 	}
 
-	curriculums, curriculum_err := RouteGlobals.ResourcesPersistence.ReaderService.GetAllCurriculum()
+	curriculums, curriculum_err := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
 
 	if curriculum_err != nil {
 		ctx.String(http.StatusInternalServerError, "unable to read curriculums for that department")

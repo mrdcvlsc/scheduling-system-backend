@@ -15,7 +15,7 @@ import (
 func GenerateMapDeptIdToRoomTypeToRooms(persistence *StorageResources.Persistence) (map[uint16]map[uint16][]Rooms.Room, error) {
 	department_id_to_room_type_to_rooms := make(map[uint16]map[uint16][]Rooms.Room)
 
-	rooms, err := persistence.ReaderService.GetAllRooms()
+	rooms, err := persistence.ReaderService.ReadAllRooms()
 
 	if err != nil {
 		return nil, err
@@ -46,7 +46,7 @@ func GenerateMapDeptIdToRoomTypeToRooms(persistence *StorageResources.Persistenc
 func GenerateMapDeptIdToInstructors(persistence *StorageResources.Persistence) (map[uint16][]Instructors.Instructor, error) {
 	department_id_to_instructors := make(map[uint16][]Instructors.Instructor)
 
-	instructors, err := persistence.ReaderService.GetAllInstructors()
+	instructors, err := persistence.ReaderService.ReadAllInstructors()
 
 	if err != nil {
 		return nil, err
@@ -71,7 +71,7 @@ func GenerateMapDeptIdToInstructors(persistence *StorageResources.Persistence) (
 func GenerateMapDeptIdToDepartment(persistence *StorageResources.Persistence) (map[uint16]Departments.Department, error) {
 	department_id_to_department := make(map[uint16]Departments.Department)
 
-	departments, err := persistence.ReaderService.GetAllDepartments()
+	departments, err := persistence.ReaderService.ReadAllDepartments()
 
 	if err != nil {
 		return nil, err
@@ -132,7 +132,7 @@ type Totals struct {
 
 func EstimateResourceAvailability(persistence *StorageResources.Persistence, selected_semester, distribution_type int) []error {
 
-	curriculums, err_curriculum := persistence.ReaderService.GetAllCurriculum()
+	curriculums, err_curriculum := persistence.ReaderService.ReadAllCurriculum()
 
 	if err_curriculum != nil {
 		list_of_returned_errors := make([]error, 0, 2)
@@ -148,7 +148,7 @@ func EstimateResourceAvailability(persistence *StorageResources.Persistence, sel
 		return error_slice
 	}
 
-	instructors, err_instructors := persistence.ReaderService.GetAllInstructors()
+	instructors, err_instructors := persistence.ReaderService.ReadAllInstructors()
 
 	if err_instructors != nil {
 		list_of_returned_errors := make([]error, 0, 2)
@@ -156,7 +156,7 @@ func EstimateResourceAvailability(persistence *StorageResources.Persistence, sel
 		return list_of_returned_errors
 	}
 
-	rooms, err_rooms := persistence.ReaderService.GetAllRooms()
+	rooms, err_rooms := persistence.ReaderService.ReadAllRooms()
 
 	if err_rooms != nil {
 		list_of_returned_errors := make([]error, 0, 2)

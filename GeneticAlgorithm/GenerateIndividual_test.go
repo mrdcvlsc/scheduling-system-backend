@@ -53,7 +53,7 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	curriculums, err_curriculums := persistence.ReaderService.GetAllCurriculum()
+	curriculums, err_curriculums := persistence.ReaderService.ReadAllCurriculum()
 
 	if err_curriculums != nil {
 		t.Fatal(err_curriculums)
@@ -140,8 +140,8 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 
 		if encoding_resource != nil {
 			if !GeneticAlgorithm.IsEqualEncodingResource(generated_encoding_resource, encoding_resource) {
-				schedules_persistence := StorageSchedule.Persistence{WriterService: &StorageSchedule.JsonWriter{}}
-				schedules_persistence.WriterService.SaveSchedules(university_schedules, target_semester)
+				schedules_persistence := StorageSchedule.Persistence{LoadService: &StorageSchedule.JsonWriter{}}
+				schedules_persistence.LoadService.SaveSchedules(university_schedules, target_semester)
 				t.Fatal("generated encoding resource from bare university schedule is not equal to the produced encoding resource of GA")
 			}
 		}
@@ -204,7 +204,7 @@ func GeneratePopWithDepartmentSelection(t *testing.T, target_semester int) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	curriculums, err_curriculums := persistence.ReaderService.GetAllCurriculum()
+	curriculums, err_curriculums := persistence.ReaderService.ReadAllCurriculum()
 
 	if err_curriculums != nil {
 		t.Fatal(err_curriculums)
@@ -242,7 +242,7 @@ new_population_loop:
 			)
 		}
 
-		all_departments, all_departments_err := persistence.ReaderService.GetAllDepartments()
+		all_departments, all_departments_err := persistence.ReaderService.ReadAllDepartments()
 
 		if all_departments_err != nil {
 			t.Fatal(all_departments_err)
@@ -416,7 +416,7 @@ func BenchmarkNewPopulationFirstSem(b *testing.B) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	curriculums, err_curriculums := persistence.ReaderService.GetAllCurriculum()
+	curriculums, err_curriculums := persistence.ReaderService.ReadAllCurriculum()
 
 	if err_curriculums != nil {
 		b.Fatal(err_curriculums)
@@ -455,7 +455,7 @@ func BenchmarkNewPopulationSecondSem(b *testing.B) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	curriculums, err_curriculums := persistence.ReaderService.GetAllCurriculum()
+	curriculums, err_curriculums := persistence.ReaderService.ReadAllCurriculum()
 
 	if err_curriculums != nil {
 		b.Fatal(err_curriculums)

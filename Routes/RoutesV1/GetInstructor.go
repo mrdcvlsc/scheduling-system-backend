@@ -95,7 +95,7 @@ func GetDepartmentInstructorsEncodingResourceAllocation(ctx *gin.Context) {
 		return
 	}
 
-	curriculums, err_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.GetAllCurriculum()
+	curriculums, err_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
 
 	if err_curriculums != nil {
 		log.Print(err_curriculums)

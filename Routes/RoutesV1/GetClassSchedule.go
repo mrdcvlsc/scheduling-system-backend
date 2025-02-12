@@ -77,7 +77,7 @@ func GetJsonClassSchedule(ctx *gin.Context) {
 	sub_id_to_subject_code := make(map[uint16]string)
 
 	{ // subjects
-		subjects, subjects_read_err := RouteGlobals.ResourcesPersistence.ReaderService.GetAllSubjects()
+		subjects, subjects_read_err := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllSubjects()
 
 		if subjects_read_err != nil {
 			ctx.String(http.StatusInternalServerError, "we can not retrieve the subjects information right now")
@@ -92,7 +92,7 @@ func GetJsonClassSchedule(ctx *gin.Context) {
 	instructor_id_to_instructor_name := make(map[uint16]string)
 
 	{ // instructors
-		instructors, instructors_read_err := RouteGlobals.ResourcesPersistence.ReaderService.GetAllInstructors()
+		instructors, instructors_read_err := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllInstructors()
 
 		if instructors_read_err != nil {
 			ctx.String(http.StatusInternalServerError, "we can not retrieve the instructors information right now")
@@ -109,7 +109,7 @@ func GetJsonClassSchedule(ctx *gin.Context) {
 	room_id_to_room_name := make(map[uint16]string)
 
 	{ // rooms
-		rooms, rooms_read_err := RouteGlobals.ResourcesPersistence.ReaderService.GetAllRooms()
+		rooms, rooms_read_err := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllRooms()
 
 		if rooms_read_err != nil {
 			ctx.String(http.StatusInternalServerError, "we can not retrieve the rooms information right now")
