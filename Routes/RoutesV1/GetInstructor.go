@@ -11,15 +11,6 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 )
 
-type InstructorTimeStringify struct {
-	InstructorID  uint16   `json:"InstructorID"`
-	DepartmentID  uint16   `json:"DepartmentID"`
-	FirstName     string   `json:"FirstName"`
-	MiddleInitial string   `json:"MiddleInitial"`
-	LastName      string   `json:"LastName"`
-	Time          []string `json:"Time"`
-}
-
 /*
 GET:
 
@@ -49,7 +40,7 @@ func GetDepartmentInstructorsEncodingResourceDefault(ctx *gin.Context) {
 	combined_instructors = append(combined_instructors, general_instructors...)
 	combined_instructors = append(combined_instructors, department_instructors...)
 
-	combined_instructor_stringify_time := make([]InstructorTimeStringify, 0)
+	combined_instructor_stringify_time := make([]Instructors.InstructorWithTimeString, 0)
 
 	for _, instructor := range combined_instructors {
 		time_stringify := make([]string, 0)
@@ -58,7 +49,7 @@ func GetDepartmentInstructorsEncodingResourceDefault(ctx *gin.Context) {
 			time_stringify = append(time_stringify, strconv.FormatUint(limb, 10))
 		}
 
-		combined_instructor_stringify_time = append(combined_instructor_stringify_time, InstructorTimeStringify{
+		combined_instructor_stringify_time = append(combined_instructor_stringify_time, Instructors.InstructorWithTimeString{
 			InstructorID:  instructor.InstructorID,
 			DepartmentID:  instructor.DepartmentID,
 			FirstName:     instructor.FirstName,
@@ -124,22 +115,16 @@ func GetDepartmentInstructorsEncodingResourceAllocation(ctx *gin.Context) {
 	combined_instructors = append(combined_instructors, general_instructors...)
 	combined_instructors = append(combined_instructors, department_instructors...)
 
-	combined_instructor_stringify_time := make([]InstructorTimeStringify, 0)
+	combined_instructor_stringify_time := make([]Instructors.InstructorWithTimeString, 0)
 
 	for _, instructor := range combined_instructors {
-		time_stringify := make([]string, 0)
-
-		for _, limb := range instructor.Time {
-			time_stringify = append(time_stringify, strconv.FormatUint(limb, 10))
-		}
-
-		combined_instructor_stringify_time = append(combined_instructor_stringify_time, InstructorTimeStringify{
+		combined_instructor_stringify_time = append(combined_instructor_stringify_time, Instructors.InstructorWithTimeString{
 			InstructorID:  instructor.InstructorID,
 			DepartmentID:  instructor.DepartmentID,
 			FirstName:     instructor.FirstName,
 			MiddleInitial: instructor.MiddleInitial,
 			LastName:      instructor.LastName,
-			Time:          time_stringify,
+			Time:          instructor.Time.Stringify(),
 		})
 	}
 

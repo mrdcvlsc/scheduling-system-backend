@@ -20,3 +20,12 @@ type Instructor struct {
 	// if value corresponding bit value for that time slot is 0, then the instructor is NOT available.
 	Time InstructorTimeSlotBitMap
 }
+
+type InstructorWithTimeString struct {
+	InstructorID  uint16
+	DepartmentID  uint16   `json:"DepartmentID"`
+	FirstName     string   `json:"FirstName"`
+	MiddleInitial string   `json:"MiddleInitial"`
+	LastName      string   `json:"LastName"`
+	Time          []string `json:"Time"`
+}
