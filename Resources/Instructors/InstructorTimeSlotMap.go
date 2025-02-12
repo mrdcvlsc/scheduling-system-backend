@@ -1,6 +1,7 @@
 package Instructors
 
 import (
+	"encoding/binary"
 	"fmt"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
@@ -12,6 +13,7 @@ import (
 // to compute value during compile time.
 
 const BITSET_LIMB_WIDENESS = 64
+const BITS_PER_BYTE = 8
 const u8BitReduce uint8 = Const.N_WEEKLY_TIME_SLOTS % BITSET_LIMB_WIDENESS
 
 // since modding by 64 will always produce results less than 64 which
@@ -78,4 +80,26 @@ func (bitset *InstructorTimeSlotBitMap) GetAvailability(day, time_slot int) bool
 	limb_bit_idx := idx_2D_to_1D % BITSET_LIMB_WIDENESS
 
 	return ((bitset[limb_idx] >> limb_bit_idx) & uint64(1)) == 0
+}
+
+func (bitset *InstructorTimeSlotBitMap) Serialize() []byte {
+	serialized := make([]byte, (INSTRUCTOR_TIME_SLOT_MAP_LIMBS * (BITSET_LIMB_WIDENESS / BITS_PER_BYTE)))
+
+	for i := 0; i < int(INSTRUCTOR_TIME_SLOT_MAP_LIMBS); i++ {
+		serialized_start_idx := (i * (BITSET_LIMB_WIDENESS / BITS_PER_BYTE))
+		serialized_end_idx := serialized_start_idx + (BITSET_LIMB_WIDENESS / BITS_PER_BYTE)
+
+		binary.LittleEndian.PutUint64(serialized[serialized_start_idx:serialized_end_idx], bitset[i])
+	}
+
+	return serialized
+}
+
+func (bitset *InstructorTimeSlotBitMap) Deserialize(serialized []byte) {
+	for i := 0; i < int(INSTRUCTOR_TIME_SLOT_MAP_LIMBS); i++ {
+		serialized_start_idx := (i * (BITSET_LIMB_WIDENESS / BITS_PER_BYTE))
+		serialized_end_idx := serialized_start_idx + (BITSET_LIMB_WIDENESS / BITS_PER_BYTE)
+
+		bitset[i] = binary.LittleEndian.Uint64(serialized[serialized_start_idx:serialized_end_idx])
+	}
 }

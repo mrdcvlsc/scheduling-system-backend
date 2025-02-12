@@ -2,23 +2,49 @@ package Instructors_test
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
 )
 
-func TestInstructorTimeSlotMap(t *testing.T) {
-	mr_instructor := Instructors.InstructorTimeSlotBitMap{}
+func TestInstructorTimeSlotMapSerialization(t *testing.T) {
+	for tidx := 0; tidx < 100; tidx++ {
+		instructor_time := Instructors.InstructorTimeSlotBitMap{}
+
+		for i := range instructor_time {
+			instructor_time[i] = rand.Uint64()
+		}
+
+		serialized := instructor_time.Serialize()
+
+		deserialized_time := Instructors.InstructorTimeSlotBitMap{}
+		deserialized_time.Deserialize(serialized)
+
+		if instructor_time != deserialized_time {
+			t.Fatal("not equal raw and deserialized value")
+		}
+
+		for i := range instructor_time {
+			if instructor_time[i] != deserialized_time[i] {
+				t.Fatal("not equal raw and deserialized value in index")
+			}
+		}
+	}
+}
+
+func TestInstructorTimeSlotMapAvailability(t *testing.T) {
+	instructor_time := Instructors.InstructorTimeSlotBitMap{}
 
 	cnt := 0
 	index := 0
 	for day := 0; day < 6; day++ {
 		for time_slot := 0; time_slot < 24; time_slot++ {
 
-			available := mr_instructor.GetAvailability(day, time_slot)
+			available := instructor_time.GetAvailability(day, time_slot)
 
 			if cnt == 0 || cnt == 63 {
-				fmt.Printf("Array Values (day = %d, time_slot = %d)[0]: %064b\n", day, time_slot, mr_instructor)
+				fmt.Printf("Array Values (day = %d, time_slot = %d)[0]: %064b\n", day, time_slot, instructor_time)
 			}
 
 			if available == false {
@@ -28,12 +54,12 @@ func TestInstructorTimeSlotMap(t *testing.T) {
 				)
 			}
 
-			mr_instructor.SetAvailability(false, day, time_slot)
-			mr_instructor.SetAvailability(false, day, time_slot)
-			available = mr_instructor.GetAvailability(day, time_slot)
+			instructor_time.SetAvailability(false, day, time_slot)
+			instructor_time.SetAvailability(false, day, time_slot)
+			available = instructor_time.GetAvailability(day, time_slot)
 
 			if cnt == 0 || cnt == 63 {
-				fmt.Printf("Array Values (day = %d, time_slot = %d)[1]: %064b\n", day, time_slot, mr_instructor)
+				fmt.Printf("Array Values (day = %d, time_slot = %d)[1]: %064b\n", day, time_slot, instructor_time)
 			}
 
 			if available == true {
@@ -43,16 +69,16 @@ func TestInstructorTimeSlotMap(t *testing.T) {
 				)
 			}
 
-			if mr_instructor[index] != (uint64(1) << cnt) {
+			if instructor_time[index] != (uint64(1) << cnt) {
 				t.Errorf(
 					"[day:%d, time_slot:%d] : {loop test phase 3} (bitsetmap[%d] = %d) != ((uint64(1) << cnt) = %d)",
-					day, time_slot, index, mr_instructor[index], (uint64(1) << cnt),
+					day, time_slot, index, instructor_time[index], (uint64(1) << cnt),
 				)
 			}
 
-			mr_instructor.SetAvailability(true, day, time_slot)
-			mr_instructor.SetAvailability(true, day, time_slot)
-			available = mr_instructor.GetAvailability(day, time_slot)
+			instructor_time.SetAvailability(true, day, time_slot)
+			instructor_time.SetAvailability(true, day, time_slot)
+			available = instructor_time.GetAvailability(day, time_slot)
 
 			if available == false {
 				t.Errorf(
@@ -61,15 +87,15 @@ func TestInstructorTimeSlotMap(t *testing.T) {
 				)
 			}
 
-			if mr_instructor[index] != uint64(0) {
+			if instructor_time[index] != uint64(0) {
 				t.Errorf(
 					"[day:%d, time_slot:%d] : {loop test phase 5} (bitsetmap[%d] = %d) != uint64(0))",
-					day, time_slot, index, mr_instructor[index],
+					day, time_slot, index, instructor_time[index],
 				)
 			}
 
 			if cnt == 0 || cnt == 63 {
-				fmt.Printf("Array Values (day = %d, time_slot = %d)[2]: %064b\n\n", day, time_slot, mr_instructor)
+				fmt.Printf("Array Values (day = %d, time_slot = %d)[2]: %064b\n\n", day, time_slot, instructor_time)
 			}
 
 			cnt++
