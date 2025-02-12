@@ -16,12 +16,13 @@ retrieves university schedule from cache or persistence.
 
 example usage inside a gin route:
 
-	university_schedules, is_success := ObtainUniversitySchedule(ctx, selected_semester)
+	// setting departments_to_validate to nil will validate all departments.
+	university_schedules, is_success := ObtainUniversitySchedule(ctx, nil, selected_semester)
 	if !is_success {
 		return
 	}
 */
-func ObtainUniversitySchedule(ctx *gin.Context, department_to_encode map[uint16]bool, semester int) (Schedule.UniTimeTables, bool) {
+func ObtainUniversitySchedule(ctx *gin.Context, departments_to_validate map[uint16]bool, semester int) (Schedule.UniTimeTables, bool) {
 	var university_schedules Schedule.UniTimeTables = nil
 
 	cached_university_schedule, has_cache, cache_err := RouteGlobals.GetCachedUniversitySchedule(semester)
@@ -68,7 +69,7 @@ func ObtainUniversitySchedule(ctx *gin.Context, department_to_encode map[uint16]
 		}
 	}
 
-	for _, validation_err := range university_schedules.HorizontalValidation(RouteGlobals.ResourcesPersistence, department_to_encode, semester) {
+	for _, validation_err := range university_schedules.HorizontalValidation(RouteGlobals.ResourcesPersistence, departments_to_validate, semester) {
 		if validation_err != nil {
 			log.Println("invalid schedule detected")
 			ctx.String(http.StatusConflict, "server detected an invalid schedule with wrong horizontal data allocations")

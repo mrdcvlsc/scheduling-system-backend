@@ -265,11 +265,11 @@ validate assigned subjects to every section schedules in the whole university.
 
 to validate whole university schedules, set department to encode to nil:
 
-	department_to_encode = nil
+	department_to_validate = nil
 */
 func (university_sched UniTimeTables) HorizontalValidation(
 	resource_persistence *StorageResources.Persistence,
-	department_to_encode map[uint16]bool, selected_semester int,
+	department_to_validate map[uint16]bool, selected_semester int,
 ) []error {
 
 	list_of_errors := make([]error, 0, 16)
@@ -309,10 +309,10 @@ func (university_sched UniTimeTables) HorizontalValidation(
 
 				for section_idx := 0; section_idx < semester.Sections; section_idx++ {
 
-					if department_to_encode != nil {
-						is_to_encode := department_to_encode[curriculum.DepartmentID]
+					if department_to_validate != nil {
+						is_to_validate := department_to_validate[curriculum.DepartmentID]
 
-						if !is_to_encode {
+						if !is_to_validate {
 							schedule_idx++
 							continue // skip section that does not need horizontal validation
 						}
