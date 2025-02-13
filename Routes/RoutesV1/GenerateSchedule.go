@@ -121,7 +121,7 @@ func generate_schedule(semester int) {
 
 	log.Println("generate_schedule: saving schedule")
 
-	write_err := RouteGlobals.SchedulePersistence.LoadService.SaveSchedules(*generate_university_schedule, semester)
+	write_err := RouteGlobals.SchedulePersistence.SaveService.SaveSchedules(*generate_university_schedule, semester)
 
 	if write_err != nil {
 		log.Print("generate_schedule:", write_err.Error())

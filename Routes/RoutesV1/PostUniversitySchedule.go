@@ -27,7 +27,7 @@ func PostUniversitySchedule(ctx *gin.Context) {
 		return
 	}
 
-	university_schedules, read_err := RouteGlobals.SchedulePersistence.SaveService.LoadSchedules(selected_semester)
+	university_schedules, read_err := RouteGlobals.SchedulePersistence.LoadService.LoadSchedules(selected_semester)
 
 	if read_err != nil {
 		ctx.String(http.StatusInternalServerError, "error reading the schedule")

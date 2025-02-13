@@ -140,8 +140,8 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 
 		if encoding_resource != nil {
 			if !GeneticAlgorithm.IsEqualEncodingResource(generated_encoding_resource, encoding_resource) {
-				schedules_persistence := StorageSchedule.Persistence{LoadService: &StorageSchedule.JsonWriter{}}
-				schedules_persistence.LoadService.SaveSchedules(university_schedules, target_semester)
+				schedules_persistence := StorageSchedule.Persistence{SaveService: &StorageSchedule.JsonWriter{}}
+				schedules_persistence.SaveService.SaveSchedules(university_schedules, target_semester)
 				t.Fatal("generated encoding resource from bare university schedule is not equal to the produced encoding resource of GA")
 			}
 		}

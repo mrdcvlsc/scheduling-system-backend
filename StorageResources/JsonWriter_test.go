@@ -53,9 +53,9 @@ func TestJsonFilePersistence_Update(t *testing.T) {
 
 	new_instructor := Instructors.Instructor{
 		DepartmentID:  1,
-		FirstName:     "New Instructor",
-		MiddleInitial: "H",
-		LastName:      "KOKOY",
+		FirstName:     "Mephiston",
+		MiddleInitial: "E",
+		LastName:      "Calistarius",
 		Time:          [3]uint64{1, 3},
 	}
 

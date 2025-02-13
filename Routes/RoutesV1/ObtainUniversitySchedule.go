@@ -7,12 +7,13 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 )
 
 /*
-retrieves university schedule from cache or persistence.
+retrieves university schedule from cache or persistence, can return empty university schedule if there is not university schedule generated yet.
 
 example usage inside a gin route:
 
@@ -38,27 +39,32 @@ func ObtainUniversitySchedule(ctx *gin.Context, departments_to_validate map[uint
 		university_schedules = cached_university_schedule
 	} else {
 		log.Println("no cached detected loading from persistence")
-		read_university_schedules, read_err := RouteGlobals.SchedulePersistence.SaveService.LoadSchedules(semester)
+		read_university_schedules, read_err := RouteGlobals.SchedulePersistence.LoadService.LoadSchedules(semester)
 
 		if read_err != nil {
 			log.Println(read_err)
 
 			if errors.Is(read_err, os.ErrNotExist) {
-				ctx.String(http.StatusNotFound, "that schedule is not created yet")
+				log.Printf("schedule for semester index %d is not created yet, creating an empty schedule instead", semester)
+
+				curriculums, err_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
+
+				if err_curriculums != nil {
+					log.Fatal("ObtainUniversitySchedule:", err_curriculums)
+				}
+
+				university_schedules = GeneticAlgorithm.NewEmptyIndividual(curriculums, semester)
+			} else {
+				ctx.String(http.StatusInternalServerError, "we failed to read that schedule")
 				return nil, false
 			}
-
-			ctx.String(http.StatusInternalServerError, "we failed to read that schedule")
-			return nil, false
+		} else {
+			university_schedules = read_university_schedules
 		}
-
-		university_schedules = read_university_schedules
 	}
 
 	if university_schedules.IsEmpty() {
-		log.Println("schedule is empty")
-		ctx.String(http.StatusNotFound, "that schedule was empty, please fill it up or generate a schedule again")
-		return nil, false
+		return university_schedules, true
 	}
 
 	for _, validation_err := range university_schedules.VerticalValidation(RouteGlobals.ResourcesPersistence) {
