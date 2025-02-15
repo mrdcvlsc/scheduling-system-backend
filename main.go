@@ -31,6 +31,7 @@ func main() {
 
 	RouteGlobals.ResourcesPersistence = &StorageResources.Persistence{
 		ReaderService: &StorageResources.JsonReader{},
+		WriterService: &StorageResources.JsonWriter{},
 	}
 
 	RouteGlobals.SchedulePersistence = &StorageSchedule.Persistence{
@@ -120,6 +121,7 @@ func main() {
 
 	v1.GET("/instructor_erd", RoutesV1.GetDepartmentInstructorsEncodingResourceDefault)
 	v1.GET("/instructor_era", RoutesV1.GetDepartmentInstructorsEncodingResourceAllocation)
+	v1.POST("/instructor_update", RoutesV1.PostInstructor)
 
 	v1.GET("/university_schedule", RoutesV1.GetUniversitySchedule)
 	v1.POST("/university_schedule", RoutesV1.PostUniversitySchedule)
