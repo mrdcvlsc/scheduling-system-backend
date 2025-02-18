@@ -27,9 +27,9 @@ func PostUniversitySchedule(ctx *gin.Context) {
 		return
 	}
 
-	university_schedules, read_err := RouteGlobals.SchedulePersistence.LoadService.LoadSchedules(selected_semester)
+	university_schedules, err_load_schedules := RouteGlobals.SchedulePersistence.LoadService.LoadSchedules(selected_semester)
 
-	if read_err != nil {
+	if err_load_schedules != nil {
 		ctx.String(http.StatusInternalServerError, "error reading the schedule")
 		return
 	}
@@ -39,15 +39,15 @@ func PostUniversitySchedule(ctx *gin.Context) {
 		return
 	}
 
-	for _, validation_err := range university_schedules.VerticalValidation(RouteGlobals.ResourcesPersistence) {
-		if validation_err != nil {
+	for _, err_vertical_validation := range university_schedules.VerticalValidation(RouteGlobals.ResourcesPersistence) {
+		if err_vertical_validation != nil {
 			ctx.String(http.StatusConflict, "we detected an invalid schedule")
 			return
 		}
 	}
 
-	for _, validation_err := range university_schedules.HorizontalValidation(RouteGlobals.ResourcesPersistence, nil, selected_semester) {
-		if validation_err != nil {
+	for _, err_horizontal_validation := range university_schedules.HorizontalValidation(RouteGlobals.ResourcesPersistence, nil, selected_semester) {
+		if err_horizontal_validation != nil {
 			ctx.String(http.StatusConflict, "we detected an invalid schedule")
 			return
 		}
@@ -55,9 +55,9 @@ func PostUniversitySchedule(ctx *gin.Context) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	serialized_data, body_err := io.ReadAll(ctx.Request.Body)
+	serialized_data, err_read_all := io.ReadAll(ctx.Request.Body)
 
-	if body_err != nil {
+	if err_read_all != nil {
 		ctx.String(http.StatusBadRequest, "we failed to read that post request body")
 		return
 	}

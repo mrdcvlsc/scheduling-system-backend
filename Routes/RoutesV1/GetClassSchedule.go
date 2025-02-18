@@ -54,10 +54,10 @@ func GetJsonClassSchedule(ctx *gin.Context) {
 
 	// cache the found university schedule for the semester
 
-	cache_err := RouteGlobals.SetCachedUniversitySchedule(semester, university_schedules)
+	err_set_cache := RouteGlobals.SetCachedUniversitySchedule(semester, university_schedules)
 
-	if cache_err != nil {
-		log.Println(cache_err.Error())
+	if err_set_cache != nil {
+		log.Println(err_set_cache.Error())
 	}
 
 	// parse schedule_idx parameter
@@ -77,9 +77,9 @@ func GetJsonClassSchedule(ctx *gin.Context) {
 	sub_id_to_subject_code := make(map[uint16]string)
 
 	{ // subjects
-		subjects, subjects_read_err := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllSubjects()
+		subjects, err_read_all_subjects := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllSubjects()
 
-		if subjects_read_err != nil {
+		if err_read_all_subjects != nil {
 			ctx.String(http.StatusInternalServerError, "we can not retrieve the subjects information right now")
 			return
 		}
@@ -92,9 +92,9 @@ func GetJsonClassSchedule(ctx *gin.Context) {
 	instructor_id_to_instructor_name := make(map[uint16]string)
 
 	{ // instructors
-		instructors, instructors_read_err := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllInstructors()
+		instructors, err_read_all_instructors := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllInstructors()
 
-		if instructors_read_err != nil {
+		if err_read_all_instructors != nil {
 			ctx.String(http.StatusInternalServerError, "we can not retrieve the instructors information right now")
 			return
 		}
@@ -109,9 +109,9 @@ func GetJsonClassSchedule(ctx *gin.Context) {
 	room_id_to_room_name := make(map[uint16]string)
 
 	{ // rooms
-		rooms, rooms_read_err := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllRooms()
+		rooms, err_read_all_rooms := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllRooms()
 
-		if rooms_read_err != nil {
+		if err_read_all_rooms != nil {
 			ctx.String(http.StatusInternalServerError, "we can not retrieve the rooms information right now")
 			return
 		}
@@ -200,10 +200,10 @@ func GetClassSchedule(ctx *gin.Context) {
 
 	// cache the found university schedule for the semester
 
-	cache_err := RouteGlobals.SetCachedUniversitySchedule(semester, university_schedules)
+	err_set_cache := RouteGlobals.SetCachedUniversitySchedule(semester, university_schedules)
 
-	if cache_err != nil {
-		log.Println(cache_err.Error())
+	if err_set_cache != nil {
+		log.Println(err_set_cache.Error())
 	}
 
 	// parse schedule_idx parameter

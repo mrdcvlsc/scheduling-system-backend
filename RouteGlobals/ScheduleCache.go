@@ -45,7 +45,7 @@ example usage:
 
 	schedule, has_cache, err := RouteGlobals.GetCachedUniversitySchedule(semester)
 
-	if cache_err != nil {
+	if err != nil {
 		// error handling...
 	}
 

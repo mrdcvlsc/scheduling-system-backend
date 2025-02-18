@@ -160,10 +160,10 @@ func GenerateEncodingResourceFromUniTimeTable(
 	resource_persistence *StorageResources.Persistence,
 ) (*EncodingResource, error) {
 
-	encode_resource, encoding_resource_read_err := ReadDefaultEncodingResource(resource_persistence)
+	encode_resource, err_read_default_encoding_resource := ReadDefaultEncodingResource(resource_persistence)
 
-	if encoding_resource_read_err != nil {
-		return nil, encoding_resource_read_err
+	if err_read_default_encoding_resource != nil {
+		return nil, err_read_default_encoding_resource
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////

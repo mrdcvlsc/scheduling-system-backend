@@ -46,17 +46,17 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 	t.Logf("Semester : %d\n\n", target_semester)
 
 	total_test_iterations := 512
-	allowed_generation_errors := 0.8 // 80% error rate allowed.
+	allowed_failure_rate := 0.8 // 80% error rate allowed.
 
-	generation_error_list := make([]error, 0, 8)
-	validation_error_list := make([]error, 0, 8)
+	err_list_generation := make([]error, 0, 8)
+	err_list_validation := make([]error, 0, 8)
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	curriculums, err_curriculums := persistence.ReaderService.ReadAllCurriculum()
+	curriculums, err_all_curriculums := persistence.ReaderService.ReadAllCurriculum()
 
-	if err_curriculums != nil {
-		t.Fatal(err_curriculums)
+	if err_all_curriculums != nil {
+		t.Fatal(err_all_curriculums)
 	}
 
 	dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(&persistence)
@@ -67,10 +67,10 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	default_encoding_resource, encoding_resource_err := GeneticAlgorithm.ReadDefaultEncodingResource(&persistence)
+	default_encoding_resource, err_read_default_encoding_resource := GeneticAlgorithm.ReadDefaultEncodingResource(&persistence)
 
-	if encoding_resource_err != nil {
-		t.Fatal(encoding_resource_err)
+	if err_read_default_encoding_resource != nil {
+		t.Fatal(err_read_default_encoding_resource)
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -108,7 +108,7 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 
 		if err != nil {
 			t.Log(err)
-			generation_error_list = append(generation_error_list, err)
+			err_list_generation = append(err_list_generation, err)
 		}
 
 		if university_schedules == nil {
@@ -125,17 +125,17 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 
 		for _, e := range err_vertical_validations {
 			t.Error(e)
-			validation_error_list = append(validation_error_list, e)
+			err_list_validation = append(err_list_validation, e)
 		}
 
 		///////////////////////
 
-		generated_encoding_resource, gen_encode_resource_err := GeneticAlgorithm.GenerateEncodingResourceFromUniTimeTable(
+		generated_encoding_resource, err_gen_encode_resource := GeneticAlgorithm.GenerateEncodingResourceFromUniTimeTable(
 			university_schedules, curriculums, target_semester, &persistence,
 		)
 
-		if gen_encode_resource_err != nil {
-			t.Fatal(gen_encode_resource_err)
+		if err_gen_encode_resource != nil {
+			t.Fatal(err_gen_encode_resource)
 		}
 
 		if encoding_resource != nil {
@@ -157,26 +157,26 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 		}
 	}
 
-	failed_individuals := float64(len(generation_error_list))
+	failed_individuals := float64(len(err_list_generation))
 	successful_individuals := total_test_iterations - int(failed_individuals)
 
-	if failed_individuals > (float64(total_test_iterations) * allowed_generation_errors) {
+	if failed_individuals > (float64(total_test_iterations) * allowed_failure_rate) {
 		t.Errorf(
 			"total of %d fails (%.2f%%) and %d success (%.2f%%) out of the %d populations generated which is above the maximum error treashold of %.2f%%",
 			int(failed_individuals), failed_individuals/float64(total_test_iterations)*100.0,
 			successful_individuals, float64(successful_individuals)/float64(total_test_iterations)*100.0,
-			total_test_iterations, allowed_generation_errors*100.0,
+			total_test_iterations, allowed_failure_rate*100.0,
 		)
 	} else {
 		fmt.Printf(
 			"total of %d fails (%.2f%%) and %d success (%.2f%%) out of the %d populations generated which is below the maximum error treashold of %.2f%%\n",
 			int(failed_individuals), failed_individuals/float64(total_test_iterations)*100.0,
 			successful_individuals, float64(successful_individuals)/float64(total_test_iterations)*100.0,
-			total_test_iterations, allowed_generation_errors*100.0,
+			total_test_iterations, allowed_failure_rate*100.0,
 		)
 	}
 
-	t.Logf("There are a total of %d validation errors detected when generating university schedules", len(validation_error_list))
+	t.Logf("There are a total of %d validation errors detected when generating university schedules", len(err_list_validation))
 }
 
 //////////////////////////////////////
@@ -197,17 +197,17 @@ func GeneratePopWithDepartmentSelection(t *testing.T, target_semester int) {
 	t.Logf("Semester : %d\n\n", target_semester)
 
 	total_test_iterations := 512
-	allowed_generation_errors := 0.8 // 80% error rate allowed.
+	allowed_failure_rate := 0.8 // 80% error rate allowed.
 
-	generation_error_list := make([]error, 0, 8)
-	validation_error_list := make([]error, 0, 8)
+	err_list_generation := make([]error, 0, 8)
+	err_list_validation := make([]error, 0, 8)
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	curriculums, err_curriculums := persistence.ReaderService.ReadAllCurriculum()
+	curriculums, err_all_curriculums := persistence.ReaderService.ReadAllCurriculum()
 
-	if err_curriculums != nil {
-		t.Fatal(err_curriculums)
+	if err_all_curriculums != nil {
+		t.Fatal(err_all_curriculums)
 	}
 
 	dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(&persistence)
@@ -218,10 +218,10 @@ func GeneratePopWithDepartmentSelection(t *testing.T, target_semester int) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	encoding_resource, encoding_resource_err := GeneticAlgorithm.ReadDefaultEncodingResource(&persistence)
+	encoding_resource, err_read_default_encoding_resource := GeneticAlgorithm.ReadDefaultEncodingResource(&persistence)
 
-	if encoding_resource_err != nil {
-		t.Fatal(encoding_resource_err)
+	if err_read_default_encoding_resource != nil {
+		t.Fatal(err_read_default_encoding_resource)
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -242,10 +242,10 @@ new_population_loop:
 			)
 		}
 
-		all_departments, all_departments_err := persistence.ReaderService.ReadAllDepartments()
+		all_departments, err_read_all_departments := persistence.ReaderService.ReadAllDepartments()
 
-		if all_departments_err != nil {
-			t.Fatal(all_departments_err)
+		if err_read_all_departments != nil {
+			t.Fatal(err_read_all_departments)
 		}
 
 		is_department_id_to_has_curriculum := make(map[uint16]bool)
@@ -278,44 +278,44 @@ new_population_loop:
 
 			retries := 0
 
-			var resource_copy_err error
-			var not_enough_resource_err error
+			var err_copy_resource error
+			var err_not_enough_resource error
 
 			max_retries := 7
 
 			for {
-				resource_copy_err = nil
-				not_enough_resource_err = nil
+				err_copy_resource = nil
+				err_not_enough_resource = nil
 
-				output_schedules, output_resources, inner_gen_err := GeneticAlgorithm.EncodeIndividualGenome(
+				output_schedules, output_resources, err_encode_individual_genome := GeneticAlgorithm.EncodeIndividualGenome(
 					track_schedules,
 					curriculums, dept_id_to_department,
 					track_resources, department_to_encode,
 					target_semester, 0,
 				)
 
-				if output_schedules == nil && output_resources == nil && inner_gen_err != nil {
-					resource_copy_err = inner_gen_err
-				} else if output_schedules != nil && output_resources == nil && inner_gen_err != nil {
-					not_enough_resource_err = inner_gen_err
+				if output_schedules == nil && output_resources == nil && err_encode_individual_genome != nil {
+					err_copy_resource = err_encode_individual_genome
+				} else if output_schedules != nil && output_resources == nil && err_encode_individual_genome != nil {
+					err_not_enough_resource = err_encode_individual_genome
 				}
 
-				if resource_copy_err != nil {
-					t.Fatal(resource_copy_err)
+				if err_copy_resource != nil {
+					t.Fatal(err_copy_resource)
 				}
 
-				if not_enough_resource_err == nil {
+				if err_not_enough_resource == nil {
 					track_schedules = output_schedules
 					track_resources = output_resources
 					break
 				}
 
 				if retries > max_retries {
-					generation_error_list = append(generation_error_list, not_enough_resource_err)
+					err_list_generation = append(err_list_generation, err_not_enough_resource)
 					continue new_population_loop
 				}
 
-				t.Logf("retry (%d : %s) - %s\n", retries, department.Code, not_enough_resource_err.Error())
+				t.Logf("retry (%d : %s) - %s\n", retries, department.Code, err_not_enough_resource.Error())
 				retries++
 			}
 
@@ -331,7 +331,7 @@ new_population_loop:
 
 			for _, e := range err_vertical_validations {
 				t.Error(e)
-				validation_error_list = append(validation_error_list, e)
+				err_list_validation = append(err_list_validation, e)
 			}
 
 			///////////////////////
@@ -355,9 +355,9 @@ new_population_loop:
 			if department_idx < len(all_departments)-1 {
 				fmt.Printf("Generated schedules for all departments, the department %s\n", department.Name)
 
-				forced_err_horizontal_validations_test := track_schedules.HorizontalValidation(&persistence, nil, target_semester)
+				err_intentional_horizontal_validation := track_schedules.HorizontalValidation(&persistence, nil, target_semester)
 
-				if forced_err_horizontal_validations_test == nil {
+				if err_intentional_horizontal_validation == nil {
 					t.Fatal("there should be a missing subject error here since the university schedule is not complete yet")
 				}
 
@@ -385,26 +385,26 @@ new_population_loop:
 		}
 	}
 
-	failed_individuals := float64(len(generation_error_list))
+	failed_individuals := float64(len(err_list_generation))
 	successful_individuals := total_test_iterations - int(failed_individuals)
 
-	if failed_individuals > (float64(total_test_iterations) * allowed_generation_errors) {
+	if failed_individuals > (float64(total_test_iterations) * allowed_failure_rate) {
 		t.Errorf(
 			"total of %d fails (%.2f%%) and %d success (%.2f%%) out of the %d populations generated which is above the maximum error treashold of %.2f%%",
 			int(failed_individuals), failed_individuals/float64(total_test_iterations)*100.0,
 			successful_individuals, float64(successful_individuals)/float64(total_test_iterations)*100.0,
-			total_test_iterations, allowed_generation_errors*100.0,
+			total_test_iterations, allowed_failure_rate*100.0,
 		)
 	} else {
 		fmt.Printf(
 			"total of %d fails (%.2f%%) and %d success (%.2f%%) out of the %d populations generated which is below the maximum error treashold of %.2f%%\n",
 			int(failed_individuals), failed_individuals/float64(total_test_iterations)*100.0,
 			successful_individuals, float64(successful_individuals)/float64(total_test_iterations)*100.0,
-			total_test_iterations, allowed_generation_errors*100.0,
+			total_test_iterations, allowed_failure_rate*100.0,
 		)
 	}
 
-	t.Logf("There are a total of %d validation errors detected when generating university schedules", len(validation_error_list))
+	t.Logf("There are a total of %d validation errors detected when generating university schedules", len(err_list_validation))
 }
 
 ////////////////////////////////
@@ -416,10 +416,10 @@ func BenchmarkNewPopulationFirstSem(b *testing.B) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	curriculums, err_curriculums := persistence.ReaderService.ReadAllCurriculum()
+	curriculums, err_all_curriculums := persistence.ReaderService.ReadAllCurriculum()
 
-	if err_curriculums != nil {
-		b.Fatal(err_curriculums)
+	if err_all_curriculums != nil {
+		b.Fatal(err_all_curriculums)
 	}
 
 	dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(&persistence)
@@ -430,10 +430,10 @@ func BenchmarkNewPopulationFirstSem(b *testing.B) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	encoding_resource, encoding_resource_err := GeneticAlgorithm.ReadDefaultEncodingResource(&persistence)
+	encoding_resource, err_read_default_encoding_resource := GeneticAlgorithm.ReadDefaultEncodingResource(&persistence)
 
-	if encoding_resource_err != nil {
-		b.Fatal(encoding_resource_err)
+	if err_read_default_encoding_resource != nil {
+		b.Fatal(err_read_default_encoding_resource)
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -455,10 +455,10 @@ func BenchmarkNewPopulationSecondSem(b *testing.B) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	curriculums, err_curriculums := persistence.ReaderService.ReadAllCurriculum()
+	curriculums, err_all_curriculums := persistence.ReaderService.ReadAllCurriculum()
 
-	if err_curriculums != nil {
-		b.Fatal(err_curriculums)
+	if err_all_curriculums != nil {
+		b.Fatal(err_all_curriculums)
 	}
 
 	dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(&persistence)
@@ -469,10 +469,10 @@ func BenchmarkNewPopulationSecondSem(b *testing.B) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	encoding_resource, encoding_resource_err := GeneticAlgorithm.ReadDefaultEncodingResource(&persistence)
+	encoding_resource, err_read_default_encoding_resource := GeneticAlgorithm.ReadDefaultEncodingResource(&persistence)
 
-	if encoding_resource_err != nil {
-		b.Fatal(encoding_resource_err)
+	if err_read_default_encoding_resource != nil {
+		b.Fatal(err_read_default_encoding_resource)
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////

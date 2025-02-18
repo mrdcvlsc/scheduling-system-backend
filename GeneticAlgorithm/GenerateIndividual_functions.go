@@ -132,36 +132,34 @@ type Totals struct {
 
 func EstimateResourceAvailability(persistence *StorageResources.Persistence, selected_semester, distribution_type int) []error {
 
+	err_list := make([]error, 0)
+
 	curriculums, err_curriculum := persistence.ReaderService.ReadAllCurriculum()
 
 	if err_curriculum != nil {
-		list_of_returned_errors := make([]error, 0, 2)
-		list_of_returned_errors = append(list_of_returned_errors, err_curriculum)
-		return list_of_returned_errors
+		err_list = append(err_list, err_curriculum)
+		return err_list
 	}
 
 	department_id_to_department, err_department_id_to_department := GenerateMapDeptIdToDepartment(persistence)
 
 	if err_department_id_to_department != nil {
-		error_slice := make([]error, 0, 2)
-		error_slice = append(error_slice, err_department_id_to_department)
-		return error_slice
+		err_list = append(err_list, err_department_id_to_department)
+		return err_list
 	}
 
 	instructors, err_instructors := persistence.ReaderService.ReadAllInstructors()
 
 	if err_instructors != nil {
-		list_of_returned_errors := make([]error, 0, 2)
-		list_of_returned_errors = append(list_of_returned_errors, err_instructors)
-		return list_of_returned_errors
+		err_list = append(err_list, err_instructors)
+		return err_list
 	}
 
 	rooms, err_rooms := persistence.ReaderService.ReadAllRooms()
 
 	if err_rooms != nil {
-		list_of_returned_errors := make([]error, 0, 2)
-		list_of_returned_errors = append(list_of_returned_errors, err_rooms)
-		return list_of_returned_errors
+		err_list = append(err_list, err_rooms)
+		return err_list
 	}
 
 	totals := make(map[uint16]*Totals)
@@ -290,8 +288,6 @@ func EstimateResourceAvailability(persistence *StorageResources.Persistence, sel
 
 	Utils.PrettyPrint(totals)
 
-	list_of_returned_errors := make([]error, 0, 8)
-
 	for k, v := range totals {
 		if k != 0 && (v.SubjectLecHours > 0 || v.SubjectLabHours > 0 || v.SubjectGymHours > 0) {
 			if (v.SubjectLecHours + MIN_SUBJECT_ROOM_HOUR_BUFFER) > v.LecRoomHours {
@@ -304,7 +300,7 @@ func EstimateResourceAvailability(persistence *StorageResources.Persistence, sel
 					rooms_to_add++
 				}
 
-				list_of_returned_errors = append(list_of_returned_errors,
+				err_list = append(err_list,
 					fmt.Errorf(`{"Msg":`+
 						`"not enough lecture rooms for the '%s', need %d more capacity for lecture subjects"}`,
 						v.DepartmentName, rooms_to_add,
@@ -322,7 +318,7 @@ func EstimateResourceAvailability(persistence *StorageResources.Persistence, sel
 					rooms_to_add++
 				}
 
-				list_of_returned_errors = append(list_of_returned_errors,
+				err_list = append(err_list,
 					fmt.Errorf(`{"Msg":`+
 						`"not enough laboratory rooms for the '%s', need %d more capacity for laboratory subjects"}`,
 						v.DepartmentName, rooms_to_add,
@@ -340,7 +336,7 @@ func EstimateResourceAvailability(persistence *StorageResources.Persistence, sel
 					rooms_to_add++
 				}
 
-				list_of_returned_errors = append(list_of_returned_errors,
+				err_list = append(err_list,
 					fmt.Errorf(`{"Msg":`+
 						`"not enough gym capacity, need %d more capacity for gym subjects"}`,
 						rooms_to_add,
@@ -358,7 +354,7 @@ func EstimateResourceAvailability(persistence *StorageResources.Persistence, sel
 					needed_full_time_instructor++
 				}
 
-				list_of_returned_errors = append(list_of_returned_errors,
+				err_list = append(err_list,
 					fmt.Errorf(`{"Msg":`+
 						`"not enough instructors for the '%s', need %d more full time instructors, `+
 						`to fill up the missing %d hours of duty, or encourage existing multiple `+
@@ -370,5 +366,5 @@ func EstimateResourceAvailability(persistence *StorageResources.Persistence, sel
 		}
 	}
 
-	return list_of_returned_errors
+	return err_list
 }

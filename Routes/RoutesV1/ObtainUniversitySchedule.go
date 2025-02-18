@@ -26,11 +26,11 @@ example usage inside a gin route:
 func ObtainUniversitySchedule(ctx *gin.Context, departments_to_validate map[uint16]bool, semester int) (Schedule.UniTimeTables, bool) {
 	var university_schedules Schedule.UniTimeTables = nil
 
-	cached_university_schedule, has_cache, cache_err := RouteGlobals.GetCachedUniversitySchedule(semester)
+	cached_university_schedule, has_cache, err_get_cache := RouteGlobals.GetCachedUniversitySchedule(semester)
 
-	if cache_err != nil {
-		log.Println(cache_err.Error())
-		ctx.String(http.StatusBadRequest, cache_err.Error())
+	if err_get_cache != nil {
+		log.Println(err_get_cache.Error())
+		ctx.String(http.StatusBadRequest, err_get_cache.Error())
 		return nil, false
 	}
 
@@ -39,12 +39,12 @@ func ObtainUniversitySchedule(ctx *gin.Context, departments_to_validate map[uint
 		university_schedules = cached_university_schedule
 	} else {
 		log.Println("no cached detected loading from persistence")
-		read_university_schedules, read_err := RouteGlobals.SchedulePersistence.LoadService.LoadSchedules(semester)
+		read_university_schedules, err_load_schedules := RouteGlobals.SchedulePersistence.LoadService.LoadSchedules(semester)
 
-		if read_err != nil {
-			log.Println(read_err)
+		if err_load_schedules != nil {
+			log.Println(err_load_schedules)
 
-			if errors.Is(read_err, os.ErrNotExist) {
+			if errors.Is(err_load_schedules, os.ErrNotExist) {
 				log.Printf("schedule for semester index %d is not created yet, creating an empty schedule instead", semester)
 
 				curriculums, err_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
@@ -67,16 +67,16 @@ func ObtainUniversitySchedule(ctx *gin.Context, departments_to_validate map[uint
 		return university_schedules, true
 	}
 
-	for _, validation_err := range university_schedules.VerticalValidation(RouteGlobals.ResourcesPersistence) {
-		if validation_err != nil {
+	for _, err_vertical_validation := range university_schedules.VerticalValidation(RouteGlobals.ResourcesPersistence) {
+		if err_vertical_validation != nil {
 			log.Println("invalid schedule detected")
 			ctx.String(http.StatusConflict, "server detected an invalid schedule with vertically overlapping data")
 			return nil, false
 		}
 	}
 
-	for _, validation_err := range university_schedules.HorizontalValidation(RouteGlobals.ResourcesPersistence, departments_to_validate, semester) {
-		if validation_err != nil {
+	for _, err_horizontal_validation := range university_schedules.HorizontalValidation(RouteGlobals.ResourcesPersistence, departments_to_validate, semester) {
+		if err_horizontal_validation != nil {
 			log.Println("invalid schedule detected")
 			ctx.String(http.StatusConflict, "server detected an invalid schedule with wrong horizontal data allocations")
 			return nil, false

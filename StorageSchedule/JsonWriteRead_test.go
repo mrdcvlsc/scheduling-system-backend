@@ -23,7 +23,7 @@ func Test_JsonReadWriteUniversitySchedules(t *testing.T) {
 
 		fmt.Print("initialize error counter\n")
 
-		sched_gen_err_cnt := 0
+		sched_gen_fail_count := 0
 
 		fmt.Println("Reading Resources")
 
@@ -45,10 +45,10 @@ func Test_JsonReadWriteUniversitySchedules(t *testing.T) {
 
 		////////////////////////////////////////////////////////////////////////////////////////
 
-		encoding_resource, encoding_resource_err := GeneticAlgorithm.ReadDefaultEncodingResource(&persistence)
+		encoding_resource, err_read_default_encoding_resource := GeneticAlgorithm.ReadDefaultEncodingResource(&persistence)
 
-		if encoding_resource_err != nil {
-			t.Fatal(encoding_resource_err)
+		if err_read_default_encoding_resource != nil {
+			t.Fatal(err_read_default_encoding_resource)
 		}
 
 		////////////////////////////////////////////////////////////////////////////////////////
@@ -68,11 +68,11 @@ func Test_JsonReadWriteUniversitySchedules(t *testing.T) {
 			if err != nil {
 				fmt.Println(err)
 
-				sched_gen_err_cnt++
+				sched_gen_fail_count++
 				continue
 			}
 
-			if sched_gen_err_cnt > 28 {
+			if sched_gen_fail_count > 28 {
 				fmt.Print("Too many errors\n")
 				t.Fatal(err)
 
@@ -97,29 +97,29 @@ func Test_JsonReadWriteUniversitySchedules(t *testing.T) {
 			t.Fatal(e)
 		}
 
-		vertical_validation_err := first_university_schedule.VerticalValidation(&resource_persistence)
+		err_vertical_validation := first_university_schedule.VerticalValidation(&resource_persistence)
 
 		if first_university_schedule.IsEmpty() {
 			t.Fatal("loaded university schedules are empty")
 		}
 
-		for e := range vertical_validation_err {
+		for e := range err_vertical_validation {
 			t.Fatal(e)
 		}
 
-		horizontal_validation_err := first_university_schedule.HorizontalValidation(&resource_persistence, nil, GeneticAlgorithm.TERM_1ST_SEMESTER)
+		err_horizontal_validation := first_university_schedule.HorizontalValidation(&resource_persistence, nil, GeneticAlgorithm.TERM_1ST_SEMESTER)
 
-		for e := range horizontal_validation_err {
+		for e := range err_horizontal_validation {
 			t.Fatal(e)
 		}
 
 		sched_persistence := StorageSchedule.Persistence{SaveService: &StorageSchedule.JsonWriter{}}
 
 		wrote_sched = first_university_schedule
-		write_err := sched_persistence.SaveService.SaveSchedules(first_university_schedule, GeneticAlgorithm.TERM_1ST_SEMESTER)
+		err_save_schedules := sched_persistence.SaveService.SaveSchedules(first_university_schedule, GeneticAlgorithm.TERM_1ST_SEMESTER)
 
-		if write_err != nil {
-			t.Fatal(write_err)
+		if err_save_schedules != nil {
+			t.Fatal(err_save_schedules)
 		}
 	}
 
@@ -127,26 +127,26 @@ func Test_JsonReadWriteUniversitySchedules(t *testing.T) {
 		schedule_persistence := StorageSchedule.Persistence{LoadService: &StorageSchedule.JsonReader{}}
 		resource_persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
 
-		load_university_schedules, load_err := schedule_persistence.LoadService.LoadSchedules(GeneticAlgorithm.TERM_1ST_SEMESTER)
+		load_university_schedules, err_load_schedules := schedule_persistence.LoadService.LoadSchedules(GeneticAlgorithm.TERM_1ST_SEMESTER)
 
-		if load_err != nil {
-			t.Fatal(load_err)
+		if err_load_schedules != nil {
+			t.Fatal(err_load_schedules)
 		}
 
-		vertical_validation_err := load_university_schedules.VerticalValidation(&resource_persistence)
+		err_vertical_validation := load_university_schedules.VerticalValidation(&resource_persistence)
 
 		if load_university_schedules.IsEmpty() {
 			t.Fatal("loaded university schedules are empty")
 		}
 
-		for e := range vertical_validation_err {
+		for e := range err_vertical_validation {
 			t.Fatal(e)
 		}
 
-		if load_err == nil {
-			horizontal_validation_err := load_university_schedules.HorizontalValidation(&resource_persistence, nil, GeneticAlgorithm.TERM_1ST_SEMESTER)
+		if err_load_schedules == nil {
+			err_horizontal_validation := load_university_schedules.HorizontalValidation(&resource_persistence, nil, GeneticAlgorithm.TERM_1ST_SEMESTER)
 
-			for e := range horizontal_validation_err {
+			for e := range err_horizontal_validation {
 				t.Fatal(e)
 			}
 		}

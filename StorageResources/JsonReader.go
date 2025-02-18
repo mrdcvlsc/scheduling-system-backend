@@ -133,10 +133,10 @@ func (s *JsonReader) ReadAllCurriculum() ([]Curriculum.Curriculum, error) {
 	}
 
 	curriculum_json_folder := path.Join(project_root, "scheduling-system-temporary-data", "curriculums")
-	curriculum_json_files, curriculum_read_err := os.ReadDir(curriculum_json_folder)
+	curriculum_json_files, err_read_dir := os.ReadDir(curriculum_json_folder)
 
-	if curriculum_read_err != nil {
-		return nil, curriculum_read_err
+	if err_read_dir != nil {
+		return nil, err_read_dir
 	}
 
 	curriculums := make([]Curriculum.Curriculum, 0)

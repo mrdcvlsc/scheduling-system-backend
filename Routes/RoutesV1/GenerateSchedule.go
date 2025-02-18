@@ -68,10 +68,10 @@ func generate_schedule(semester int) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	encoding_resource, encoding_resource_err := GeneticAlgorithm.ReadDefaultEncodingResource(RouteGlobals.ResourcesPersistence)
+	encoding_resource, err_read_default_encoding_resource := GeneticAlgorithm.ReadDefaultEncodingResource(RouteGlobals.ResourcesPersistence)
 
-	if encoding_resource_err != nil {
-		log.Fatal(encoding_resource_err)
+	if err_read_default_encoding_resource != nil {
+		log.Fatal(err_read_default_encoding_resource)
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -121,18 +121,18 @@ func generate_schedule(semester int) {
 
 	log.Println("generate_schedule: saving schedule")
 
-	write_err := RouteGlobals.SchedulePersistence.SaveService.SaveSchedules(*generate_university_schedule, semester)
+	err_save_schedules := RouteGlobals.SchedulePersistence.SaveService.SaveSchedules(*generate_university_schedule, semester)
 
-	if write_err != nil {
-		log.Print("generate_schedule:", write_err.Error())
+	if err_save_schedules != nil {
+		log.Print("generate_schedule:", err_save_schedules.Error())
 	}
 
 	log.Println("generate_schedule: caching schedule")
 
-	cache_err := RouteGlobals.SetCachedUniversitySchedule(semester, *generate_university_schedule)
+	err_set_cache := RouteGlobals.SetCachedUniversitySchedule(semester, *generate_university_schedule)
 
-	if cache_err != nil {
-		log.Print("generate_schedule:", cache_err.Error())
+	if err_set_cache != nil {
+		log.Print("generate_schedule:", err_set_cache.Error())
 	}
 
 	log.Println("generate_schedule: ended, schedule was generated")

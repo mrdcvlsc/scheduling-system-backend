@@ -20,10 +20,10 @@ func Test_UniTimeTablesSerializationAndDeserialization(t *testing.T) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	curriculums, err_curriculums := storage_persistence.ReaderService.ReadAllCurriculum()
+	curriculums, err_read_all_curriculum := storage_persistence.ReaderService.ReadAllCurriculum()
 
-	if err_curriculums != nil {
-		t.Fatal(err_curriculums)
+	if err_read_all_curriculum != nil {
+		t.Fatal(err_read_all_curriculum)
 	}
 
 	dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(&resource_persistence)
@@ -34,10 +34,10 @@ func Test_UniTimeTablesSerializationAndDeserialization(t *testing.T) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	encoding_resource, encoding_resource_err := GeneticAlgorithm.ReadDefaultEncodingResource(&resource_persistence)
+	encoding_resource, err_read_default_encoding_resource := GeneticAlgorithm.ReadDefaultEncodingResource(&resource_persistence)
 
-	if encoding_resource_err != nil {
-		t.Fatal(encoding_resource_err)
+	if err_read_default_encoding_resource != nil {
+		t.Fatal(err_read_default_encoding_resource)
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -60,22 +60,22 @@ func Test_UniTimeTablesSerializationAndDeserialization(t *testing.T) {
 			t.Fatal("there was no schedule generated to be tested")
 		}
 
-		list_of_errors := make([]error, 0)
+		errs_slice := make([]error, 0)
 
-		list_of_errors = append(list_of_errors, uni_sched.VerticalValidation(&resource_persistence)...)
+		errs_slice = append(errs_slice, uni_sched.VerticalValidation(&resource_persistence)...)
 
-		if len(list_of_errors) > 0 {
-			for _, e := range list_of_errors {
+		if len(errs_slice) > 0 {
+			for _, e := range errs_slice {
 				t.Error(e)
 			}
 		}
 
 		if err == nil {
-			list_of_errors = append(list_of_errors, uni_sched.HorizontalValidation(&resource_persistence, nil, GeneticAlgorithm.TERM_1ST_SEMESTER)...)
+			errs_slice = append(errs_slice, uni_sched.HorizontalValidation(&resource_persistence, nil, GeneticAlgorithm.TERM_1ST_SEMESTER)...)
 		}
 
-		if len(list_of_errors) > 0 {
-			for _, e := range list_of_errors {
+		if len(errs_slice) > 0 {
+			for _, e := range errs_slice {
 				t.Error(e)
 			}
 		}

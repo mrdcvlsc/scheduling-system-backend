@@ -82,10 +82,10 @@ func (s *JsonWriter) UpdateInstructor(instructor Instructors.Instructor) error {
 		Time:          instructor.Time.Stringify(),
 	}
 
-	save_err := s.saveAllInstructorsWithTimeString(instructors_with_time_string)
+	err_save_instructors := s.saveAllInstructorsWithTimeString(instructors_with_time_string)
 
-	if save_err != nil {
-		return save_err
+	if err_save_instructors != nil {
+		return err_save_instructors
 	}
 
 	return nil

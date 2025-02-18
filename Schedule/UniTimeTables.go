@@ -120,13 +120,13 @@ func (university_sched UniTimeTables) IsEmpty() bool {
 // validate rooms and instructors time slot availability, this function detects overlapping instructor or room time slots.
 func (university_sched UniTimeTables) VerticalValidation(resource_persistence *StorageResources.Persistence) []error {
 
-	list_of_errors := make([]error, 0, 16)
+	errs_slice := make([]error, 0, 16)
 
-	rooms, err_rooms := resource_persistence.ReaderService.ReadAllRooms()
+	rooms, err_read_all_rooms := resource_persistence.ReaderService.ReadAllRooms()
 
-	if err_rooms != nil {
-		list_of_errors = append(list_of_errors, err_rooms)
-		return list_of_errors
+	if err_read_all_rooms != nil {
+		errs_slice = append(errs_slice, err_read_all_rooms)
+		return errs_slice
 	}
 
 	room_id_to_capacity := make(map[uint16]uint16)
@@ -163,13 +163,13 @@ func (university_sched UniTimeTables) VerticalValidation(resource_persistence *S
 						OverlappingSections: nil,
 					}
 
-					json_err_str, err := json.Marshal(err_json)
+					msg, err := json.Marshal(err_json)
 					if err != nil {
 						panic(err)
 					}
 
-					list_of_errors = append(list_of_errors, fmt.Errorf("%s",
-						strings.Replace(string(json_err_str), `,"OverlappingSections":null`, "", 1),
+					errs_slice = append(errs_slice, fmt.Errorf("%s",
+						strings.Replace(string(msg), `,"OverlappingSections":null`, "", 1),
 					))
 				}
 
@@ -182,13 +182,13 @@ func (university_sched UniTimeTables) VerticalValidation(resource_persistence *S
 						OverlappingSections: nil,
 					}
 
-					json_err_str, err := json.Marshal(err_json)
+					msg, err := json.Marshal(err_json)
 					if err != nil {
 						panic(err)
 					}
 
-					list_of_errors = append(list_of_errors, fmt.Errorf("%s",
-						strings.Replace(string(json_err_str), `,"OverlappingSections":null`, "", 1),
+					errs_slice = append(errs_slice, fmt.Errorf("%s",
+						strings.Replace(string(msg), `,"OverlappingSections":null`, "", 1),
 					))
 				}
 
@@ -226,12 +226,12 @@ func (university_sched UniTimeTables) VerticalValidation(resource_persistence *S
 						OverlappingSections: v,
 					}
 
-					json_err_str, err := json.Marshal(err_json)
+					msg, err := json.Marshal(err_json)
 					if err != nil {
 						panic(err)
 					}
 
-					list_of_errors = append(list_of_errors, fmt.Errorf("%s", json_err_str))
+					errs_slice = append(errs_slice, fmt.Errorf("%s", msg))
 				}
 			}
 
@@ -246,18 +246,18 @@ func (university_sched UniTimeTables) VerticalValidation(resource_persistence *S
 						OverlappingSections: v.OverlappingSections,
 					}
 
-					json_err_str, err := json.Marshal(err_json)
+					msg, err := json.Marshal(err_json)
 					if err != nil {
 						panic(err)
 					}
 
-					list_of_errors = append(list_of_errors, fmt.Errorf("%s", json_err_str))
+					errs_slice = append(errs_slice, fmt.Errorf("%s", msg))
 				}
 			}
 		}
 	}
 
-	return list_of_errors
+	return errs_slice
 }
 
 /*
@@ -272,22 +272,22 @@ func (university_sched UniTimeTables) HorizontalValidation(
 	department_to_validate map[uint16]bool, selected_semester int,
 ) []error {
 
-	list_of_errors := make([]error, 0, 16)
+	errs_slice := make([]error, 0, 16)
 
 	/////////////////////////////////////////////////////////////////////////////////
 	//                            HORIZONTAL CHECKS
 	/////////////////////////////////////////////////////////////////////////////////
 
-	curriculums, curriculum_err := resource_persistence.ReaderService.ReadAllCurriculum()
+	curriculums, err_read_all_curriculum := resource_persistence.ReaderService.ReadAllCurriculum()
 
-	if curriculum_err != nil {
-		list_of_errors = append(list_of_errors, curriculum_err)
+	if err_read_all_curriculum != nil {
+		errs_slice = append(errs_slice, err_read_all_curriculum)
 	}
 
 	total_university_sections := Curriculum.GetTotalNumberOfSections(curriculums, selected_semester)
 
 	if total_university_sections != len(university_sched) {
-		list_of_errors = append(list_of_errors, fmt.Errorf(
+		errs_slice = append(errs_slice, fmt.Errorf(
 			"read total university sections (%d) in persistence did not match the university schedule instance (%d)",
 			total_university_sections, len(university_sched),
 		))
@@ -339,34 +339,34 @@ func (university_sched UniTimeTables) HorizontalValidation(
 					}
 
 					if len(semester.Subjects) != len(subject_id_to_time_slot_count) {
-						list_of_errors = append(list_of_errors, fmt.Errorf(
+						errs_slice = append(errs_slice, fmt.Errorf(
 							"detected missing subject(s) [%d/%d] in %s %s %s section[%d], university schedule_idx = %d",
 							len(subject_id_to_time_slot_count), len(semester.Subjects),
 							curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, schedule_idx,
 						))
 
-						return list_of_errors
+						return errs_slice
 					}
 
 					for _, subject := range semester.Subjects {
 						_, has_subject_id := subject_id_to_time_slot_count[subject.ID]
 
 						if !has_subject_id {
-							list_of_errors = append(list_of_errors, fmt.Errorf(
+							errs_slice = append(errs_slice, fmt.Errorf(
 								"detected missing subject %s in %s %s %s section[%d], university schedule_idx = %d",
 								subject.Code, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, schedule_idx,
 							))
 						}
 
 						if ((subject.LecHours + subject.LabHours) * Const.N_HOUR_TIME_SLOTS) != uint8(subject_id_to_time_slot_count[subject.ID]) {
-							list_of_errors = append(list_of_errors, fmt.Errorf(
+							errs_slice = append(errs_slice, fmt.Errorf(
 								"detected wrong subject [id : %d / %s] time slot allocation count (persistence : %d != %d : schedule) in %s %s %s section[%d], university schedule_idx[%d]",
 								subject.ID, subject.Code,
 								((subject.LecHours+subject.LabHours)*Const.N_HOUR_TIME_SLOTS), uint8(subject_id_to_time_slot_count[subject.ID]),
 								curriculum.CurriculumCode, semester.Name,
 								year_level.Name, section_idx, schedule_idx,
 							))
-							return list_of_errors
+							return errs_slice
 						}
 					}
 
@@ -376,7 +376,7 @@ func (university_sched UniTimeTables) HorizontalValidation(
 		} // ------------- end of year_level loop -------------
 	} // ------------- end of curriculum loop -------------
 
-	return list_of_errors
+	return errs_slice
 }
 
 type UniInstructorValidationError struct {

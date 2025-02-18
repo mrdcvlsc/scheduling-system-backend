@@ -17,9 +17,9 @@ func IsValidParameterSemesterIndex(ctx *gin.Context) (int, bool) {
 		return -1, false
 	}
 
-	semester, semester_atoi_err := strconv.Atoi(parameter)
+	semester, err_atoi := strconv.Atoi(parameter)
 
-	if semester_atoi_err != nil {
+	if err_atoi != nil {
 		ctx.String(http.StatusBadRequest, "invalid 'semester' parameter value")
 		return -1, false
 	}
@@ -40,9 +40,9 @@ func IsValidParameterDepartmentID(ctx *gin.Context) (int, bool) {
 		return -1, false
 	}
 
-	department_id, department_id_atoi_err := strconv.Atoi(param_department_id)
+	department_id, err_atoi := strconv.Atoi(param_department_id)
 
-	if department_id_atoi_err != nil {
+	if err_atoi != nil {
 		ctx.String(http.StatusBadRequest, "invalid 'department_id' parameter value")
 		return -1, false
 	}
@@ -71,9 +71,9 @@ func IsValidUniversityScheduleIndex(ctx *gin.Context, university_schedule Schedu
 		return -1, false
 	}
 
-	schedule_idx, schedule_idx_atoi_err := strconv.Atoi(param_schedule_idx)
+	schedule_idx, err_atoi := strconv.Atoi(param_schedule_idx)
 
-	if schedule_idx_atoi_err != nil {
+	if err_atoi != nil {
 		ctx.String(http.StatusBadRequest, "invalid 'schedule_idx' parameter value")
 		return -1, false
 	}
