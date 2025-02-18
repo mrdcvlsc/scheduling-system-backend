@@ -150,7 +150,6 @@ func EncodeIndividualGenome(
 
 					subject_recorder := make(map[uint16]Curriculum.Subject)
 
-					// fmt.Println("=============================================") // DEBUG SUBJECT UNASSIGNED PROBLEM
 					for _, subject := range semester.Subjects {
 
 						non_final_sched_idx := uint16(counted_sections)
@@ -166,8 +165,6 @@ func EncodeIndividualGenome(
 						}
 
 						var selected_instructor *Instructors.Instructor
-
-						// fmt.Printf("assigning subject : %s", subject.Code) // DEBUG SUBJECT UNASSIGNED PROBLEM
 
 						/////////////////////////////////////////////////////////////////////////////////////////////////////////
 						//               POPULATE SPECIALIZED INSTRUCTOR LIST FOR THE SUBJECT IF THEY EXIST
@@ -226,8 +223,6 @@ func EncodeIndividualGenome(
 
 							class_type := (rand_class_type + class_type_iter) % 2
 
-							// fmt.Printf("\tcI[%d], cT[%d]\t", class_type_iter, class_type) // DEBUG SUBJECT UNASSIGNED PROBLEM
-
 							var selected_room *Rooms.Room
 
 							var subject_hours int
@@ -277,8 +272,6 @@ func EncodeIndividualGenome(
 
 									instructor_search_iteration := 0
 
-									// fmt.Printf("instructor & room searching for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
-
 									selected_instructor_idx := -1
 									var is_available_instructor bool
 
@@ -293,12 +286,10 @@ func EncodeIndividualGenome(
 											is_available_instructor = true
 
 											if selected_instructor == nil {
-												// fmt.Printf("searching the available time slot for the iterated instructor [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
 												for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
 													is_available_instructor = is_available_instructor && specialized_instructors[instructor_idx].Time.GetAvailability(day, instructor_time_slot)
 												}
 											} else {
-												// fmt.Printf("searching the available time slot for the selected instructor [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
 												for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
 													is_available_instructor = is_available_instructor && selected_instructor.Time.GetAvailability(day, instructor_time_slot)
 												}
@@ -318,11 +309,8 @@ func EncodeIndividualGenome(
 											}
 
 											if !is_available_instructor {
-												// fmt.Printf("No instructor found available for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
 												continue // find another instructor if not available for the time slot
 											}
-
-											// fmt.Printf("instructor found available for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
 
 											selected_instructor_idx = instructor_idx
 											break
@@ -337,13 +325,11 @@ func EncodeIndividualGenome(
 											is_available_instructor = true
 
 											if selected_instructor == nil {
-												// fmt.Printf("searching the available time slot for the iterated instructor [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
 												for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
 													is_available_instructor = is_available_instructor && instructors[instructor_idx].Time.GetAvailability(day, instructor_time_slot)
 												}
 
 											} else {
-												// fmt.Printf("searching the available time slot for the selected instructor [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
 												for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
 													is_available_instructor = is_available_instructor && selected_instructor.Time.GetAvailability(day, instructor_time_slot)
 												}
@@ -363,11 +349,8 @@ func EncodeIndividualGenome(
 											}
 
 											if !is_available_instructor {
-												// fmt.Printf("No instructor found available for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
 												continue // find another instructor if not available for the time slot
 											}
-
-											// fmt.Printf("instructor found available for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
 
 											selected_instructor_idx = instructor_idx
 											break
@@ -395,8 +378,6 @@ func EncodeIndividualGenome(
 										//                                       find available gym room
 										/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-										// fmt.Printf("searching available gym rooms for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
-
 										// search available gym for physical education subjects
 
 										gym := encoding_resource.DeptIdToRoomtypeToRooms[0][2]
@@ -413,7 +394,6 @@ func EncodeIndividualGenome(
 												continue
 											}
 
-											// fmt.Printf("selecting the available gym for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
 											selected_room = &gym[room_idx]
 											break
 										}
@@ -422,8 +402,6 @@ func EncodeIndividualGenome(
 										/////////////////////////////////////////////////////////////////////////////////////////////////////////
 										//                                  find available department rooms
 										/////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-										// fmt.Printf("searching available room[type:%d] for the time slot [d:%d, ts:%d]...\n", room_type, day, time_slot) // DEBUG PRINTS
 
 										// search for department specific rooms that are available
 
@@ -483,24 +461,6 @@ func EncodeIndividualGenome(
 									//                       ALLOCATE THE FINAL AVAILABLE INSTRUCTOR FOR THE TIME SLOT
 									/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-									// fmt.Printf( // DEBUG PRINTS
-									// "[%s]-[%s]-Section:[%d] | [%s][hours(%d):%d] : day(%d):timeslot(%d) | Instructor : (%s %s %s) found after %d iterations\n", // DEBUG PRINTS
-									// curriculum.CurriculumCode,         // DEBUG PRINTS
-									// year_level.Name,                   // DEBUG PRINTS
-									// section,                           // DEBUG PRINTS
-									// subject.Code,                      // DEBUG PRINTS
-									// subject_hours,                     // DEBUG PRINTS
-									// class_type,                        // DEBUG PRINTS
-									// day,                               // DEBUG PRINTS
-									// time_slot,                         // DEBUG PRINTS
-									// selected_instructor.FirstName,     // DEBUG PRINTS
-									// selected_instructor.MiddleInitial, // DEBUG PRINTS
-									// selected_instructor.LastName,      // DEBUG PRINTS
-									// instructor_search_iteration,       // DEBUG PRINTS
-									// ) // DEBUG PRINTS
-
-									// fmt.Printf("ONE SUBJECT FINISHED: assigning subject, instructor and room for the time slot [d:%d, ts:%d]...\n\n", day, time_slot) // DEBUG PRINTS
-
 									time_slot_assignment_sanity_counter := 0
 
 									for selected_time_slot := time_slot; selected_time_slot < (time_slot + subject_total_time_slots); selected_time_slot++ {
@@ -545,8 +505,6 @@ func EncodeIndividualGenome(
 
 									subject_recorder[subject.ID] = subject
 
-									// fmt.Printf("\t\tassigned : %s", subject.Code) // DEBUG SUBJECT UNASSIGNED PROBLEM
-
 									/////////////////////////////////////////////////////////////////////////////////////////////////////////
 									//                                  BREAK day AND time_slot LOOP
 									/////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -556,8 +514,6 @@ func EncodeIndividualGenome(
 								} // ------------- end of time_slot loop -------------
 							} // ------------- end of day loop -------------
 						} // ------------- end of class_type_iter loop -------------
-
-						// fmt.Printf("\t\t<-- result for : %s\n", subject.Code) // DEBUG SUBJECT UNASSIGNED PROBLEM
 
 						// map encoding resource that this subject is already assigned.
 
@@ -576,19 +532,6 @@ func EncodeIndividualGenome(
 					// front compressed distribution : end
 
 					if len(subject_recorder) != len(semester.Subjects) {
-
-						// fmt.Printf("\n\nAssigned Subjects : %s %s %s section %d\n", curriculum.CurriculumName, year_level.Name, semester.Name, section_idx) // DEBUG SUBJECT UNASSIGNED PROBLEM
-
-						// for _, s := range subject_recorder { // DEBUG SUBJECT UNASSIGNED PROBLEM
-						// fmt.Printf("%v\n", s) // DEBUG SUBJECT UNASSIGNED PROBLEM
-						// } // DEBUG SUBJECT UNASSIGNED PROBLEM
-
-						// fmt.Printf("\n\nSubjects To Assign : %s %s %s section %d\n", curriculum.CurriculumName, year_level.Name, semester.Name, section_idx) // DEBUG SUBJECT UNASSIGNED PROBLEM
-
-						// for _, s := range semester.Subjects { // DEBUG SUBJECT UNASSIGNED PROBLEM
-						// fmt.Printf("%v\n", s) // DEBUG SUBJECT UNASSIGNED PROBLEM
-						// } // DEBUG SUBJECT UNASSIGNED PROBLEM
-
 						panic(fmt.Sprintf(
 							"there are some subjects that was not assigned for some reason (%d/%d)", len(subject_recorder), len(semester.Subjects),
 						))
