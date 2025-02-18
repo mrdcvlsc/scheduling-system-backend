@@ -253,14 +253,16 @@ func EncodeIndividualGenome(
 									//                      CHECK IF CURRENT TIME SLOT IS AVAILABLE FOR THE SUBJECT
 									/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-									if !day_sched.IsTimeAvailable(time_slot, subject_total_time_slots) && (time_slot > (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
+									is_time_slot_available := day_sched.IsTimeAvailable(time_slot, subject_total_time_slots)
+
+									if !is_time_slot_available && (time_slot > (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
 										return individual_university_schedules, nil, fmt.Errorf(
 											"no time slot found for %s in %s for %s %s %s section[%d] after generating schedules for %d other sections",
 											subject.Code, dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
 										)
 									}
 
-									if !day_sched.IsTimeAvailable(time_slot, subject_total_time_slots) {
+									if !is_time_slot_available {
 										continue // if the current time slot is not available, go to the next time slot
 									}
 
