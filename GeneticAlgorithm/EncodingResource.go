@@ -20,6 +20,56 @@ type EncodingResource struct {
 	DeptIdToRoomtypeToRooms map[uint16]map[uint16][]Rooms.Room
 }
 
+func (s *EncodingResource) MakeCopy() (*EncodingResource, error) {
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	is_sched_idx_to_sub_id_to_skip := make(map[uint16]map[uint16]bool)
+
+	for out_k, out_v := range s.IsSchedIdxToSubIdToSkip {
+		is_sched_idx_to_sub_id_to_skip[out_k] = make(map[uint16]bool)
+
+		for in_k, in_v := range out_v {
+			is_sched_idx_to_sub_id_to_skip[out_k][in_k] = in_v
+		}
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	dept_id_to_room_type_to_rooms := make(map[uint16]map[uint16][]Rooms.Room)
+
+	for out_k, out_v := range s.DeptIdToRoomtypeToRooms {
+		dept_id_to_room_type_to_rooms[out_k] = make(map[uint16][]Rooms.Room)
+
+		for in_k, in_v := range out_v {
+			dept_id_to_room_type_to_rooms[out_k][in_k] = make([]Rooms.Room, len(in_v))
+			copies := copy(dept_id_to_room_type_to_rooms[out_k][in_k], in_v)
+
+			if copies != len(in_v) {
+				log.Printf("copies : %d\tlen(dept_id_to_room_type_to_rooms[out_k][in_k] = %d/%d = in_v)\n", copies, len(dept_id_to_room_type_to_rooms[out_k][in_k]), len(in_v))
+				return nil, fmt.Errorf("slice elements copied %d, internal department id to rooms map copy operation failed in generate new individual function", copies)
+			}
+		}
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	dept_id_to_instructors := make(map[uint16][]Instructors.Instructor)
+
+	for k, v := range s.DeptIdToInstructors {
+		dept_id_to_instructors[k] = make([]Instructors.Instructor, len(v))
+		copies := copy(dept_id_to_instructors[k], v)
+		if copies != len(v) {
+			return nil, fmt.Errorf("slice elements copied %d, internal department id to instructors map copy operation failed in generate new individual function", copies)
+		}
+	}
+
+	return &EncodingResource{
+		IsSchedIdxToSubIdToSkip: is_sched_idx_to_sub_id_to_skip,
+		DeptIdToInstructors:     dept_id_to_instructors,
+		DeptIdToRoomtypeToRooms: dept_id_to_room_type_to_rooms,
+	}, nil
+}
+
 // TODO: make a function to compare two `EncodingResource`.
 func IsEqualEncodingResource(a, b *EncodingResource) bool {
 

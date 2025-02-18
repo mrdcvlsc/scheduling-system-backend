@@ -2,7 +2,6 @@ package GeneticAlgorithm
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
 	"sort"
 	"time"
@@ -54,48 +53,6 @@ func EncodeIndividualGenome(
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	is_sched_idx_to_sub_id_to_skip := make(map[uint16]map[uint16]bool)
-
-	for out_k, out_v := range input_encoding_resource.IsSchedIdxToSubIdToSkip {
-		is_sched_idx_to_sub_id_to_skip[out_k] = make(map[uint16]bool)
-
-		for in_k, in_v := range out_v {
-			is_sched_idx_to_sub_id_to_skip[out_k][in_k] = in_v
-		}
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////
-
-	dept_id_to_room_type_to_rooms := make(map[uint16]map[uint16][]Rooms.Room)
-
-	for out_k, out_v := range input_encoding_resource.DeptIdToRoomtypeToRooms {
-		dept_id_to_room_type_to_rooms[out_k] = make(map[uint16][]Rooms.Room)
-
-		for in_k, in_v := range out_v {
-			dept_id_to_room_type_to_rooms[out_k][in_k] = make([]Rooms.Room, len(in_v))
-			copies := copy(dept_id_to_room_type_to_rooms[out_k][in_k], in_v)
-
-			if copies != len(in_v) {
-				log.Printf("copies : %d\tlen(dept_id_to_room_type_to_rooms[out_k][in_k] = %d/%d = in_v)\n", copies, len(dept_id_to_room_type_to_rooms[out_k][in_k]), len(in_v))
-				return nil, nil, fmt.Errorf("slice elements copied %d, internal department id to rooms map copy operation failed in generate new individual function", copies)
-			}
-		}
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////
-
-	dept_id_to_instructors := make(map[uint16][]Instructors.Instructor)
-
-	for k, v := range input_encoding_resource.DeptIdToInstructors {
-		dept_id_to_instructors[k] = make([]Instructors.Instructor, len(v))
-		copies := copy(dept_id_to_instructors[k], v)
-		if copies != len(v) {
-			return nil, nil, fmt.Errorf("slice elements copied %d, internal department id to instructors map copy operation failed in generate new individual function", copies)
-		}
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////
-
 	curriculums := make([]Curriculum.Curriculum, len(curriculums_arg))
 	copied_curriculums := copy(curriculums, curriculums_arg)
 
@@ -115,10 +72,10 @@ func EncodeIndividualGenome(
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	output_encoding_resource := &EncodingResource{
-		IsSchedIdxToSubIdToSkip: is_sched_idx_to_sub_id_to_skip,
-		DeptIdToInstructors:     dept_id_to_instructors,
-		DeptIdToRoomtypeToRooms: dept_id_to_room_type_to_rooms,
+	encoding_resource, err_make_copy := input_encoding_resource.MakeCopy()
+
+	if err_make_copy != nil {
+		return nil, nil, err_make_copy
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -127,8 +84,8 @@ func EncodeIndividualGenome(
 
 	for _, curriculum := range curriculums {
 
-		room_type_to_rooms := dept_id_to_room_type_to_rooms[curriculum.DepartmentID]
-		instructors := dept_id_to_instructors[curriculum.DepartmentID]
+		room_type_to_rooms := encoding_resource.DeptIdToRoomtypeToRooms[curriculum.DepartmentID]
+		instructors := encoding_resource.DeptIdToInstructors[curriculum.DepartmentID]
 
 		for _, year_level := range curriculum.YearLevels {
 
@@ -198,10 +155,10 @@ func EncodeIndividualGenome(
 
 						non_final_sched_idx := uint16(counted_sections)
 
-						if _, has_sched_idx := is_sched_idx_to_sub_id_to_skip[non_final_sched_idx]; has_sched_idx {
-							_, has_sub_id := is_sched_idx_to_sub_id_to_skip[non_final_sched_idx][subject.ID]
+						if _, has_sched_idx := encoding_resource.IsSchedIdxToSubIdToSkip[non_final_sched_idx]; has_sched_idx {
+							_, has_sub_id := encoding_resource.IsSchedIdxToSubIdToSkip[non_final_sched_idx][subject.ID]
 							if has_sub_id {
-								if is_sched_idx_to_sub_id_to_skip[non_final_sched_idx][subject.ID] {
+								if encoding_resource.IsSchedIdxToSubIdToSkip[non_final_sched_idx][subject.ID] {
 									subject_recorder[subject.ID] = subject
 									continue // skip since subject was already assigned
 								}
@@ -225,8 +182,8 @@ func EncodeIndividualGenome(
 								instructor_id_to_instructor[instructors[i].InstructorID] = &instructors[i]
 							}
 
-							for i := range dept_id_to_instructors[0] {
-								instructor_id_to_instructor[dept_id_to_instructors[0][i].InstructorID] = &dept_id_to_instructors[0][i]
+							for i := range encoding_resource.DeptIdToInstructors[0] {
+								instructor_id_to_instructor[encoding_resource.DeptIdToInstructors[0][i].InstructorID] = &encoding_resource.DeptIdToInstructors[0][i]
 							}
 
 							for _, specialized_id := range subject.DesignatedInstructors {
@@ -442,7 +399,7 @@ func EncodeIndividualGenome(
 
 										// search available gym for physical education subjects
 
-										gym := dept_id_to_room_type_to_rooms[0][2]
+										gym := encoding_resource.DeptIdToRoomtypeToRooms[0][2]
 
 										for room_idx := range gym {
 
@@ -604,12 +561,12 @@ func EncodeIndividualGenome(
 
 						// map encoding resource that this subject is already assigned.
 
-						if _, has_sched_idx := is_sched_idx_to_sub_id_to_skip[non_final_sched_idx]; !has_sched_idx {
-							is_sched_idx_to_sub_id_to_skip[non_final_sched_idx] = make(map[uint16]bool)
-							is_sched_idx_to_sub_id_to_skip[non_final_sched_idx][subject.ID] = true
+						if _, has_sched_idx := encoding_resource.IsSchedIdxToSubIdToSkip[non_final_sched_idx]; !has_sched_idx {
+							encoding_resource.IsSchedIdxToSubIdToSkip[non_final_sched_idx] = make(map[uint16]bool)
+							encoding_resource.IsSchedIdxToSubIdToSkip[non_final_sched_idx][subject.ID] = true
 						} else {
-							if _, has_sub_id := is_sched_idx_to_sub_id_to_skip[non_final_sched_idx][subject.ID]; !has_sub_id {
-								is_sched_idx_to_sub_id_to_skip[non_final_sched_idx][subject.ID] = true
+							if _, has_sub_id := encoding_resource.IsSchedIdxToSubIdToSkip[non_final_sched_idx][subject.ID]; !has_sub_id {
+								encoding_resource.IsSchedIdxToSubIdToSkip[non_final_sched_idx][subject.ID] = true
 							} else {
 								panic("woah woah woah!, you're not supposed to be here")
 							}
@@ -644,7 +601,7 @@ func EncodeIndividualGenome(
 		} // ------------- end of year_level loop -------------
 	} // ------------- end of curriculum loop -------------
 
-	return individual_university_schedules, output_encoding_resource, nil
+	return individual_university_schedules, encoding_resource, nil
 }
 
 // TODO: when generating solutions while the genetic algorithm is running, we should also generate an index file to be use for querying
