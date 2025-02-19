@@ -535,7 +535,14 @@ func EncodeIndividualGenome(
 
 					if len(subject_recorder) != len(semester.Subjects) {
 						panic(fmt.Sprintf(
-							"there are some subjects that was not assigned for some reason (%d/%d)", len(subject_recorder), len(semester.Subjects),
+							"there are some subjects in %s %s %s %s that was not assigned for some reason s(%d/%d), i(%d), r(%d)",
+							dept_id_to_department[curriculum.DepartmentID].Code,
+							curriculum.CurriculumCode,
+							year_level.Name,
+							semester.Name,
+							len(subject_recorder), len(semester.Subjects),
+							len(instructors),
+							len(room_type_to_rooms[Rooms.ROOM_TYPE_LAB])+len(room_type_to_rooms[Rooms.ROOM_TYPE_LEC]),
 						))
 					}
 
