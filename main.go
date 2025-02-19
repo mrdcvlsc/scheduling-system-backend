@@ -135,9 +135,6 @@ func main() {
 		v1.GET("/generate_schedule", RoutesV1.GenerateSchedule) // for dev only
 	}
 
-	v1.GET("/test_read", RoutesV1.TestRead)
-	v1.GET("/test_write", RoutesV1.TestWrite)
-
 	//////////////////////////////////////////////////////////////////////////
 
 	if os.Getenv("GIN_MODE") != "release" {
