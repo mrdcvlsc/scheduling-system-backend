@@ -189,6 +189,13 @@ func EncodeIndividualGenome(
 								}
 							}
 
+							if len(specialized_instructors) == 0 {
+								return nil, nil, fmt.Errorf(
+									"the specialized instructor(s) added in %s %s %s section[%d] subject %s are not found in the department instructors and general instructors",
+									curriculum.CurriculumCode, year_level.Name, semester.Name, section_idx, subject.Code,
+								)
+							}
+
 							// shuffle specialized instructors
 							rng.Shuffle(len(specialized_instructors), func(i, j int) {
 								specialized_instructors[i], specialized_instructors[j] = specialized_instructors[j], specialized_instructors[i]
