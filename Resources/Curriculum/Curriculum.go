@@ -1,7 +1,7 @@
 package Curriculum
 
 type Curriculum struct {
-	CurriculumID   uint16      // non negative & non-zero unique number even if for example we have Computer Science (OLD) and Computer Science (New)
+	CurriculumID   uint16      `json:"CurriculumID"`   // non negative & non-zero unique number even if for example we have Computer Science (OLD) and Computer Science (New)
 	CurriculumName string      `json:"CurriculumName"` // e.g. Computer Science, Information Technology
 	CurriculumCode string      `json:"CurriculumCode"` // e.g. BSCS, BSIT
 	DepartmentID   uint16      `json:"DepartmentID"`

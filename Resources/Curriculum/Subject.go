@@ -7,7 +7,7 @@ const FLAG_BIT_MASK uint32 = 0b1111111111111111 << 16
 // use to read and write subject information from and to the database.
 type Subject struct {
 	// this should never be zero, zero means empty, none or nothing.
-	ID       uint16
+	ID       uint16 `json:"ID,omitempty"`
 	Code     string `json:"Code"`
 	Name     string `json:"Name"`
 	LecHours uint8  `json:"LecHours"`
@@ -22,7 +22,7 @@ type Subject struct {
 	// if there are some designated instructor IDs here, the algorithm
 	// will immediately assign the instructor to the allocated subject
 	// time slot, in the InstructorMonitor
-	DesignatedInstructors []uint16 `json:"DesignatedInstructorsID"`
+	DesignatedInstructors []uint16 `json:"DesignatedInstructorsID,omitempty"`
 }
 
 // [16-bit flags hrs][8-bit lab hrs][8-bit lec hrs]
