@@ -1,0 +1,42 @@
+package RoutesV1
+
+import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
+	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
+)
+
+/*
+POST:
+
+	"/instructor_update"
+*/
+func PostInstructor(ctx *gin.Context) {
+	update_instructor_with_time_str := Instructors.InstructorWithTimeString{}
+
+	if err := ctx.BindJSON(&update_instructor_with_time_str); err != nil {
+		ctx.String(http.StatusBadRequest, "we are unable to properly read instructor update data")
+		return
+	}
+
+	update_instructor := Instructors.Instructor{
+		InstructorID:  update_instructor_with_time_str.InstructorID,
+		DepartmentID:  update_instructor_with_time_str.DepartmentID,
+		FirstName:     update_instructor_with_time_str.FirstName,
+		MiddleInitial: update_instructor_with_time_str.MiddleInitial,
+		LastName:      update_instructor_with_time_str.LastName,
+	}
+
+	update_instructor.Time.StringParse(update_instructor_with_time_str.Time)
+
+	err := RouteGlobals.ResourcesPersistence.WriterService.UpdateInstructor(update_instructor)
+
+	if err != nil {
+		ctx.String(http.StatusBadRequest, "we are unable to properly read instructor update data")
+		return
+	}
+
+	ctx.String(http.StatusOK, "instructor update successful")
+}

@@ -238,34 +238,5 @@ func (s *JsonReader) ReadAllDepartments() ([]Departments.Department, error) {
 }
 
 func (s *JsonReader) ReadAllInstructorsWithTimeString() ([]Instructors.InstructorWithTimeString, error) {
-
-	project_root, err_project_root := Utils.FindProjectRoot()
-
-	if err_project_root != nil {
-		return nil, err_project_root
-	}
-
-	instructors_json_file := path.Join(project_root, "scheduling-system-temporary-data", "instructors.json")
-	instructors_byte_data, err := os.ReadFile(instructors_json_file)
-
-	if err != nil {
-		return nil, err
-	}
-
-	instructors := make([]Instructors.InstructorWithTimeString, 0)
-	err = json.Unmarshal(instructors_byte_data, &instructors)
-
-	if err != nil {
-		return nil, err
-	}
-
-	for idx := range instructors {
-		instructors[idx].InstructorID = uint16(idx + 1)
-	}
-
-	sort.Slice(instructors, func(i, j int) bool {
-		return instructors[i].InstructorID < instructors[j].InstructorID
-	})
-
-	return instructors, nil
+	return json_read_all_instructors_with_time_string()
 }
