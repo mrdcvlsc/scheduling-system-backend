@@ -489,7 +489,10 @@ func EncodeIndividualGenome(
 										selected_room.IncTimeSlotClassCount(day, selected_time_slot)
 
 										if subject.ID == 0 {
-											panic("that subject.ID should never be zero")
+											panic(fmt.Sprintf(
+												"%s %s %s section[%d] %s %s's subject id should never be zero",
+												curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, subject.Code, subject.Name,
+											))
 										}
 
 										day_sched.GetTimeSlot(selected_time_slot).SetSubjectID(subject.ID)
