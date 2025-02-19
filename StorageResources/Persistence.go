@@ -18,8 +18,20 @@ type readerRepository interface {
 }
 
 type writerRepository interface {
-	CreateInstructor(instructor Instructors.Instructor) error
-	UpdateInstructor(instructor Instructors.Instructor) error
+	CreateDepartment(new_department Departments.Department) error
+	UpdateDepartment(department_to_update Departments.Department) error
+
+	CreateSubject(new_subject Curriculum.Subject) error
+	UpdateSubject(subject_to_update Curriculum.Subject) error
+
+	CreateCurriculum(new_curriculum Curriculum.Curriculum) error
+	UpdateCurriculum(curriculum_to_update Curriculum.Curriculum) error
+
+	CreateInstructor(new_instructor Instructors.Instructor) error
+	UpdateInstructor(instructor_to_update Instructors.Instructor) error
+
+	CreateRoom(new_room Rooms.Room) error
+	UpdateRoom(room_to_update Rooms.Room) error
 }
 
 type Persistence struct {
