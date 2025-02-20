@@ -14,9 +14,9 @@ import (
 /*
 GET:
 
-	"/instructor_erd?department_id=D"
+	"/instructors/d?department_id=D"
 */
-func GetDepartmentInstructorsEncodingResourceDefault(ctx *gin.Context) {
+func GetDepartmentInstructorsDefaults(ctx *gin.Context) {
 	department_id, is_valid_department_id_param := IsValidParameterDepartmentID(ctx)
 
 	if !is_valid_department_id_param {
@@ -65,9 +65,9 @@ func GetDepartmentInstructorsEncodingResourceDefault(ctx *gin.Context) {
 /*
 GET:
 
-	"/instructor_era?department_id=D&semester=[0-1]"
+	"/instructors/a?department_id=D&semester=[0-1]"
 */
-func GetDepartmentInstructorsEncodingResourceAllocation(ctx *gin.Context) {
+func GetDepartmentInstructorsAllocated(ctx *gin.Context) {
 	department_id, is_valid_department_id_param := IsValidParameterDepartmentID(ctx)
 
 	if !is_valid_department_id_param {
