@@ -6,6 +6,7 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/contrib/static"
@@ -107,6 +108,17 @@ func main() {
 
 	router.Use(static.Serve("/", static.LocalFile("./dist", true)))
 	router.Use(sessions.Sessions("session_id", SessionStore))
+
+	if gin.Mode() != gin.ReleaseMode {
+		router.Use(cors.New(cors.Config{
+			AllowOrigins:     []string{"http://localhost:5173", "http://127.0.0.1:5173", "http://192.168.1.*:5173", "http://192.168.0.*:5173"},
+			AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+			AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept"},
+			ExposeHeaders:    []string{"Content-Length"},
+			AllowCredentials: true,
+			AllowWildcard:    true, // Enable wildcard support for 192.168.1.*
+		}))
+	}
 
 	//////////////////////////////////////////////////////////////////////////
 	//                              API-v1
