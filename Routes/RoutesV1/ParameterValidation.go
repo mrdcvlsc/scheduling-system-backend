@@ -47,7 +47,7 @@ func IsValidParameterDepartmentID(ctx *gin.Context) (int, bool) {
 		return -1, false
 	}
 
-	if department_id <= 0 {
+	if department_id < 0 {
 		ctx.String(http.StatusBadRequest, "invalid 'department_id' value")
 		return -1, false
 	}
