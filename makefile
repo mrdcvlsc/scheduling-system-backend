@@ -13,6 +13,11 @@ project_uml.puml:
 	rm project_uml.puml
 	@goplantuml -recursive -show-aggregations -show-aliases -show-compositions -show-connection-labels -show-implementations -aggregate-private-members ./ > project_uml.puml
 
+devr_local:
+	rm -rf scheduling-system-temporary-data
+	cd ../scheduling-system-temporary-data && python unify-subjects.py && python pack.py && mv release.zip ../scheduling-system-backend
+	unzip release.zip -d ./scheduling-system-temporary-data
+
 devr:
 	@echo Download Test Data
 	rm -rf scheduling-system-temporary-data
