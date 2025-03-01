@@ -102,7 +102,7 @@ const MIN_SUBJECT_ROOM_HOUR_BUFFER int = 200
 // The minimum recommended difference between the total available instructor hours in a department
 // and the total lecture and laboratory hours combined for all subjects in the department.
 // This ensures that schedules can be generated with minimal risk of resource shortages.
-const MIN_SUBJECT_INSTRUCTOR_HOUR_BUFFER int = 200
+const MIN_SUBJECT_INSTRUCTOR_HOUR_BUFFER int = 302
 
 type Totals struct {
 	DepartmentID uint16
