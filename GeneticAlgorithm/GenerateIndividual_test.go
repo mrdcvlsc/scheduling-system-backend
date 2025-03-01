@@ -83,11 +83,6 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 		total_sections_calculated := Curriculum.GetTotalNumberOfSections(curriculums, target_semester)
 		empty_university_schedule := GeneticAlgorithm.NewEmptyIndividual(curriculums, target_semester)
 
-		t.Logf(
-			"the calculated total sections for the semester index %d is %d, and the generated empty schedules contains %d | iter : %d",
-			target_semester, total_sections_calculated, len(empty_university_schedule), i,
-		)
-
 		if total_sections_calculated != len(empty_university_schedule) {
 			t.Fatalf(
 				"the calculated total sections for the semester index %d is %d, but the generated empty schedules only contains %d which is a mismatch",
@@ -256,6 +251,8 @@ new_population_loop:
 
 		track_resources := encoding_resource
 		track_schedules := empty_university_schedule
+
+		all_departments = all_departments[1:]
 
 		for department_idx, department := range all_departments {
 
