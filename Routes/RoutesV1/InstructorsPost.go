@@ -11,32 +11,32 @@ import (
 /*
 POST:
 
-	"/instructor_update"
+	"/instructor_add"
 */
 func PostInstructor(ctx *gin.Context) {
-	update_instructor_with_time_str := Instructors.InstructorWithTimeString{}
+	add_instructor_with_time_str := Instructors.InstructorWithTimeString{}
 
-	if err := ctx.BindJSON(&update_instructor_with_time_str); err != nil {
-		ctx.String(http.StatusBadRequest, "we are unable to properly read instructor update data")
+	if err := ctx.BindJSON(&add_instructor_with_time_str); err != nil {
+		ctx.String(http.StatusBadRequest, "we are unable to properly read the instructor to be add")
 		return
 	}
 
-	update_instructor := Instructors.Instructor{
-		InstructorID:  update_instructor_with_time_str.InstructorID,
-		DepartmentID:  update_instructor_with_time_str.DepartmentID,
-		FirstName:     update_instructor_with_time_str.FirstName,
-		MiddleInitial: update_instructor_with_time_str.MiddleInitial,
-		LastName:      update_instructor_with_time_str.LastName,
+	add_instructor := Instructors.Instructor{
+		InstructorID:  add_instructor_with_time_str.InstructorID,
+		DepartmentID:  add_instructor_with_time_str.DepartmentID,
+		FirstName:     add_instructor_with_time_str.FirstName,
+		MiddleInitial: add_instructor_with_time_str.MiddleInitial,
+		LastName:      add_instructor_with_time_str.LastName,
 	}
 
-	update_instructor.Time.StringParse(update_instructor_with_time_str.Time)
+	add_instructor.Time.StringParse(add_instructor_with_time_str.Time)
 
-	err := RouteGlobals.ResourcesPersistence.WriterService.UpdateInstructor(update_instructor)
+	err := RouteGlobals.ResourcesPersistence.WriterService.CreateInstructor(add_instructor)
 
 	if err != nil {
-		ctx.String(http.StatusBadRequest, "we are unable to properly read instructor update data")
+		ctx.String(http.StatusBadRequest, "we are unable to properly add the instructor")
 		return
 	}
 
-	ctx.String(http.StatusOK, "instructor update successful")
+	ctx.String(http.StatusOK, "instructor added successfully")
 }

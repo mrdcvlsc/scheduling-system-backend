@@ -530,25 +530,26 @@ func TestJsonFilePersistence_CurriculumCRU(t *testing.T) {
 
 	// fmt.Print("============================================ CURRICULUMS CRU BEFORE ============================================\n\n")
 
-	// Utils.PrettyPrint(all_curriculums1)
-
-	// update
+	old_curriculum_name := fmt.Sprintf("%s.json", Utils.RemoveWhiteSpace(all_curriculums1[2].CurriculumCode))
 
 	all_curriculums1[2].CurriculumCode = "BS EMT"
 	all_curriculums1[2].CurriculumName = "Bachelor of Science in Electro-Mechanical Technology"
 	all_curriculums1[2].DepartmentID = 5
 	all_curriculums1[2].YearLevels[0].Semesters[0].Sections = 8
+
+	// this subject will not auto generate an ID in the last comparison test, so we need to
+	// manually assign the current correct subject ID for the associated subject Code.
 	all_curriculums1[2].YearLevels[0].Semesters[0].Subjects = []Curriculum.Subject{{
-		ID:                    137,
+		ID:                    239,
 		Code:                  "ITEC 50",
 		Name:                  "Web Systems and Technologies",
 		LecHours:              3,
 		LabHours:              1,
 		BitFlags:              0,
-		DesignatedInstructors: []uint16{61},
+		DesignatedInstructors: []uint16{76},
 	}}
 
-	err_update_curriculum := TestPersistence.WriterService.UpdateCurriculum(all_curriculums1[2])
+	err_update_curriculum := TestPersistence.WriterService.UpdateCurriculum(old_curriculum_name, all_curriculums1[2])
 
 	if err_update_curriculum != nil {
 		t.Error(err_update_curriculum)
@@ -567,13 +568,12 @@ func TestJsonFilePersistence_CurriculumCRU(t *testing.T) {
 				Name:     "1st Semester",
 				Sections: 4,
 				Subjects: []Curriculum.Subject{{
-					ID:                    138,
 					Code:                  "ITEC 55",
 					Name:                  "Platform Technologies",
 					LecHours:              3,
 					LabHours:              5,
 					BitFlags:              0,
-					DesignatedInstructors: []uint16{58, 62, 65},
+					DesignatedInstructors: []uint16{76, 80, 86},
 				}},
 			}},
 		}},
@@ -602,25 +602,34 @@ func TestJsonFilePersistence_CurriculumCRU(t *testing.T) {
 	// read length test
 
 	if len(all_curriculums1) == len(all_curriculum2) {
-		t.Error("the length of instructors from before and after should not be equal")
+		t.Error("the length of all_curriculums from before and after should not be equal")
 	}
 
 	// test update
 
-	if all_curriculum2[2].CurriculumCode != "BS EMT" {
+	if all_curriculum2[2].CurriculumCode != all_curriculums1[2].CurriculumCode {
 		t.Errorf("wrong `all_curriculum2[2].CurriculumCode : (%s)`", all_curriculum2[2].CurriculumCode)
 	}
 
-	if all_curriculum2[2].CurriculumName != "Bachelor of Science in Electro-Mechanical Technology" {
+	if all_curriculum2[2].CurriculumName != all_curriculums1[2].CurriculumName {
 		t.Errorf("wrong `all_curriculum2[2].CurriculumName : %s`", all_curriculum2[2].CurriculumName)
 	}
 
-	if all_curriculum2[2].DepartmentID != 5 {
+	if all_curriculum2[2].DepartmentID != all_curriculums1[2].DepartmentID {
 		t.Errorf("wrong `all_curriculum2[2].DepartmentID : %d`", all_curriculum2[2].DepartmentID)
 	}
 
-	if !reflect.DeepEqual(all_curriculum2[2], all_curriculums1[2]) {
+	if all_curriculum2[2].CurriculumID != all_curriculums1[2].CurriculumID {
+		t.Errorf("wrong `all_curriculum2[2].CurriculumID : %d`", all_curriculum2[2].CurriculumID)
+	}
+
+	if !reflect.DeepEqual(all_curriculum2[2].YearLevels, all_curriculums1[2].YearLevels) {
 		t.Error("wrong `all_curriculum2[2].YearLevels...`")
+		fmt.Printf("================================= all_curriculum2[2].YearLevels ==================================\n")
+		Utils.PrettyPrint(all_curriculum2[2].YearLevels)
+		fmt.Printf("================================= all_curriculums1[2].YearLevels =================================\n")
+		Utils.PrettyPrint(all_curriculums1[2].YearLevels)
+		fmt.Printf("==================================================================================================\n")
 	}
 
 	// test create

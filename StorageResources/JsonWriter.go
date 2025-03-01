@@ -3,8 +3,6 @@ package StorageResources
 import (
 	"errors"
 	"fmt"
-	"os"
-	"path"
 	"strings"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
@@ -299,10 +297,10 @@ func (s *JsonWriter) CreateCurriculum(new_curriculum Curriculum.Curriculum) erro
 	return nil
 }
 
-func (s *JsonWriter) UpdateCurriculum(curriculum_to_update Curriculum.Curriculum) error {
+func (s *JsonWriter) UpdateCurriculum(curriculum_old_name string, curriculum_new Curriculum.Curriculum) error {
 
-	if curriculum_to_update.CurriculumID == 0 {
-		return errors.New("parameter argument missing invalid instructor ID")
+	if curriculum_new.CurriculumID == 0 {
+		return errors.New("parameter argument missing invalid CurriculumID")
 	}
 
 	all_curriculums, err_read := json_read_all_curriculums()
@@ -312,12 +310,10 @@ func (s *JsonWriter) UpdateCurriculum(curriculum_to_update Curriculum.Curriculum
 	}
 
 	has_id := false
-	to_update_idx := -1
 
-	for idx, curriculum := range all_curriculums {
-		if curriculum.CurriculumID == curriculum_to_update.CurriculumID {
+	for _, curriculum := range all_curriculums {
+		if curriculum.CurriculumID == curriculum_new.CurriculumID {
 			has_id = true
-			to_update_idx = idx
 			break
 		}
 	}
@@ -326,33 +322,14 @@ func (s *JsonWriter) UpdateCurriculum(curriculum_to_update Curriculum.Curriculum
 		return errors.New("instructor to update does not exist in the json file")
 	}
 
-	err_save_curriculums := json_save_curriculum(
-		fmt.Sprintf("%s.json", Utils.RemoveWhiteSpace(curriculum_to_update.CurriculumCode)),
-		Curriculum.Curriculum{
-			CurriculumID:   curriculum_to_update.CurriculumID,
-			CurriculumName: curriculum_to_update.CurriculumName,
-			CurriculumCode: curriculum_to_update.CurriculumCode,
-			DepartmentID:   curriculum_to_update.DepartmentID,
-			YearLevels:     curriculum_to_update.YearLevels,
-		},
+	err_save_curriculums := json_edit_curriculum(
+		curriculum_old_name,
+		fmt.Sprintf("%s.json", Utils.RemoveWhiteSpace(curriculum_new.CurriculumCode)),
+		curriculum_new,
 	)
 
 	if err_save_curriculums != nil {
 		return err_save_curriculums
-	}
-
-	old_curriculum_json_file := fmt.Sprintf("%s.json", Utils.RemoveWhiteSpace(all_curriculums[to_update_idx].CurriculumCode))
-
-	project_root, err_project_root := Utils.FindProjectRoot()
-
-	if err_project_root != nil {
-		return err_project_root
-	}
-
-	file_to_delete := path.Join(project_root, "scheduling-system-temporary-data", "curriculums", old_curriculum_json_file)
-
-	if err_delete := os.Remove(file_to_delete); err_delete != nil {
-		return err_delete
 	}
 
 	return nil
@@ -428,6 +405,80 @@ func (s *JsonWriter) UpdateInstructor(instructor_to_update Instructors.Instructo
 
 	if err_save_instructors != nil {
 		return err_save_instructors
+	}
+
+	return nil
+}
+
+func (s *JsonWriter) DeleteInstructor(instructor_id uint16) error {
+
+	if instructor_id == 0 {
+		return errors.New("parameter argument missing invalid instructor ID")
+	}
+
+	instructors_with_time_str, err_read := json_read_all_instructors_with_time_string()
+
+	if err_read != nil {
+		return err_read
+	}
+
+	instructors_with_time_string_deleted := make([]Instructors.InstructorWithTimeString, 0)
+
+	has_id := false
+
+	for _, instructor_w_t_str := range instructors_with_time_str {
+		if instructor_w_t_str.InstructorID == instructor_id {
+			has_id = true
+		} else {
+			instructors_with_time_string_deleted = append(instructors_with_time_string_deleted, instructor_w_t_str)
+		}
+	}
+
+	if !has_id {
+		return errors.New("instructor to update does not exist in the json file")
+	}
+
+	err_save_instructors := json_save_all_instructors_with_time_string(instructors_with_time_string_deleted)
+
+	if err_save_instructors != nil {
+		return err_save_instructors
+	}
+
+	return nil
+}
+
+func (s *JsonWriter) DeleteRoom(room_id uint16) error {
+
+	if room_id == 0 {
+		return errors.New("parameter argument missing invalid room ID")
+	}
+
+	all_rooms, err_read := json_read_all_rooms()
+
+	if err_read != nil {
+		return err_read
+	}
+
+	rooms_deleted := make([]Rooms.Room, 0)
+
+	has_id := false
+
+	for _, room := range all_rooms {
+		if room.RoomID == room_id {
+			has_id = true
+		} else {
+			rooms_deleted = append(rooms_deleted, room)
+		}
+	}
+
+	if !has_id {
+		return errors.New("room to update does not exist in the json file")
+	}
+
+	err_save_rooms := json_save_all_rooms(rooms_deleted)
+
+	if err_save_rooms != nil {
+		return err_save_rooms
 	}
 
 	return nil

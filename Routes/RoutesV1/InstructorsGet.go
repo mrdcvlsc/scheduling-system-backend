@@ -14,12 +14,21 @@ import (
 /*
 GET:
 
-	"/instructors/d?department_id=D"
+	"/instructors/d?department_id=D&page_size=[N>0]&page[0-N>0]"
 */
 func GetDepartmentInstructorsDefaults(ctx *gin.Context) {
 	department_id, is_valid_department_id_param := IsValidParameterDepartmentID(ctx)
-
 	if !is_valid_department_id_param {
+		return
+	}
+
+	page_size, is_valid_page_size_param := IsValidPageSize(ctx)
+	if !is_valid_page_size_param {
+		return
+	}
+
+	page, is_valid_page_param := IsValidPage(ctx)
+	if !is_valid_page_param {
 		return
 	}
 
@@ -31,25 +40,21 @@ func GetDepartmentInstructorsDefaults(ctx *gin.Context) {
 		return
 	}
 
-	general_instructors := default_encoding_resource.DeptIdToInstructors[0]
-
 	department_instructors := default_encoding_resource.DeptIdToInstructors[uint16(department_id)]
+	department_instructors_stringify_time := make([]Instructors.InstructorWithTimeString, 0)
 
-	combined_instructors := make([]Instructors.Instructor, 0)
+	for i, instructor := range department_instructors {
+		if i < (page_size * page) {
+			continue
+		}
 
-	combined_instructors = append(combined_instructors, general_instructors...)
-	combined_instructors = append(combined_instructors, department_instructors...)
-
-	combined_instructor_stringify_time := make([]Instructors.InstructorWithTimeString, 0)
-
-	for _, instructor := range combined_instructors {
 		time_stringify := make([]string, 0)
 
 		for _, limb := range instructor.Time {
 			time_stringify = append(time_stringify, strconv.FormatUint(limb, 10))
 		}
 
-		combined_instructor_stringify_time = append(combined_instructor_stringify_time, Instructors.InstructorWithTimeString{
+		department_instructors_stringify_time = append(department_instructors_stringify_time, Instructors.InstructorWithTimeString{
 			InstructorID:  instructor.InstructorID,
 			DepartmentID:  instructor.DepartmentID,
 			FirstName:     instructor.FirstName,
@@ -57,15 +62,19 @@ func GetDepartmentInstructorsDefaults(ctx *gin.Context) {
 			LastName:      instructor.LastName,
 			Time:          time_stringify,
 		})
+
+		if len(department_instructors_stringify_time) > page_size {
+			break
+		}
 	}
 
-	ctx.JSON(http.StatusOK, combined_instructor_stringify_time)
+	ctx.JSON(http.StatusOK, department_instructors_stringify_time)
 }
 
 /*
 GET:
 
-	"/instructors/a?department_id=D&semester=[0-1]"
+	"/instructors/a?department_id=D&semester=[0-1]&page_size=[N>0]&page[0-N>0]"
 */
 func GetDepartmentInstructorsAllocated(ctx *gin.Context) {
 	department_id, is_valid_department_id_param := IsValidParameterDepartmentID(ctx)
@@ -77,6 +86,16 @@ func GetDepartmentInstructorsAllocated(ctx *gin.Context) {
 	selected_semester, is_valid_semester_param := IsValidParameterSemesterIndex(ctx)
 
 	if !is_valid_semester_param {
+		return
+	}
+
+	page_size, is_valid_page_size_param := IsValidPageSize(ctx)
+	if !is_valid_page_size_param {
+		return
+	}
+
+	page, is_valid_page_param := IsValidPage(ctx)
+	if !is_valid_page_param {
 		return
 	}
 
@@ -106,19 +125,16 @@ func GetDepartmentInstructorsAllocated(ctx *gin.Context) {
 		return
 	}
 
-	general_instructors := university_encoding_resource.DeptIdToInstructors[0]
-
 	department_instructors := university_encoding_resource.DeptIdToInstructors[uint16(department_id)]
 
-	combined_instructors := make([]Instructors.Instructor, 0)
+	department_instructors_stringify_time := make([]Instructors.InstructorWithTimeString, 0)
 
-	combined_instructors = append(combined_instructors, general_instructors...)
-	combined_instructors = append(combined_instructors, department_instructors...)
+	for i, instructor := range department_instructors {
+		if i < (page_size * page) {
+			continue
+		}
 
-	combined_instructor_stringify_time := make([]Instructors.InstructorWithTimeString, 0)
-
-	for _, instructor := range combined_instructors {
-		combined_instructor_stringify_time = append(combined_instructor_stringify_time, Instructors.InstructorWithTimeString{
+		department_instructors_stringify_time = append(department_instructors_stringify_time, Instructors.InstructorWithTimeString{
 			InstructorID:  instructor.InstructorID,
 			DepartmentID:  instructor.DepartmentID,
 			FirstName:     instructor.FirstName,
@@ -126,7 +142,11 @@ func GetDepartmentInstructorsAllocated(ctx *gin.Context) {
 			LastName:      instructor.LastName,
 			Time:          instructor.Time.Stringify(),
 		})
+
+		if len(department_instructors_stringify_time) > page_size {
+			break
+		}
 	}
 
-	ctx.JSON(http.StatusOK, combined_instructor_stringify_time)
+	ctx.JSON(http.StatusOK, department_instructors_stringify_time)
 }

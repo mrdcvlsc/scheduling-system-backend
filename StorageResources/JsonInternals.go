@@ -177,6 +177,34 @@ func json_save_curriculum(filename string, curriculum Curriculum.Curriculum) err
 	return nil
 }
 
+func json_edit_curriculum(filename_old, filename_new string, curriculum_new Curriculum.Curriculum) error {
+
+	project_root, err_project_root := Utils.FindProjectRoot()
+
+	if err_project_root != nil {
+		return err_project_root
+	}
+
+	old_curriculum_json_file := path.Join(project_root, "scheduling-system-temporary-data", "curriculums", filename_old)
+	new_curriculum_json_file := path.Join(project_root, "scheduling-system-temporary-data", "curriculums", filename_new)
+
+	curriculum_byte_data, err_marshal_indent := json.MarshalIndent(curriculum_new, "", "  ")
+
+	if err_marshal_indent != nil {
+		return err_marshal_indent
+	}
+
+	if err_write_file := os.WriteFile(new_curriculum_json_file, curriculum_byte_data, 0644); err_write_file != nil {
+		return err_write_file
+	}
+
+	if err_remove := os.Remove(old_curriculum_json_file); err_remove != nil {
+		return err_remove
+	}
+
+	return nil
+}
+
 func json_read_all_subjects() ([]Curriculum.Subject, error) {
 
 	project_root, err_project_root := Utils.FindProjectRoot()

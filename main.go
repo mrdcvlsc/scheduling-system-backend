@@ -133,7 +133,7 @@ func main() {
 
 	v1.GET("/instructors/d", RoutesV1.GetDepartmentInstructorsDefaults)
 	v1.GET("/instructors/a", RoutesV1.GetDepartmentInstructorsAllocated)
-	v1.POST("/instructor_update", RoutesV1.PostInstructor)
+	v1.PATCH("/instructor_update", RoutesV1.PatchInstructor)
 
 	v1.GET("/university_schedule", RoutesV1.GetUniversitySchedule)
 	v1.POST("/university_schedule", RoutesV1.PostUniversitySchedule)

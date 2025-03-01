@@ -90,3 +90,74 @@ func IsValidUniversityScheduleIndex(ctx *gin.Context, university_schedule Schedu
 
 	return schedule_idx, true
 }
+
+// requires a 'page_size' parameter then validate it.
+func IsValidPageSize(ctx *gin.Context) (int, bool) {
+	parameter := ctx.Query("page_size")
+
+	if parameter == "" {
+		ctx.String(http.StatusBadRequest, "missing 'page_size' parameter or parameter value")
+		return -1, false
+	}
+
+	page_size, err_atoi := strconv.Atoi(parameter)
+
+	if err_atoi != nil {
+		ctx.String(http.StatusBadRequest, "invalid 'page_size' parameter value")
+		return -1, false
+	}
+
+	if page_size < 1 {
+		ctx.String(http.StatusBadRequest, "invalid 'page_size' index value")
+		return -1, false
+	}
+
+	return page_size, true
+}
+
+// requires a 'page' parameter then validate it.
+func IsValidPage(ctx *gin.Context) (int, bool) {
+	parameter := ctx.Query("page")
+
+	if parameter == "" {
+		ctx.String(http.StatusBadRequest, "missing 'page' parameter or parameter value")
+		return -1, false
+	}
+
+	page, err_atoi := strconv.Atoi(parameter)
+
+	if err_atoi != nil {
+		ctx.String(http.StatusBadRequest, "invalid 'page' parameter value")
+		return -1, false
+	}
+
+	if page < 0 {
+		ctx.String(http.StatusBadRequest, "invalid 'page' index value")
+		return -1, false
+	}
+
+	return page, true
+}
+
+func IsValidInstructorID(ctx *gin.Context) (int, bool) {
+	param_instructor_id := ctx.Query("instructor_id")
+
+	if param_instructor_id == "" {
+		ctx.String(http.StatusBadRequest, "missing 'instructor_id' parameter or parameter value")
+		return -1, false
+	}
+
+	instructor_id, err_atoi := strconv.Atoi(param_instructor_id)
+
+	if err_atoi != nil {
+		ctx.String(http.StatusBadRequest, "invalid 'instructor_id' parameter value")
+		return -1, false
+	}
+
+	if instructor_id < 1 {
+		ctx.String(http.StatusBadRequest, "invalid 'instructor_id' value")
+		return -1, false
+	}
+
+	return instructor_id, true
+}
