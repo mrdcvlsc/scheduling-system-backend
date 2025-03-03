@@ -11,6 +11,11 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 )
 
+type InstructorTablePage struct {
+	Instructors      []Instructors.InstructorWithTimeString `json:"Instructors"`
+	TotalInstructors int                                    `json:"TotalInstructors"`
+}
+
 /*
 GET:
 
@@ -63,12 +68,17 @@ func GetDepartmentInstructorsDefaults(ctx *gin.Context) {
 			Time:          time_stringify,
 		})
 
-		if len(department_instructors_stringify_time) > page_size {
+		if len(department_instructors_stringify_time) >= page_size {
 			break
 		}
 	}
 
-	ctx.JSON(http.StatusOK, department_instructors_stringify_time)
+	instructor_table_page := &InstructorTablePage{
+		Instructors:      department_instructors_stringify_time,
+		TotalInstructors: len(department_instructors),
+	}
+
+	ctx.JSON(http.StatusOK, instructor_table_page)
 }
 
 /*
@@ -143,10 +153,15 @@ func GetDepartmentInstructorsAllocated(ctx *gin.Context) {
 			Time:          instructor.Time.Stringify(),
 		})
 
-		if len(department_instructors_stringify_time) > page_size {
+		if len(department_instructors_stringify_time) >= page_size {
 			break
 		}
 	}
 
-	ctx.JSON(http.StatusOK, department_instructors_stringify_time)
+	instructor_table_page := &InstructorTablePage{
+		Instructors:      department_instructors_stringify_time,
+		TotalInstructors: len(department_instructors),
+	}
+
+	ctx.JSON(http.StatusOK, instructor_table_page)
 }
