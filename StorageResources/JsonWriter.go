@@ -28,7 +28,7 @@ func (s *JsonWriter) CreateDepartment(new_department Departments.Department) err
 	}
 
 	all_departments = append(all_departments, Departments.Department{
-		DepartmentID: uint16(len(all_departments) + 1),
+		DepartmentID: all_departments[len(all_departments)-1].DepartmentID + 1,
 		Code:         new_department.Code,
 		Name:         new_department.Name,
 	})
@@ -93,7 +93,7 @@ func (s *JsonWriter) CreateRoom(new_room Rooms.Room) error {
 	}
 
 	all_rooms = append(all_rooms, Rooms.Room{
-		RoomID:       uint16(len(all_rooms) + 1),
+		RoomID:       all_rooms[len(all_rooms)-1].RoomID + 1,
 		DepartmentID: new_room.DepartmentID,
 		Capacity:     new_room.Capacity,
 		RoomType:     new_room.RoomType,
@@ -166,7 +166,7 @@ func (s *JsonWriter) CreateSubject(new_subject Curriculum.Subject) error {
 	}
 
 	all_subject = append(all_subject, Curriculum.Subject{
-		ID:                    uint16(len(all_subject) + 1),
+		ID:                    all_subject[len(all_subject)-1].ID + 1,
 		Code:                  new_subject.Code,
 		Name:                  new_subject.Name,
 		LecHours:              new_subject.LecHours,
@@ -282,7 +282,7 @@ func (s *JsonWriter) CreateCurriculum(new_curriculum Curriculum.Curriculum) erro
 	err_save_curriculums := json_save_curriculum(
 		fmt.Sprintf("%s.json", Utils.RemoveWhiteSpace(new_curriculum.CurriculumCode)),
 		Curriculum.Curriculum{
-			CurriculumID:   uint16(len(all_curriculums) + 1),
+			CurriculumID:   all_curriculums[len(all_curriculums)-1].CurriculumID + 1,
 			CurriculumName: new_curriculum.CurriculumName,
 			CurriculumCode: new_curriculum.CurriculumCode,
 			DepartmentID:   new_curriculum.DepartmentID,
@@ -348,7 +348,7 @@ func (s *JsonWriter) CreateInstructor(new_instructor Instructors.Instructor) err
 	}
 
 	instructors_with_time_str = append(instructors_with_time_str, Instructors.InstructorWithTimeString{
-		InstructorID:  uint16(len(instructors_with_time_str) + 1),
+		InstructorID:  instructors_with_time_str[len(instructors_with_time_str)-1].InstructorID + 1,
 		DepartmentID:  new_instructor.DepartmentID,
 		FirstName:     new_instructor.FirstName,
 		MiddleInitial: new_instructor.MiddleInitial,

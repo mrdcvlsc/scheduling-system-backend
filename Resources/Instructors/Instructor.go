@@ -2,7 +2,7 @@ package Instructors
 
 // type that will be use to read and save a single instructor's information from and to the database.
 type Instructor struct {
-	InstructorID  uint16 // this should never be zero, zero means empty, none or nothing.
+	InstructorID  uint16 `json:"InstructorID"` // this should never be zero, zero means empty, none or nothing.
 	DepartmentID  uint16 `json:"DepartmentID"`
 	FirstName     string `json:"FirstName"`
 	MiddleInitial string `json:"MiddleInitial"`
@@ -22,7 +22,7 @@ type Instructor struct {
 }
 
 type InstructorWithTimeString struct {
-	InstructorID  uint16
+	InstructorID  uint16   `json:"InstructorID"`
 	DepartmentID  uint16   `json:"DepartmentID"`
 	FirstName     string   `json:"FirstName"`
 	MiddleInitial string   `json:"MiddleInitial"`

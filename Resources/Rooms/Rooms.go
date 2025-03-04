@@ -13,7 +13,7 @@ const MAX_ROOM_CAPACITY int = 15 // = 0b1111 (4 bits only)
 const TIME_SLOT_CLASS_COUNTER_SIZE int = (Const.N_DAILY_TIME_SLOTS * Const.N_WEEKLY_SCHOOL_DAYS) / 2
 
 type Room struct {
-	RoomID             uint16
+	RoomID             uint16                              `json:"RoomID"`
 	DepartmentID       uint16                              `json:"DepartmentID"` // a room that have a 0 department ID are rooms that are for every departments
 	Capacity           uint16                              `json:"Capacity"`     // maximum numbers of classes or sections a room can hold in a single time slot (max value = MAX_ROOM_CAPACITY).
 	RoomType           uint16                              `json:"RoomType"`     // determines the room type: 0 => lec, 1 => lab, 2 => gym.

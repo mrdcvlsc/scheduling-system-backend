@@ -70,19 +70,19 @@ func json_save_all_departments(departments []Departments.Department) error {
 func json_read_all_curriculums() ([]Curriculum.Curriculum, error) {
 
 	// map for getting subject id using subject code
-	subject_code_to_subject_id := make(map[string]uint16)
+	// subject_code_to_subject_id := make(map[string]uint16)
 
-	subjects, err_subjects := json_read_all_subjects()
+	// subjects, err_subjects := json_read_all_subjects()
 
-	if err_subjects != nil {
-		return nil, err_subjects
-	}
+	// if err_subjects != nil {
+	// 	return nil, err_subjects
+	// }
 
 	// get the ID of each subject code
 
-	for subject_idx, subject := range subjects {
-		subject_code_to_subject_id[subject.Code] = uint16(subject_idx + 1)
-	}
+	// for subject_idx, subject := range subjects {
+	// 	subject_code_to_subject_id[subject.Code] = uint16(subject_idx + 1)
+	// }
 
 	// read all curriculum json files
 
@@ -115,20 +115,20 @@ func json_read_all_curriculums() ([]Curriculum.Curriculum, error) {
 			return nil, err
 		}
 
-		for year_level_idx, year_level := range course.YearLevels {
-			for semester_idx, semester := range year_level.Semesters {
-				for subject_idx, subject := range semester.Subjects {
+		// for year_level_idx, year_level := range course.YearLevels {
+		// 	for semester_idx, semester := range year_level.Semesters {
+		// 		for subject_idx, subject := range semester.Subjects {
 
-					_, has_subject_code := subject_code_to_subject_id[subject.Code]
+		// 			_, has_subject_code := subject_code_to_subject_id[subject.Code]
 
-					if !has_subject_code {
-						return nil, fmt.Errorf("the subject code `%s` was not found in the subjects json file", subject.Code)
-					}
+		// 			if !has_subject_code {
+		// 				return nil, fmt.Errorf("the subject code `%s` was not found in the subjects json file", subject.Code)
+		// 			}
 
-					course.YearLevels[year_level_idx].Semesters[semester_idx].Subjects[subject_idx].ID = subject_code_to_subject_id[subject.Code]
-				}
-			}
-		}
+		// 			course.YearLevels[year_level_idx].Semesters[semester_idx].Subjects[subject_idx].ID = subject_code_to_subject_id[subject.Code]
+		// 		}
+		// 	}
+		// }
 
 		curriculums = append(curriculums, *course)
 	}
@@ -228,10 +228,6 @@ func json_read_all_subjects() ([]Curriculum.Subject, error) {
 		return nil, err
 	}
 
-	for i := range subjects {
-		subjects[i].ID = uint16(i + 1)
-	}
-
 	sort.Slice(subjects, func(i, j int) bool {
 		return subjects[i].ID < subjects[j].ID
 	})
@@ -287,10 +283,6 @@ func json_read_all_rooms() ([]Rooms.Room, error) {
 		return nil, err
 	}
 
-	for room_idx := range rooms {
-		rooms[room_idx].RoomID = uint16(room_idx + 1)
-	}
-
 	sort.Slice(rooms, func(i, j int) bool {
 		return rooms[i].RoomID < rooms[j].RoomID
 	})
@@ -343,10 +335,6 @@ func json_read_all_instructors_with_time_string() ([]Instructors.InstructorWithT
 
 	if err != nil {
 		return nil, err
-	}
-
-	for idx := range instructors {
-		instructors[idx].InstructorID = uint16(idx + 1)
 	}
 
 	sort.Slice(instructors, func(i, j int) bool {

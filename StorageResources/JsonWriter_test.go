@@ -203,7 +203,7 @@ func TestJsonFilePersistence_InstructorsCRU(t *testing.T) {
 
 	created_new_instructor := all_instructors2[len(all_instructors1)]
 
-	if created_new_instructor.InstructorID != uint16(len(all_instructors1)+1) {
+	if created_new_instructor.InstructorID != all_instructors1[len(all_instructors1)-1].InstructorID+1 {
 		t.Error("wrong new created instructor ID")
 	}
 
@@ -568,6 +568,7 @@ func TestJsonFilePersistence_CurriculumCRU(t *testing.T) {
 				Name:     "1st Semester",
 				Sections: 4,
 				Subjects: []Curriculum.Subject{{
+					ID:                    225,
 					Code:                  "ITEC 55",
 					Name:                  "Platform Technologies",
 					LecHours:              3,
