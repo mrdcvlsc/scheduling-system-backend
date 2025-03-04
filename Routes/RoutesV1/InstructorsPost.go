@@ -22,7 +22,6 @@ func PostInstructor(ctx *gin.Context) {
 	}
 
 	add_instructor := Instructors.Instructor{
-		InstructorID:  add_instructor_with_time_str.InstructorID,
 		DepartmentID:  add_instructor_with_time_str.DepartmentID,
 		FirstName:     add_instructor_with_time_str.FirstName,
 		MiddleInitial: add_instructor_with_time_str.MiddleInitial,
