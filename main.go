@@ -137,7 +137,7 @@ func main() {
 	v1.PATCH("/instructor_update", RoutesV1.PatchInstructor)
 	v1.DELETE("/instructor_remove", RoutesV1.DeleteInstructor)
 
-	// v1.GET("/rooms", RoutesV1.GetDepartmentRooms)
+	v1.GET("/rooms", RoutesV1.GetDepartmentRooms)
 	v1.POST("/room_add", RoutesV1.PostRoom)
 	v1.PATCH("/room_update", RoutesV1.PatchRoom)
 	v1.DELETE("/room_remove", RoutesV1.DeleteRoom)
