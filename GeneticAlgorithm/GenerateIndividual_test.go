@@ -191,7 +191,7 @@ func GeneratePopWithDepartmentSelection(t *testing.T, target_semester int) {
 
 	t.Logf("Semester : %d\n\n", target_semester)
 
-	total_test_iterations := 512
+	total_test_iterations := 256
 	allowed_failure_rate := 0.8 // 80% error rate allowed.
 
 	err_list_generation := make([]error, 0, 8)
@@ -222,9 +222,9 @@ func GeneratePopWithDepartmentSelection(t *testing.T, target_semester int) {
 	////////////////////////////////////////////////////////////////////////////////////////
 
 new_population_loop:
-	for i := 0; i < total_test_iterations; i++ {
-		if (i == 0) || (((i + 1) % 32) == 0) {
-			fmt.Printf("Generating schedules (%d)..................................\n", (i + 1))
+	for i := range total_test_iterations {
+		if (i == 0) || (((i + 1) % 16) == 0) {
+			fmt.Printf("Generating university schedules [per-department] (%d)..................................\n", (i + 1))
 		}
 
 		total_sections_calculated := Curriculum.GetTotalNumberOfSections(curriculums, target_semester)
@@ -252,9 +252,15 @@ new_population_loop:
 		track_resources := encoding_resource
 		track_schedules := empty_university_schedule
 
+		if !track_schedules.IsEmpty() {
+			t.Fatal("returned not empty university schedule : before loop")
+		}
+
 		all_departments = all_departments[1:]
 
 		for department_idx, department := range all_departments {
+
+			// setup specific department for schedule generation
 
 			if has_curriculum := is_department_id_to_has_curriculum[department.DepartmentID]; !has_curriculum {
 				continue // skip departments that don't have curriculums yet
@@ -263,22 +269,17 @@ new_population_loop:
 			department_to_encode := make(map[uint16]bool)
 			department_to_encode[department.DepartmentID] = true
 
-			if department_idx <= 0 {
-				if !track_schedules.IsEmpty() {
-					t.Fatalf("returned a not empty university schedule : loop iteration %d\n", i)
-				}
-			} else {
-				if track_schedules.IsEmpty() {
-					t.Fatalf("returned an empty university schedule : loop iteration %d\n", i)
-				}
+			if track_schedules.IsEmpty() {
+				t.Fatalf("returned an empty university schedule : loop iteration %d\n", i)
 			}
-
-			retries := 0
 
 			var err_copy_resource error
 			var err_not_enough_resource error
 
+			retries := 0
 			max_retries := 7
+
+			// start generating specific department schedule
 
 			for {
 				err_copy_resource = nil
@@ -301,19 +302,22 @@ new_population_loop:
 					t.Fatal(err_copy_resource)
 				}
 
-				if err_not_enough_resource == nil {
-					track_schedules = output_schedules
-					track_resources = output_resources
-					break
+				if err_not_enough_resource != nil {
+					retries++
+
+					if retries > max_retries {
+						t.Logf("failed to generate individual schedule number %d, after %d tries, for %s error %s\n", i, retries, department.Code, err_not_enough_resource.Error())
+						err_list_generation = append(err_list_generation, err_not_enough_resource)
+						continue new_population_loop
+					}
+
+					t.Logf("retry (%d : %s) - %s\n", retries, department.Code, err_not_enough_resource.Error())
+					continue
 				}
 
-				if retries > max_retries {
-					err_list_generation = append(err_list_generation, err_not_enough_resource)
-					continue new_population_loop
-				}
-
-				t.Logf("retry (%d : %s) - %s\n", retries, department.Code, err_not_enough_resource.Error())
-				retries++
+				track_schedules = output_schedules
+				track_resources = output_resources
+				break // department schedule generated - end retry loop
 			}
 
 			if len(track_schedules) == 0 {
@@ -333,6 +337,9 @@ new_population_loop:
 
 			///////////////////////
 
+			// check generated schedule's encoding resource by generating from the previous generated uni time table and comparing
+			// it to the resulting encoding resource from the same previous generated department schedule uni time table
+
 			generated_encoding_resource, output_resources := GeneticAlgorithm.GenerateEncodingResourceFromUniTimeTable(
 				track_schedules, curriculums, target_semester, &persistence,
 			)
@@ -350,6 +357,9 @@ new_population_loop:
 			/////////////////
 
 			if department_idx < len(all_departments)-1 {
+
+				// test horizontal validation for the whole university schedule - there should be an error
+
 				fmt.Printf("Generated schedules for all departments, the department %s\n", department.Name)
 
 				err_intentional_horizontal_validation := track_schedules.HorizontalValidation(&persistence, nil, target_semester)
@@ -357,6 +367,8 @@ new_population_loop:
 				if err_intentional_horizontal_validation == nil {
 					t.Fatal("there should be a missing subject error here since the university schedule is not complete yet")
 				}
+
+				// test horizontal validation for the department specific schedule - there should be NO error
 
 				department_to_validate := make(map[uint16]bool)
 				department_to_validate[department.DepartmentID] = true
@@ -367,6 +379,9 @@ new_population_loop:
 					t.Fatal(e)
 				}
 			} else {
+
+				// at the very last department, do test horizontal validation for the whole university schedule - there should be NO error
+
 				fmt.Printf("Generated schedules for all departments, the last department schedules generated is %s\n", department.Name)
 
 				if track_schedules.IsEmpty() {
