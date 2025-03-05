@@ -9,7 +9,7 @@ import (
 )
 
 /*
-POST:
+PATCH:
 
 	"/instructor_update"
 */
