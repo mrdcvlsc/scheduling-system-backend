@@ -161,3 +161,26 @@ func IsValidInstructorID(ctx *gin.Context) (int, bool) {
 
 	return instructor_id, true
 }
+
+func IsValidRoomID(ctx *gin.Context) (int, bool) {
+	param_room_id := ctx.Query("room_id")
+
+	if param_room_id == "" {
+		ctx.String(http.StatusBadRequest, "missing 'room_id' parameter or parameter value")
+		return -1, false
+	}
+
+	room_id, err_atoi := strconv.Atoi(param_room_id)
+
+	if err_atoi != nil {
+		ctx.String(http.StatusBadRequest, "invalid 'room_id' parameter value")
+		return -1, false
+	}
+
+	if room_id < 1 {
+		ctx.String(http.StatusBadRequest, "invalid 'room_id' value")
+		return -1, false
+	}
+
+	return room_id, true
+}
