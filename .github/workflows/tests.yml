@@ -36,6 +36,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
 
+      - name: View Temporary Data Tree
+        run: tree scheduling-system-temporary-data
+
       - name: Run Tests
         run: make test
 
