@@ -18,7 +18,7 @@ func PostRoom(ctx *gin.Context) {
 	add_room := Rooms.Room{}
 
 	if err := ctx.BindJSON(&add_room); err != nil {
-		ctx.String(http.StatusBadRequest, "we are unable to properly read the room to be add")
+		ctx.String(http.StatusBadRequest, "we are unable to properly read the room to be added")
 		return
 	}
 

@@ -36,7 +36,7 @@ func DeleteRoom(ctx *gin.Context) {
 		}
 
 		if is_room_assigned(university_schedules, uint16(room_id)) {
-			ctx.String(http.StatusConflict, "can not delete an room assigned to a schedule")
+			ctx.String(http.StatusConflict, "can not delete a room assigned to a schedule  in 1st semester")
 			return
 		}
 	}
@@ -55,7 +55,7 @@ func DeleteRoom(ctx *gin.Context) {
 		}
 
 		if is_room_assigned(university_schedules, uint16(room_id)) {
-			ctx.String(http.StatusConflict, "can not delete an room assigned to a schedule")
+			ctx.String(http.StatusConflict, "can not delete a room assigned to a schedule in 2nd semester")
 			return
 		}
 	}
