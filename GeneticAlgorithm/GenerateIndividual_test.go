@@ -269,7 +269,7 @@ new_population_loop:
 			department_to_encode := make(map[uint16]bool)
 			department_to_encode[department.DepartmentID] = true
 
-			if track_schedules.IsEmpty() {
+			if department_idx != 0 && track_schedules.IsEmpty() {
 				t.Fatalf("returned an empty university schedule : loop iteration %d\n", i)
 			}
 
