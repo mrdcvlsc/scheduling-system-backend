@@ -1,12 +1,9 @@
 package RoutesV1
 
 import (
-	"log"
 	"net/http"
-	"sort"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 )
@@ -37,50 +34,35 @@ func GetDepartmentRooms(ctx *gin.Context) {
 		return
 	}
 
-	dept_id_to_room_type_to_rooms, err_dept_id_to_room_type_to_rooms := GeneticAlgorithm.GenerateMapDeptIdToRoomTypeToRooms(
-		RouteGlobals.ResourcesPersistence,
-	)
+	all_rooms, err_read_all_rooms := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllRooms()
 
-	if err_dept_id_to_room_type_to_rooms != nil {
-		log.Print(err_dept_id_to_room_type_to_rooms)
-		ctx.String(http.StatusInternalServerError, "we're currently unable to get the rooms for the requested department")
+	if err_read_all_rooms != nil {
+		ctx.String(http.StatusInternalServerError, "we're currently unable to get the rooms")
 		return
 	}
-
-	department_rooms_separated_by_type, has_department_id := dept_id_to_room_type_to_rooms[uint16(department_id)]
-
-	if !has_department_id {
-		ctx.String(http.StatusNotFound, "unable to get rooms for that department because that department does not exist")
-		return
-	}
-
-	department_rooms := make([]Rooms.Room, 0)
-
-	department_rooms = append(department_rooms, department_rooms_separated_by_type[Rooms.ROOM_TYPE_LEC]...)
-	department_rooms = append(department_rooms, department_rooms_separated_by_type[Rooms.ROOM_TYPE_LAB]...)
-	department_rooms = append(department_rooms, department_rooms_separated_by_type[Rooms.ROOM_TYPE_GYM]...)
 
 	department_rooms_page := make([]Rooms.Room, 0)
+	total_department_rooms := 0
 
-	for i, room := range department_rooms {
-		if i < (page_size * page) {
+	for _, room := range all_rooms {
+		if room.DepartmentID != uint16(department_id) {
 			continue
 		}
 
-		department_rooms_page = append(department_rooms_page, room)
+		total_department_rooms++
 
-		if len(department_rooms_page) >= page_size {
-			break
+		if (total_department_rooms - 1) < (page_size * page) {
+			continue
+		}
+
+		if len(department_rooms_page) < page_size {
+			department_rooms_page = append(department_rooms_page, room)
 		}
 	}
 
-	sort.Slice(department_rooms_page, func(i, j int) bool {
-		return department_rooms_page[i].RoomID < department_rooms_page[j].RoomID
-	})
-
 	room_table_page := &RoomTablePage{
 		Rooms:      department_rooms_page,
-		TotalRooms: len(department_rooms),
+		TotalRooms: total_department_rooms,
 	}
 
 	ctx.JSON(http.StatusOK, room_table_page)
