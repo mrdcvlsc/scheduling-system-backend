@@ -142,6 +142,11 @@ func main() {
 	v1.PATCH("/room_update", RoutesV1.PatchRoom)
 	v1.DELETE("/room_remove", RoutesV1.DeleteRoom)
 
+	v1.GET("/subjects", RoutesV1.GetSubjects)
+	v1.POST("/subject_add", RoutesV1.PostSubject)
+	v1.PATCH("/subject_update", RoutesV1.PatchSubject)
+	v1.DELETE("/subject_remove", RoutesV1.DeleteSubject)
+
 	v1.GET("/university_schedule", RoutesV1.GetUniversitySchedule)
 	v1.POST("/university_schedule", RoutesV1.PostUniversitySchedule)
 
