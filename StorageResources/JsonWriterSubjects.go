@@ -14,7 +14,7 @@ import (
 func (s *JsonWriter) CreateSubject(new_subject Curriculum.Subject) error {
 
 	if new_subject.ID != 0 {
-		return errors.New("cannot create a new room with a non zero room ID because that would overwrite a room item")
+		return errors.New("cannot create a new subject with a non zero subject ID because that would overwrite a subject item")
 	}
 
 	all_subject, err_read := json_read_all_subjects()
@@ -72,7 +72,7 @@ func (s *JsonWriter) UpdateSubject(subject_to_update Curriculum.Subject) error {
 	}
 
 	if !has_id {
-		return errors.New("room to update does not exist in the json file")
+		return errors.New("subject to update does not exist in the json file")
 	}
 
 	updated_subject := Curriculum.Subject{
@@ -100,16 +100,52 @@ func (s *JsonWriter) UpdateSubject(subject_to_update Curriculum.Subject) error {
 		}
 	}
 
-	err_save_rooms := json_save_all_subjects(all_subjects)
+	err_save_subjects := json_save_all_subjects(all_subjects)
 
-	if err_save_rooms != nil {
-		return err_save_rooms
+	if err_save_subjects != nil {
+		return err_save_subjects
 	}
 
 	err_save_curriculums := json_save_all_curriculums(all_curriculums)
 
 	if err_save_curriculums != nil {
 		return err_save_curriculums
+	}
+
+	return nil
+}
+
+func (s *JsonWriter) DeleteSubject(subject_id uint16) error {
+	if subject_id == 0 {
+		return errors.New("parameter argument missing invalid subject ID")
+	}
+
+	all_subjects, err_read := json_read_all_subjects()
+
+	if err_read != nil {
+		return err_read
+	}
+
+	subjects_deleted := make([]Curriculum.Subject, 0)
+
+	has_id := false
+
+	for _, subject := range all_subjects {
+		if subject.ID == subject_id {
+			has_id = true
+		} else {
+			subjects_deleted = append(subjects_deleted, subject)
+		}
+	}
+
+	if !has_id {
+		return errors.New("subject to update does not exist in the json file")
+	}
+
+	err_save_subjects := json_save_all_subjects(subjects_deleted)
+
+	if err_save_subjects != nil {
+		return err_save_subjects
 	}
 
 	return nil
@@ -129,12 +165,12 @@ func json_save_all_subjects(subjects []Curriculum.Subject) error {
 		return subjects[i].ID < subjects[j].ID
 	})
 
-	rooms_byte_data, err := json.MarshalIndent(subjects, "", "  ")
+	subjects_byte_data, err := json.MarshalIndent(subjects, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	if err := os.WriteFile(subjects_json_file, rooms_byte_data, 0644); err != nil {
+	if err := os.WriteFile(subjects_json_file, subjects_byte_data, 0644); err != nil {
 		return err
 	}
 

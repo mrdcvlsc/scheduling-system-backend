@@ -23,6 +23,7 @@ type writerRepository interface {
 
 	CreateSubject(new_subject Curriculum.Subject) error
 	UpdateSubject(subject_to_update Curriculum.Subject) error
+	DeleteSubject(subject_id uint16) error
 
 	CreateCurriculum(new_curriculum Curriculum.Curriculum) error
 	UpdateCurriculum(curriculum_old_name string, curriculum_new Curriculum.Curriculum) error
