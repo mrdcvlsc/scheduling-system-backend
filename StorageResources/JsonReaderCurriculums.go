@@ -21,30 +21,18 @@ func json_read_all_curriculums() ([]Curriculum.Curriculum, error) {
 		return nil, err_project_root
 	}
 
-	curriculum_json_folder := path.Join(project_root, "scheduling-system-temporary-data", "curriculums")
-	curriculum_json_files, err_read_dir := os.ReadDir(curriculum_json_folder)
+	curriculums_json_file := path.Join(project_root, "scheduling-system-temporary-data", "curriculums.json")
+	curriculums_byte_data, err := os.ReadFile(curriculums_json_file)
 
-	if err_read_dir != nil {
-		return nil, err_read_dir
+	if err != nil {
+		return nil, err
 	}
 
 	curriculums := make([]Curriculum.Curriculum, 0)
+	err = json.Unmarshal(curriculums_byte_data, &curriculums)
 
-	for _, json_file := range curriculum_json_files {
-		course := &Curriculum.Curriculum{}
-		json_file_path := path.Join(curriculum_json_folder, json_file.Name())
-
-		byte_data, err_byte_data := os.ReadFile(json_file_path)
-
-		if err_byte_data != nil {
-			return nil, err_byte_data
-		}
-
-		if err := json.Unmarshal(byte_data, &course); err != nil {
-			return nil, err
-		}
-
-		curriculums = append(curriculums, *course)
+	if err != nil {
+		return nil, err
 	}
 
 	sort.Slice(curriculums, func(i, j int) bool {

@@ -530,8 +530,6 @@ func TestJsonFilePersistence_CurriculumCRU(t *testing.T) {
 
 	// fmt.Print("============================================ CURRICULUMS CRU BEFORE ============================================\n\n")
 
-	old_curriculum_name := fmt.Sprintf("%s.json", Utils.RemoveWhiteSpace(all_curriculums1[2].CurriculumCode))
-
 	all_curriculums1[2].CurriculumCode = "BS EMT"
 	all_curriculums1[2].CurriculumName = "Bachelor of Science in Electro-Mechanical Technology"
 	all_curriculums1[2].DepartmentID = 5
@@ -549,7 +547,7 @@ func TestJsonFilePersistence_CurriculumCRU(t *testing.T) {
 		DesignatedInstructors: []uint16{76},
 	}}
 
-	err_update_curriculum := TestPersistence.WriterService.UpdateCurriculum(old_curriculum_name, all_curriculums1[2])
+	err_update_curriculum := TestPersistence.WriterService.UpdateCurriculum(all_curriculums1[2])
 
 	if err_update_curriculum != nil {
 		t.Error(err_update_curriculum)

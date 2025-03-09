@@ -31,10 +31,10 @@ func (s *JsonWriter) CreateRoom(new_room Rooms.Room) error {
 		Name:         new_room.Name,
 	})
 
-	err_save_instructors := json_save_all_rooms(all_rooms)
+	err_save_rooms := json_save_all_rooms(all_rooms)
 
-	if err_save_instructors != nil {
-		return err_save_instructors
+	if err_save_rooms != nil {
+		return err_save_rooms
 	}
 
 	return nil

@@ -26,7 +26,7 @@ type writerRepository interface {
 	DeleteSubject(subject_id uint16) error
 
 	CreateCurriculum(new_curriculum Curriculum.Curriculum) error
-	UpdateCurriculum(curriculum_old_name string, curriculum_new Curriculum.Curriculum) error
+	UpdateCurriculum(updated_curriculum Curriculum.Curriculum) error
 
 	CreateInstructor(new_instructor Instructors.Instructor) error
 	UpdateInstructor(instructor_to_update Instructors.Instructor) error

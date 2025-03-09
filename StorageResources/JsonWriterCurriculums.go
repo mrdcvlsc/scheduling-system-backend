@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"strings"
+	"sort"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
@@ -15,27 +15,16 @@ import (
 func (s *JsonWriter) CreateCurriculum(new_curriculum Curriculum.Curriculum) error {
 
 	if new_curriculum.CurriculumID != 0 {
-		return errors.New("cannot create a new curriculum with a non zero curriculum ID because that would overwrite a curriculum")
+		return errors.New("error CreateCurriculum(): cannot create a new curriculum with a non-zero CurriculumID")
 	}
 
 	all_curriculums, err_read := json_read_all_curriculums()
 
 	if err_read != nil {
-		return err_read
+		return fmt.Errorf("error CreateCurriculum(): %s", err_read.Error())
 	}
 
-	for _, curriculum := range all_curriculums {
-		if strings.EqualFold(Utils.RemoveWhiteSpace(curriculum.CurriculumCode), Utils.RemoveWhiteSpace(new_curriculum.CurriculumCode)) {
-			return errors.New("cannot create a new curriculum with that curriculum code")
-		}
-
-		if strings.EqualFold(curriculum.CurriculumName, new_curriculum.CurriculumName) {
-			return errors.New("cannot create a new curriculum with that curriculum name")
-		}
-	}
-
-	err_save_curriculums := json_save_curriculum(
-		fmt.Sprintf("%s.json", Utils.RemoveWhiteSpace(new_curriculum.CurriculumCode)),
+	err_save := json_save_curriculum(
 		Curriculum.Curriculum{
 			CurriculumID:   all_curriculums[len(all_curriculums)-1].CurriculumID + 1,
 			CurriculumName: new_curriculum.CurriculumName,
@@ -45,46 +34,45 @@ func (s *JsonWriter) CreateCurriculum(new_curriculum Curriculum.Curriculum) erro
 		},
 	)
 
-	if err_save_curriculums != nil {
-		return err_save_curriculums
+	if err_save != nil {
+		return fmt.Errorf("error CreateCurriculum(): %s", err_save.Error())
 	}
 
 	return nil
 }
 
-func (s *JsonWriter) UpdateCurriculum(curriculum_old_name string, curriculum_new Curriculum.Curriculum) error {
+func (s *JsonWriter) UpdateCurriculum(updated_curriculum Curriculum.Curriculum) error {
 
-	if curriculum_new.CurriculumID == 0 {
-		return errors.New("parameter argument missing invalid CurriculumID")
+	if updated_curriculum.CurriculumID == 0 {
+		return errors.New("error UpdateCurriculum(): parameter argument missing invalid CurriculumID")
 	}
 
 	all_curriculums, err_read := json_read_all_curriculums()
 
 	if err_read != nil {
-		return err_read
+		return fmt.Errorf("error UpdateCurriculum(): %s", err_read.Error())
 	}
 
 	has_id := false
 
 	for _, curriculum := range all_curriculums {
-		if curriculum.CurriculumID == curriculum_new.CurriculumID {
+		if curriculum.CurriculumID == updated_curriculum.CurriculumID {
 			has_id = true
 			break
 		}
 	}
 
 	if !has_id {
-		return errors.New("instructor to update does not exist in the json file")
+		return fmt.Errorf(
+			"error UpdateCurriculum(): curriculum %d %s - %s does not exist in the json file",
+			updated_curriculum.CurriculumID, updated_curriculum.CurriculumCode, updated_curriculum.CurriculumName,
+		)
 	}
 
-	err_save_curriculums := json_edit_curriculum(
-		curriculum_old_name,
-		fmt.Sprintf("%s.json", Utils.RemoveWhiteSpace(curriculum_new.CurriculumCode)),
-		curriculum_new,
-	)
+	err_edit_curriculums := json_edit_curriculum(updated_curriculum)
 
-	if err_save_curriculums != nil {
-		return err_save_curriculums
+	if err_edit_curriculums != nil {
+		return fmt.Errorf("error UpdateCurriculum(): %s", err_edit_curriculums.Error())
 	}
 
 	return nil
@@ -92,64 +80,107 @@ func (s *JsonWriter) UpdateCurriculum(curriculum_old_name string, curriculum_new
 
 // no op if curriculum slice is empty
 func json_save_all_curriculums(curriculums []Curriculum.Curriculum) error {
-	for _, curriculum := range curriculums {
-		err_save := json_save_curriculum(
-			fmt.Sprintf("%s.json", Utils.RemoveWhiteSpace(curriculum.CurriculumCode)), curriculum,
-		)
-
-		if err_save != nil {
-			return err_save
-		}
-	}
-
-	return nil
-}
-
-func json_save_curriculum(filename string, curriculum Curriculum.Curriculum) error {
-
 	project_root, err_project_root := Utils.FindProjectRoot()
 
 	if err_project_root != nil {
 		return err_project_root
 	}
 
-	new_curriculum_json_file := path.Join(project_root, "scheduling-system-temporary-data", "curriculums", filename)
+	curriculums_json_file := path.Join(project_root, "scheduling-system-temporary-data", "curriculums.json")
 
-	curriculum_byte_data, err := json.MarshalIndent(curriculum, "", "  ")
+	sort.Slice(curriculums, func(i, j int) bool {
+		return curriculums[i].CurriculumID < curriculums[j].CurriculumID
+	})
+
+	curriculums_byte_data, err := json.MarshalIndent(curriculums, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	if err := os.WriteFile(new_curriculum_json_file, curriculum_byte_data, 0644); err != nil {
+	if err := os.WriteFile(curriculums_json_file, curriculums_byte_data, 0644); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func json_edit_curriculum(filename_old, filename_new string, curriculum_new Curriculum.Curriculum) error {
+func json_save_curriculum(new_curriculum Curriculum.Curriculum) error {
 
-	project_root, err_project_root := Utils.FindProjectRoot()
+	// read all curriculums
 
-	if err_project_root != nil {
-		return err_project_root
+	all_curriculums, err_read_all_curriculums := json_read_all_curriculums()
+
+	if err_read_all_curriculums != nil {
+		return err_read_all_curriculums
 	}
 
-	old_curriculum_json_file := path.Join(project_root, "scheduling-system-temporary-data", "curriculums", filename_old)
-	new_curriculum_json_file := path.Join(project_root, "scheduling-system-temporary-data", "curriculums", filename_new)
+	// check if curriculum to save already exist
 
-	curriculum_byte_data, err_marshal_indent := json.MarshalIndent(curriculum_new, "", "  ")
+	for _, curriculum := range all_curriculums {
+		if curriculum.CurriculumID == new_curriculum.CurriculumID {
 
-	if err_marshal_indent != nil {
-		return err_marshal_indent
+			// return error if it exists
+
+			return fmt.Errorf(
+				"the CurriculumID '%d' already exist: '%s - %s'",
+				curriculum.CurriculumID, curriculum.CurriculumCode, curriculum.CurriculumName,
+			)
+		}
 	}
 
-	if err_write_file := os.WriteFile(new_curriculum_json_file, curriculum_byte_data, 0644); err_write_file != nil {
-		return err_write_file
+	// append the new curriculum if it does not exist
+
+	all_curriculums = append(all_curriculums, new_curriculum)
+
+	// save all the curriculums with the new added curriculum
+
+	err_save_all_curriculums := json_save_all_curriculums(all_curriculums)
+
+	if err_save_all_curriculums != nil {
+		return err_read_all_curriculums
 	}
 
-	if err_remove := os.Remove(old_curriculum_json_file); err_remove != nil {
-		return err_remove
+	return nil
+}
+
+func json_edit_curriculum(edited_curriculum Curriculum.Curriculum) error {
+
+	// read all curriculums
+
+	all_curriculums, err_read_all_curriculums := json_read_all_curriculums()
+
+	if err_read_all_curriculums != nil {
+		return err_read_all_curriculums
+	}
+
+	// check if curriculum to edit exists
+
+	has_curriculum := false
+
+	for curriculum_idx, curriculum := range all_curriculums {
+		if curriculum.CurriculumID == edited_curriculum.CurriculumID {
+			has_curriculum = true
+
+			all_curriculums[curriculum_idx] = edited_curriculum // apply edit if found
+
+			break
+		}
+	}
+
+	// return error if it does not exist
+
+	if !has_curriculum {
+		return fmt.Errorf(
+			"the CurriculumID '%d' does not exist", edited_curriculum.CurriculumID,
+		)
+	}
+
+	// save all curriculums with the edited curriculum
+
+	err_save_all_curriculums := json_save_all_curriculums(all_curriculums)
+
+	if err_save_all_curriculums != nil {
+		return err_read_all_curriculums
 	}
 
 	return nil
