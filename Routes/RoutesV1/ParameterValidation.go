@@ -207,3 +207,26 @@ func IsValidSubjectID(ctx *gin.Context) (int, bool) {
 
 	return subject_id, true
 }
+
+func IsValidCurriculumID(ctx *gin.Context) (int, bool) {
+	param_curriculum_id := ctx.Query("curriculum_id")
+
+	if param_curriculum_id == "" {
+		ctx.String(http.StatusBadRequest, "missing 'curriculum_id' parameter or parameter value")
+		return -1, false
+	}
+
+	curriculum_id, err_atoi := strconv.Atoi(param_curriculum_id)
+
+	if err_atoi != nil {
+		ctx.String(http.StatusBadRequest, "invalid 'curriculum_id' parameter value")
+		return -1, false
+	}
+
+	if curriculum_id < 1 {
+		ctx.String(http.StatusBadRequest, "invalid 'curriculum_id' value")
+		return -1, false
+	}
+
+	return curriculum_id, true
+}

@@ -147,6 +147,12 @@ func main() {
 	v1.PATCH("/subject_update", RoutesV1.PatchSubject)
 	v1.DELETE("/subject_remove", RoutesV1.DeleteSubject)
 
+	v1.GET("/curriculum_list", RoutesV1.GetDepartmentCurriculumList)
+	v1.GET("/curriculum_load", RoutesV1.GetCurriculum)
+	v1.POST("/curriculum_add", RoutesV1.PostCurriculum)
+	v1.PATCH("/curriculum_update", RoutesV1.PatchCurriculum)
+	v1.DELETE("/curriculum_remove", RoutesV1.DeleteCurriculum)
+
 	v1.GET("/university_schedule", RoutesV1.GetUniversitySchedule)
 	v1.POST("/university_schedule", RoutesV1.PostUniversitySchedule)
 

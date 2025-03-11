@@ -139,7 +139,7 @@ func (s *JsonWriter) DeleteSubject(subject_id uint16) error {
 	}
 
 	if !has_id {
-		return errors.New("subject to update does not exist in the json file")
+		return errors.New("subject to delete does not exist in the json file")
 	}
 
 	err_save_subjects := json_save_all_subjects(subjects_deleted)

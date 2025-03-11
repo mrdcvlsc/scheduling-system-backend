@@ -111,7 +111,7 @@ func (s *JsonWriter) DeleteInstructor(instructor_id uint16) error {
 	}
 
 	if !has_id {
-		return errors.New("instructor to update does not exist in the json file")
+		return errors.New("instructor to delete does not exist in the json file")
 	}
 
 	err_save_instructors := json_save_all_instructors_with_time_string(instructors_with_time_string_deleted)
