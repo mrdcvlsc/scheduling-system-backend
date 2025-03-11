@@ -20,6 +20,7 @@ type readerRepository interface {
 type writerRepository interface {
 	CreateDepartment(new_department Departments.Department) error
 	UpdateDepartment(department_to_update Departments.Department) error
+	DeleteDepartment(department_id uint16) error
 
 	CreateSubject(new_subject Curriculum.Subject) error
 	UpdateSubject(subject_to_update Curriculum.Subject) error
@@ -27,6 +28,7 @@ type writerRepository interface {
 
 	CreateCurriculum(new_curriculum Curriculum.Curriculum) error
 	UpdateCurriculum(updated_curriculum Curriculum.Curriculum) error
+	DeleteCurriculum(curriculum_id uint16) error
 
 	CreateInstructor(new_instructor Instructors.Instructor) error
 	UpdateInstructor(instructor_to_update Instructors.Instructor) error

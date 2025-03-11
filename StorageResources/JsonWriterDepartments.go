@@ -76,6 +76,43 @@ func (s *JsonWriter) UpdateDepartment(department_to_update Departments.Departmen
 	return nil
 }
 
+func (s *JsonWriter) DeleteDepartment(department_id uint16) error {
+
+	if department_id == 0 {
+		return errors.New("parameter argument missing invalid department ID")
+	}
+
+	all_departments, err_read := json_read_all_departments()
+
+	if err_read != nil {
+		return err_read
+	}
+
+	other_departments := make([]Departments.Department, 0)
+
+	has_id := false
+
+	for _, department := range all_departments {
+		if department.DepartmentID == department_id {
+			has_id = true
+		} else {
+			other_departments = append(other_departments, department)
+		}
+	}
+
+	if !has_id {
+		return errors.New("department to delete does not exist in the json file")
+	}
+
+	err_save_departments := json_save_all_departments(other_departments)
+
+	if err_save_departments != nil {
+		return err_save_departments
+	}
+
+	return nil
+}
+
 func json_save_all_departments(departments []Departments.Department) error {
 	project_root, err_project_root := Utils.FindProjectRoot()
 

@@ -78,6 +78,43 @@ func (s *JsonWriter) UpdateCurriculum(updated_curriculum Curriculum.Curriculum) 
 	return nil
 }
 
+func (s *JsonWriter) DeleteCurriculum(curriculum_id uint16) error {
+
+	if curriculum_id == 0 {
+		return errors.New("parameter argument missing invalid curriculum ID")
+	}
+
+	all_curriculums, err_read := json_read_all_curriculums()
+
+	if err_read != nil {
+		return err_read
+	}
+
+	other_curriculums := make([]Curriculum.Curriculum, 0)
+
+	has_id := false
+
+	for _, curriculum := range all_curriculums {
+		if curriculum.CurriculumID == curriculum_id {
+			has_id = true
+		} else {
+			other_curriculums = append(other_curriculums, curriculum)
+		}
+	}
+
+	if !has_id {
+		return errors.New("curriculum to delete does not exist in the json file")
+	}
+
+	err_save_curriculums := json_save_all_curriculums(other_curriculums)
+
+	if err_save_curriculums != nil {
+		return err_save_curriculums
+	}
+
+	return nil
+}
+
 // no op if curriculum slice is empty
 func json_save_all_curriculums(curriculums []Curriculum.Curriculum) error {
 	project_root, err_project_root := Utils.FindProjectRoot()
