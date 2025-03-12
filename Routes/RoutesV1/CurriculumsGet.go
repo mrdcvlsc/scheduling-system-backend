@@ -23,7 +23,7 @@ type CurriculumTablePage struct {
 /*
 GET:
 
-	"/curriculum_list?page_size=[N>0]&page[0-N>0]&code_match=<string>&name_match=<string>"
+	"/curriculum_list?page_size=[N>0]&page=[0-N>0]&department_id=[N>0]&code_match=<string>&name_match=<string>"
 */
 func GetDepartmentCurriculumList(ctx *gin.Context) {
 	page_size, is_valid_page_size_param := IsValidPageSize(ctx)
@@ -36,21 +36,27 @@ func GetDepartmentCurriculumList(ctx *gin.Context) {
 		return
 	}
 
+	department_id, is_valid_department_id_param := IsValidParameterDepartmentID(ctx)
+	if !is_valid_department_id_param {
+		return
+	}
+
 	code_match := ctx.Query("code_match")
 	name_match := ctx.Query("name_match")
 
 	all_curriculums, err_read_all_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
-
 	if err_read_all_curriculums != nil {
 		ctx.String(http.StatusInternalServerError, "we're currently unable to get the curriculums")
 		return
 	}
 
 	curriculums_page := make([]CurriculumPageItem, 0)
-
 	total_curriculums := 0
 
 	for _, curriculum := range all_curriculums {
+		if int(curriculum.DepartmentID) != department_id {
+			continue
+		}
 
 		if code_match != "" && !Utils.HasSubString(curriculum.CurriculumCode, code_match) {
 			continue
