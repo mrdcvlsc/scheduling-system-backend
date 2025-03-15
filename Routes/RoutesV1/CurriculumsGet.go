@@ -23,7 +23,7 @@ type CurriculumTablePage struct {
 /*
 GET:
 
-	"/curriculum_list?page_size=[N>0]&page=[0-N>0]&department_id=[N>0]&code_match=<string>&name_match=<string>"
+	"/curriculum_list?page_size=[N>0]&page=[0-N>0]&department_id=[N>=0]&code_match=<string>&name_match=<string>"
 */
 func GetDepartmentCurriculumList(ctx *gin.Context) {
 	page_size, is_valid_page_size_param := IsValidPageSize(ctx)

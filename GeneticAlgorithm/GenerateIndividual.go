@@ -99,11 +99,15 @@ func EncodeIndividualGenome(
 					continue // skip not selected semesters
 				}
 
+				if len(semester.Subjects) == 0 {
+					continue // skip semesters that don't have subjects
+				}
+
 				/////////////////////////////////////////////////////////////////////////////////////////////////////////
 				//                           GENERATE WEEK TIME TABLE FOR EACH SECTIONS
 				/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-				for section_idx := 0; section_idx < semester.Sections; section_idx++ {
+				for section_idx := range semester.Sections {
 
 					if department_to_encode != nil {
 						is_to_encode := department_to_encode[curriculum.DepartmentID]
