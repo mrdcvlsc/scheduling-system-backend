@@ -18,6 +18,7 @@ func PatchCurriculum(ctx *gin.Context) {
 	update_curriculum := Curriculum.Curriculum{}
 
 	if err := ctx.BindJSON(&update_curriculum); err != nil {
+		log.Print(err)
 		ctx.String(http.StatusBadRequest, "we are unable to properly read the curriculum updated data")
 		return
 	}
