@@ -106,6 +106,7 @@ func (bitset *InstructorTimeSlotBitMap) Deserialize(serialized []byte) {
 	}
 }
 
+// convert the time InstructorTimeSlotBitMap integer array to string number  array.
 func (bitset *InstructorTimeSlotBitMap) Stringify() []string {
 	time_stringify := make([]string, 0)
 
