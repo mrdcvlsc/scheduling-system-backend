@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 	"github.com/mrdcvlsc/scheduling-system-backend/Routes/RoutesV1"
+	"github.com/mrdcvlsc/scheduling-system-backend/Routes/RoutesV2"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageSchedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
@@ -125,6 +126,7 @@ func main() {
 	//////////////////////////////////////////////////////////////////////////
 
 	v1 := router.Group("/v1")
+	v2 := router.Group("/v2")
 
 	v1.GET("/const", RoutesV1.GetConst)
 
@@ -136,6 +138,9 @@ func main() {
 	v1.POST("/instructor_add", RoutesV1.PostInstructor)
 	v1.PATCH("/instructor_update", RoutesV1.PatchInstructor)
 	v1.DELETE("/instructor_remove", RoutesV1.DeleteInstructor)
+
+	v2.GET("instructors", RoutesV2.GetDepartmentInstructors)
+	v2.GET("instructor_resources", RoutesV2.GetInstructorResource)
 
 	v1.GET("/rooms", RoutesV1.GetDepartmentRooms)
 	v1.POST("/room_add", RoutesV1.PostRoom)
