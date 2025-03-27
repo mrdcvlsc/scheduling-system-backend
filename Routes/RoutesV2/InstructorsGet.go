@@ -33,7 +33,14 @@ type InstructorTablePage struct {
 /*
 GET:
 
-	"/instructors?department_id=D&page_size=[N>0]&page[0-N>0]&firstname_match=<string>&initial_match=<string>&lastname_match=<string>"
+	"/instructors?
+		department_id=D&
+		page_size=[N>0]&
+		page[0-N>0]&
+		firstname_match=<string>&
+		initial_match=<string>&
+		lastname_match=<string>
+	"
 */
 func GetDepartmentInstructors(ctx *gin.Context) {
 	department_id, is_valid_department_id_param := RoutesV1.IsValidParameterDepartmentID(ctx)
@@ -129,14 +136,10 @@ func GetInstructorResource(ctx *gin.Context) {
 	}
 
 	var selected_instructor_base *Instructors.Instructor
-	// var selected_instructor_1st_sem Instructors.Instructor
-	// var selected_instructor_2nd_sem Instructors.Instructor
 
 	for _, instructor := range all_instructors {
 		if instructor.InstructorID == uint16(instructor_id) {
 			selected_instructor_base = &instructor
-			// selected_instructor_1st_sem = instructor
-			// selected_instructor_2nd_sem = instructor
 			break
 		}
 	}
@@ -153,7 +156,7 @@ func GetInstructorResource(ctx *gin.Context) {
 		return
 	}
 
-	time_encodings := make(map[string]interface{}, 0)
+	time_encodings := make(map[string]any, 0)
 	time_encodings["base"] = selected_instructor_base.Time.Stringify()
 
 	sched_1st_sem, has_obtained_1st_sem := RoutesV1.ObtainUniversitySchedule(ctx, nil, GeneticAlgorithm.TERM_1ST_SEMESTER)
@@ -321,4 +324,40 @@ func get_instructor_time_allocation(base_instructor Instructors.Instructor, univ
 	} // ------------- end of curriculum loop -------------
 
 	return base_instructor.Time, sub_assign_info, nil
+}
+
+/*
+GET:
+
+	"/instructor_basic?instructor_id=[N>0]"
+*/
+func GetInstructorBasic(ctx *gin.Context) {
+	instructor_id, is_valid_instructor_id_param := RoutesV1.IsValidInstructorID(ctx)
+	if !is_valid_instructor_id_param {
+		return
+	}
+
+	all_instructors, err_read_all_instructors := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllInstructors()
+
+	if err_read_all_instructors != nil {
+		log.Println(err_read_all_instructors)
+		ctx.String(http.StatusInternalServerError, "we are unable to retrieve the instructors right now")
+		return
+	}
+
+	var selected_instructor_base *Instructors.Instructor
+
+	for _, instructor := range all_instructors {
+		if instructor.InstructorID == uint16(instructor_id) {
+			selected_instructor_base = &instructor
+			break
+		}
+	}
+
+	if selected_instructor_base == nil {
+		ctx.String(http.StatusNotFound, "that instructor does not exist")
+		return
+	}
+
+	ctx.JSON(http.StatusOK, selected_instructor_base)
 }
