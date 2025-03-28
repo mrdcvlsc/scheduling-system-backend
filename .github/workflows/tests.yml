@@ -1,6 +1,7 @@
 name: tests
 
 on:
+  workflow_call:
   push:
     branches: [ "master", "main", "development", "api_test" ]
   pull_request:
