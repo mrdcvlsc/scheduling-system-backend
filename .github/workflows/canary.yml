@@ -5,9 +5,27 @@ on:
     branches: [ "canary" ]
 
 jobs:
+  run_frontend_tests:
+    uses: mrdcvlsc/scheduling-system-frontend/.github/workflows/tests.yml@main
+
+  run_frontend_build:
+    uses: mrdcvlsc/scheduling-system-frontend/.github/workflows/build.yml@main
+
+  run_backend_tests:
+    uses: mrdcvlsc/scheduling-system-backend/.github/workflows/tests.yml@main
+
+  run_backend_build:
+    uses: mrdcvlsc/scheduling-system-backend/.github/workflows/build.yml@main
+
   canary_build:
 
     runs-on: ${{ matrix.os }}
+
+    needs: 
+    - run_frontend_tests
+    - run_frontend_build
+    - run_backend_tests
+    - run_backend_build
 
     strategy:
       matrix:
@@ -19,27 +37,40 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Go ${{ matrix.go-version }}
+      - name: setup Go ${{ matrix.go-version }}
         uses: actions/setup-go@v4
         with:
           go-version: ${{ matrix.go-version }}
 
-      - name: Check gh-cli user
+      - name: check gh-cli user
         run: gh auth status | grep Logged
         env:
           GITHUB_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
 
-      - name: Download Test Resources
+      - name: download Test Resources
         run: make devr
         env:
           GITHUB_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
 
-      - name: Download Frontend
+      - name: download Frontend
         run: make frontend
         env:
           GITHUB_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
+
+      - name: run Tests
+        run: make test
+  
+      - name: run Build
+        run: make build
 
       - name: create github canary release
         run: gh release create canary-build-v${{ github.run_number }} dist.zip scheduling-system-temporary-data.zip --title "Release resources for canary buid" --notes "canary build version number ${{ github.run_number }}" --draft=false --prerelease=false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: deply to canary
+        if: github.ref == 'refs/heads/canary'
+        env:
+          deploy_url: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          curl "$deploy_url"
