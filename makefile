@@ -25,6 +25,7 @@ devr:
 	unzip scheduling-system-temporary-data-tmp-data-v*.zip -d ./ -x '*.py' '*.md' '*.git*' '*/makefile'
 	mv scheduling-system-temporary-data-tmp-data-v*/ scheduling-system-temporary-data
 	rm scheduling-system-temporary-data-tmp-data-v*.zip
+	zip -r scheduling-system-temporary-data.zip scheduling-system-temporary-data
 
 # old download temp data
 # gh release --repo github.com/mrdcvlsc/scheduling-system-temporary-data download --pattern *.zip --clobber
