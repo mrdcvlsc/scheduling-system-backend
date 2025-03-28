@@ -7,4 +7,4 @@ curl -L -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $PAT"
 unzip dist.zip -d ./
 
 # unzip temporary data
-scheduling-system-temporary-data.zip -d ./
+unzip scheduling-system-temporary-data.zip -d ./
