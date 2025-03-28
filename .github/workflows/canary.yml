@@ -3,8 +3,6 @@ name: canary
 on:
   push:
     branches: [ "canary" ]
-  pull_request:
-    branches: [ "canary" ]
 
 jobs:
   canary_build:
