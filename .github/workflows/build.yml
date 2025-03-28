@@ -1,7 +1,6 @@
 name: build
 
 on:
-  workflow_call:
   push:
     branches: [ "master", "main", "development" ]
   pull_request:

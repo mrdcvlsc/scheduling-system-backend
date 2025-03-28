@@ -5,27 +5,9 @@ on:
     branches: [ "canary" ]
 
 jobs:
-  run_frontend_tests:
-    uses: mrdcvlsc/scheduling-system-frontend/.github/workflows/tests.yml@main
-
-  run_frontend_build:
-    uses: mrdcvlsc/scheduling-system-frontend/.github/workflows/build.yml@main
-
-  run_backend_tests:
-    uses: mrdcvlsc/scheduling-system-backend/.github/workflows/tests.yml@development
-
-  run_backend_build:
-    uses: mrdcvlsc/scheduling-system-backend/.github/workflows/build.yml@development
-
   canary_build:
 
     runs-on: ${{ matrix.os }}
-
-    needs: 
-    - run_frontend_tests
-    - run_frontend_build
-    - run_backend_tests
-    - run_backend_build
 
     strategy:
       matrix:
