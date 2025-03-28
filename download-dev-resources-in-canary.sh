@@ -8,3 +8,5 @@ unzip dist.zip -d ./
 
 # unzip temporary data
 unzip scheduling-system-temporary-data.zip -d ./
+
+echo Done
