@@ -32,7 +32,6 @@ func GenerateSchedule(ctx *gin.Context) {
 
 	log.Print("GenerateSchedule: generating schedule")
 	ctx.String(http.StatusAccepted, "generating schedule")
-	RouteGlobals.IsGeneratingSchedule.Store(true)
 
 	go generate_schedule(semester)
 }
@@ -40,11 +39,8 @@ func GenerateSchedule(ctx *gin.Context) {
 // TODO: this is just for testing
 
 func generate_schedule(semester int) {
-
+	RouteGlobals.IsGeneratingSchedule.Store(true)
 	defer RouteGlobals.IsGeneratingSchedule.Store(false)
-
-	// time.Sleep(time.Second * 60)
-	// log.Println("wait done, now generating...")
 
 	var generate_university_schedule *Schedule.UniTimeTables
 
@@ -76,7 +72,7 @@ func generate_schedule(semester int) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	for i := 0; i < maximum_trials; i++ {
+	for i := range maximum_trials {
 		empty_university_schedule := GeneticAlgorithm.NewEmptyIndividual(curriculums, semester)
 
 		university_schedule, _, err := GeneticAlgorithm.EncodeIndividualGenome(
