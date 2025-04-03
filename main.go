@@ -43,6 +43,8 @@ func main() {
 
 	RouteGlobals.InitializeCachedUniversitySchedule()
 
+	RouteGlobals.InitDeptSchedGenQueue()
+
 	//////////////////////////////////////////////////////////////////////////
 	// MongoDB Setup
 	//////////////////////////////////////////////////////////////////////////
@@ -165,10 +167,10 @@ func main() {
 	v1.GET("/class_schedule", RoutesV1.GetClassSchedule)
 	v1.GET("/class_json_schedule", RoutesV1.GetJsonClassSchedule)
 
-	v1.POST("/generate_schedule", RoutesV1.GenerateSchedule)
+	v1.POST("/generate_schedule", RoutesV1.RequestGenerateSchedule)
 
 	if os.Getenv("GIN_MODE") != "release" {
-		v1.GET("/generate_schedule", RoutesV1.GenerateSchedule) // for dev only
+		v1.GET("/generate_schedule", RoutesV1.RequestGenerateSchedule) // for dev only
 	}
 
 	//////////////////////////////////////////////////////////////////////////

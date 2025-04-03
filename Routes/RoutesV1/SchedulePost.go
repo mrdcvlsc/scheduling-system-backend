@@ -7,16 +7,18 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
-	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 )
+
+const DEFAULT_INITIAL_REQUEST_COUNT uint = 30
 
 /*
 POST:
 
-	"/generate_schedule?semester[0-1]"
+	"/generate_schedule?semester=[0-1]&department_id=[N>0]"
 */
-func GenerateSchedule(ctx *gin.Context) {
+func RequestGenerateSchedule(ctx *gin.Context) {
 
 	semester, is_valid_semester_idx := IsValidParameterSemesterIndex(ctx)
 
@@ -24,112 +26,271 @@ func GenerateSchedule(ctx *gin.Context) {
 		return
 	}
 
-	if RouteGlobals.IsGeneratingSchedule.Load() {
-		log.Print("GenerateSchedule: already generating schedule")
-		ctx.String(http.StatusAccepted, "already generating schedule")
+	department_id, is_valid_department_id := IsValidParameterDepartmentID(ctx)
+
+	if !is_valid_department_id {
 		return
 	}
 
-	log.Print("GenerateSchedule: generating schedule")
-	ctx.String(http.StatusAccepted, "generating schedule")
+	response_msg := ""
+	response_status := http.StatusAccepted
 
-	go generate_schedule(semester)
+	if RouteGlobals.PushNewDeptToDeptSchedGenQueue(RouteGlobals.DeptSchedGenKey{
+		DepartmentID: uint16(department_id),
+		Semester:     semester,
+	}) {
+		response_msg += fmt.Sprintf("department with id %d was added to the schedule generation queue,", department_id)
+	} else {
+		response_msg += fmt.Sprintf("the department with id %d is already in schedule generation queue,", department_id)
+		response_status = http.StatusContinue
+	}
+
+	if !RouteGlobals.IsGeneratingSchedule.Load() {
+		response_msg += " the schedule generation function has started"
+		go encode_schedule()
+	} else {
+		response_msg += " the schedule generation function is already running"
+	}
+
+	log.Printf("GenerateSchedule: generating schedule")
+	ctx.String(response_status, response_msg)
 }
 
-// TODO: this is just for testing
-
-func generate_schedule(semester int) {
+func encode_schedule() {
 	RouteGlobals.IsGeneratingSchedule.Store(true)
 	defer RouteGlobals.IsGeneratingSchedule.Store(false)
 
-	var generate_university_schedule *Schedule.UniTimeTables
-
-	maximum_trials := 10
-
-	log.Println("generate_schedule: generating schedule...")
+	log.Println("encode_schedule [0]: generating schedule...")
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
 	curriculums, err_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
 
 	if err_curriculums != nil {
-		log.Fatal("generate_schedule:", err_curriculums)
+		log.Fatal("encode_schedule [1]:", err_curriculums)
 	}
 
 	dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(RouteGlobals.ResourcesPersistence)
 
 	if err_dept_id_to_department != nil {
-		log.Fatal(err_dept_id_to_department)
+		log.Fatal("encode_schedule [2]:", err_dept_id_to_department)
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	encoding_resource, err_read_default_encoding_resource := GeneticAlgorithm.ReadDefaultEncodingResource(RouteGlobals.ResourcesPersistence)
+	var generated_encoding_resource *GeneticAlgorithm.EncodingResource
+	var err_gen_encoding_resource error
 
-	if err_read_default_encoding_resource != nil {
-		log.Fatal(err_read_default_encoding_resource)
-	}
+	for {
+		// get the first department in the queue that requested to generate a schedule for a specific semester
 
-	////////////////////////////////////////////////////////////////////////////////////////
+		department_to_encode, semester_to_encode, err_pop_from_queue := RouteGlobals.PopDepartmentToEncodeFromSchedGenQueue()
 
-	for i := range maximum_trials {
-		empty_university_schedule := GeneticAlgorithm.NewEmptyIndividual(curriculums, semester)
-
-		university_schedule, _, err := GeneticAlgorithm.EncodeIndividualGenome(
-			empty_university_schedule,
-			curriculums, dept_id_to_department,
-			encoding_resource, nil,
-			semester, 0,
-		)
-
-		if (err != nil) && (i == (maximum_trials - 1)) {
-			log.Print("generate_schedule:", err.Error())
+		if err_pop_from_queue != nil || !has_department_to_encode(department_to_encode) {
+			break // no more department and semester in the schedule generation queue to be encoded in the schedules
 		}
 
-		if err != nil {
+		department_id := uint16(0)
+
+		for k := range department_to_encode {
+			department_id = k
+		}
+
+		if department_id <= 0 {
+			continue // a sanity check, don't generate schedules for department id that is less than 1
+		}
+
+		log.Println("encode_schedule [2.1]: pop latest task from queue")
+
+		// get the current university schedules for the specific semester requested by the first department in the queue
+
+		university_schedule, err_obtain_uni_sched_no_ctx := ObtainUniversityScheduleNoContextNoHorizontalValidation(semester_to_encode)
+
+		if err_obtain_uni_sched_no_ctx != nil {
+			RouteGlobals.SetDepartmentsLastScheduleGenerationResult(
+				RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
+				RouteGlobals.ScheduleGenerationLastResult{
+					Status:  false,
+					Message: err_obtain_uni_sched_no_ctx.Error(),
+				},
+			)
+
 			continue
 		}
 
-		generate_university_schedule = &university_schedule
-		break
+		log.Println("encode_schedule [2.2]: obtain schedule for the specified semester")
+
+		// generate the encoding resource for the obtained university schedule
+
+		generated_encoding_resource, err_gen_encoding_resource = GeneticAlgorithm.GenerateEncodingResourceFromUniTimeTable(
+			university_schedule, curriculums, semester_to_encode, RouteGlobals.ResourcesPersistence,
+		)
+
+		if err_gen_encoding_resource != nil {
+			RouteGlobals.SetDepartmentsLastScheduleGenerationResult(
+				RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
+				RouteGlobals.ScheduleGenerationLastResult{
+					Status:  false,
+					Message: err_gen_encoding_resource.Error(),
+				},
+			)
+
+			continue
+		}
+
+		log.Println("encode_schedule [2.3]: generated new schedule encoding for the department specific semester")
+
+		// encode a new schedule in the obtained university schedule for the specific department
+
+		max_retries := 50
+		var retry int
+
+		log.Println("encode_schedule [2.3]: trying to generate the schedule")
+
+		for retry = 0; retry < max_retries; retry++ {
+			new_encoded_university_schedule, _, err_encode_individual_genome := GeneticAlgorithm.EncodeIndividualGenome(
+				university_schedule,
+				curriculums, dept_id_to_department,
+				generated_encoding_resource, department_to_encode,
+				semester_to_encode, 0,
+			)
+
+			if err_encode_individual_genome != nil {
+				if retry == max_retries-1 {
+					RouteGlobals.SetDepartmentsLastScheduleGenerationResult(
+						RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
+						RouteGlobals.ScheduleGenerationLastResult{
+							Status:  false,
+							Message: err_encode_individual_genome.Error(),
+						},
+					)
+
+					break
+				}
+
+				continue
+			}
+
+			// perform checks and validation to the new encoded schedule for the specific department
+
+			if new_encoded_university_schedule == nil {
+				log.Print("encode_schedule [3]: unable to generate schedules")
+
+				RouteGlobals.SetDepartmentsLastScheduleGenerationResult(
+					RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
+					RouteGlobals.ScheduleGenerationLastResult{
+						Status: false,
+						Message: fmt.Sprintf(
+							"unable to generate schedules for the department with id %d %s",
+							department_id, Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
+						),
+					},
+				)
+
+				break
+			}
+
+			vertical_overlaps := false
+			for _, e := range new_encoded_university_schedule.VerticalValidation(RouteGlobals.ResourcesPersistence) {
+				RouteGlobals.SetDepartmentsLastScheduleGenerationResult(
+					RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
+					RouteGlobals.ScheduleGenerationLastResult{
+						Status: false,
+						Message: fmt.Sprintf(
+							"error vertical overlaps detected: %s", e.Error(),
+						),
+					},
+				)
+
+				vertical_overlaps = true
+				break
+			}
+
+			if vertical_overlaps {
+				break
+			}
+
+			horizontal_overlaps := false
+			for _, e := range new_encoded_university_schedule.HorizontalValidation(RouteGlobals.ResourcesPersistence, department_to_encode, semester_to_encode) {
+				RouteGlobals.SetDepartmentsLastScheduleGenerationResult(
+					RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
+					RouteGlobals.ScheduleGenerationLastResult{
+						Status: false,
+						Message: fmt.Sprintf(
+							"error horizontal overlaps detected: %s", e.Error(),
+						),
+					},
+				)
+
+				horizontal_overlaps = true
+				break
+			}
+
+			if horizontal_overlaps {
+				break
+			}
+
+			err_save_schedules := RouteGlobals.SchedulePersistence.SaveService.SaveSchedules(new_encoded_university_schedule, semester_to_encode)
+
+			if err_save_schedules != nil {
+				log.Print("encode_schedule [4]:", err_save_schedules.Error())
+
+				RouteGlobals.SetDepartmentsLastScheduleGenerationResult(
+					RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
+					RouteGlobals.ScheduleGenerationLastResult{
+						Status: false,
+						Message: fmt.Sprintf(
+							"error saving schedule: %s", err_save_schedules.Error(),
+						),
+					},
+				)
+
+				break
+			}
+
+			err_set_cache := RouteGlobals.SetCachedUniversitySchedule(semester_to_encode, new_encoded_university_schedule)
+
+			if err_set_cache != nil {
+				log.Print("encode_schedule [5]:", err_set_cache.Error())
+
+				RouteGlobals.SetDepartmentsLastScheduleGenerationResult(
+					RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
+					RouteGlobals.ScheduleGenerationLastResult{
+						Status: false,
+						Message: fmt.Sprintf(
+							"error saving schedule: %s", err_set_cache.Error(),
+						),
+					},
+				)
+
+				break
+			}
+
+			// specific department schedule generation done
+
+			break
+		}
+
+		log.Println("encode_schedule [5.1]: trying to generate the schedule")
 	}
 
-	log.Println("generate_schedule: done generating...")
+	log.Println("encode_schedule [6]: all department schedule generation requests are done...")
+}
 
-	if generate_university_schedule == nil {
-		log.Print("generate_schedule:", fmt.Sprintf("unable to generate schedules after %d tries", maximum_trials))
-		return
+func has_department_to_encode(department_to_encode map[uint16]bool) bool {
+	has_department_to_encode_result := false
+
+	if department_to_encode == nil {
+		return has_department_to_encode_result
 	}
 
-	if generate_university_schedule.IsEmpty() {
-		log.Print("generate_schedule:", "the generated schedule was empty")
+	if len(department_to_encode) == 0 {
+		return has_department_to_encode_result
 	}
 
-	log.Println("generate_schedule: validating schedule")
-
-	for _, e := range generate_university_schedule.VerticalValidation(RouteGlobals.ResourcesPersistence) {
-		log.Print("generate_schedule:", e.Error())
+	for _, v := range department_to_encode {
+		has_department_to_encode_result = has_department_to_encode_result || v
 	}
 
-	for _, e := range generate_university_schedule.HorizontalValidation(RouteGlobals.ResourcesPersistence, nil, semester) {
-		log.Print("generate_schedule:", e.Error())
-	}
-
-	log.Println("generate_schedule: saving schedule")
-
-	err_save_schedules := RouteGlobals.SchedulePersistence.SaveService.SaveSchedules(*generate_university_schedule, semester)
-
-	if err_save_schedules != nil {
-		log.Print("generate_schedule:", err_save_schedules.Error())
-	}
-
-	log.Println("generate_schedule: caching schedule")
-
-	err_set_cache := RouteGlobals.SetCachedUniversitySchedule(semester, *generate_university_schedule)
-
-	if err_set_cache != nil {
-		log.Print("generate_schedule:", err_set_cache.Error())
-	}
-
-	log.Println("generate_schedule: ended, schedule was generated")
+	return has_department_to_encode_result
 }
