@@ -258,7 +258,7 @@ func encode_schedule() {
 					RouteGlobals.ScheduleGenerationLastResult{
 						Status: false,
 						Message: fmt.Sprintf(
-							"error saving schedule: %s", err_set_cache.Error(),
+							"error caching schedule: %s", err_set_cache.Error(),
 						),
 					},
 				)
