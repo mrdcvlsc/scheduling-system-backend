@@ -33,7 +33,7 @@ Different return types:
 
 	(nil, nil, error) // -> resources copy failed.
 	(UniTimeTables, nil, error) // -> not enough resources.
-	(UniTimeTables, DepartmentsToEncode, nil) // -> successfully generated valid university schedules.
+	(UniTimeTables, EncodingResource, nil) // -> successfully generated valid university schedules.
 
 to generate whole university schedules, set department to encode to nil:
 
