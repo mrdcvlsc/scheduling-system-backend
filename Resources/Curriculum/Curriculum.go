@@ -43,3 +43,12 @@ func GetTotalNumberOfSections(curriculums []Curriculum, selected_semester int) i
 
 	return section_count
 }
+
+var SEMESTER_INDEX_NAME [6]string = [6]string{
+	"1st semester",
+	"2nd semester",
+	"3rd semester",
+	"4th semester",
+	"5th semester",
+	"6th semester",
+}
