@@ -23,6 +23,11 @@ type SubjectAssignmentInfo struct {
 GET:
 
 	"/class_json_schedule?department_id=D&semester=S&schedule_idx=I"
+
+the `schedule_idx` for a section can be fetch from
+`GetDepartmentData` function using rest api GET request:
+
+	"/v1/department_data?department_id=[N>0]&semester=[0-1]"
 */
 func GetJsonClassSchedule(ctx *gin.Context) {
 
