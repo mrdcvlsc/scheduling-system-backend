@@ -23,11 +23,7 @@ func DeleteSubject(ctx *gin.Context) {
 	}
 
 	{ // check if subject is assign in the first semester subjects
-		university_schedules, has_obtained := ObtainUniversitySchedule(ctx, nil, GeneticAlgorithm.TERM_1ST_SEMESTER)
-
-		if !has_obtained {
-			return
-		}
+		university_schedules, _ := ObtainUniversityScheduleNoContext(nil, GeneticAlgorithm.TERM_1ST_SEMESTER)
 
 		err_set_cache := RouteGlobals.SetCachedUniversitySchedule(GeneticAlgorithm.TERM_1ST_SEMESTER, university_schedules)
 
@@ -36,17 +32,13 @@ func DeleteSubject(ctx *gin.Context) {
 		}
 
 		if is_subject_assigned(university_schedules, uint16(subject_id)) {
-			ctx.String(http.StatusConflict, "can not delete a subject assigned to a schedule  in 1st semester")
+			ctx.String(http.StatusConflict, "can not delete a subject assigned to a schedule  in 1st semester, clear the schedules first")
 			return
 		}
 	}
 
 	{ // check if subject is assign in the second semester subjects
-		university_schedules, has_obtained := ObtainUniversitySchedule(ctx, nil, GeneticAlgorithm.TERM_2ND_SEMESTER)
-
-		if !has_obtained {
-			return
-		}
+		university_schedules, _ := ObtainUniversityScheduleNoContext(nil, GeneticAlgorithm.TERM_2ND_SEMESTER)
 
 		err_set_cache := RouteGlobals.SetCachedUniversitySchedule(GeneticAlgorithm.TERM_2ND_SEMESTER, university_schedules)
 
@@ -55,7 +47,7 @@ func DeleteSubject(ctx *gin.Context) {
 		}
 
 		if is_subject_assigned(university_schedules, uint16(subject_id)) {
-			ctx.String(http.StatusConflict, "can not delete a subject assigned to a schedule in 2nd semester")
+			ctx.String(http.StatusConflict, "can not delete a subject assigned to a schedule in 2nd semester, clear the schedules first")
 			return
 		}
 	}

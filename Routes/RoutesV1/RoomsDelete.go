@@ -23,11 +23,7 @@ func DeleteRoom(ctx *gin.Context) {
 	}
 
 	{ // check if room is assign in the first semester subjects
-		university_schedules, has_obtained := ObtainUniversitySchedule(ctx, nil, GeneticAlgorithm.TERM_1ST_SEMESTER)
-
-		if !has_obtained {
-			return
-		}
+		university_schedules, _ := ObtainUniversityScheduleNoContext(nil, GeneticAlgorithm.TERM_1ST_SEMESTER)
 
 		err_set_cache := RouteGlobals.SetCachedUniversitySchedule(GeneticAlgorithm.TERM_1ST_SEMESTER, university_schedules)
 
@@ -42,11 +38,7 @@ func DeleteRoom(ctx *gin.Context) {
 	}
 
 	{ // check if room is assign in the second semester subjects
-		university_schedules, has_obtained := ObtainUniversitySchedule(ctx, nil, GeneticAlgorithm.TERM_2ND_SEMESTER)
-
-		if !has_obtained {
-			return
-		}
+		university_schedules, _ := ObtainUniversityScheduleNoContext(nil, GeneticAlgorithm.TERM_2ND_SEMESTER)
 
 		err_set_cache := RouteGlobals.SetCachedUniversitySchedule(GeneticAlgorithm.TERM_2ND_SEMESTER, university_schedules)
 

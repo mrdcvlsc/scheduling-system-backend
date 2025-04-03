@@ -46,7 +46,10 @@ func GetJsonClassSchedule(ctx *gin.Context) {
 
 	// load university schedules
 
-	university_schedules, has_obtained := ObtainUniversitySchedule(ctx, nil, semester)
+	department_to_validate := make(map[uint16]bool)
+	department_to_validate[uint16(department_id)] = true
+
+	university_schedules, has_obtained := ObtainUniversityScheduleNoHorizontalValidation(ctx, semester)
 
 	if !has_obtained {
 		return
@@ -184,7 +187,7 @@ func GetClassSchedule(ctx *gin.Context) {
 
 	// TODO: use department_id for authentication later on.
 
-	_, is_valid_department_id_param := IsValidParameterDepartmentID(ctx)
+	department_id, is_valid_department_id_param := IsValidParameterDepartmentID(ctx)
 
 	if !is_valid_department_id_param {
 		return
@@ -192,7 +195,10 @@ func GetClassSchedule(ctx *gin.Context) {
 
 	// load university schedules
 
-	university_schedules, has_obtained := ObtainUniversitySchedule(ctx, nil, semester)
+	department_to_validate := make(map[uint16]bool)
+	department_to_validate[uint16(department_id)] = true
+
+	university_schedules, has_obtained := ObtainUniversityScheduleNoHorizontalValidation(ctx, semester)
 
 	if !has_obtained {
 		return
