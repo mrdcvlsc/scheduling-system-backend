@@ -76,6 +76,8 @@ func GetJsonClassSchedule(ctx *gin.Context) {
 		return
 	}
 
+	// TODO: authenticate `schedule_idx` parameter, when someone deletes a curriculum
+
 	// extract selected schedule
 
 	selected_class_schedule := university_schedules[schedule_idx:(schedule_idx + 1)]
