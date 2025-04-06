@@ -118,7 +118,7 @@ func EncodeIndividualGenome(
 						}
 					}
 
-					week_time_table := Schedule.WeekTimeTable{}
+					week_time_table := individual_university_schedules[counted_sections]
 
 					/////////////////////////////////////////////////////////////////////////////////////////////////////////
 					//                                    SHUFFLE ROOMS AND SUBJECT
