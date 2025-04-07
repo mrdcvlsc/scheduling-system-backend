@@ -23,6 +23,11 @@ type SubjectAssignmentInfo struct {
 GET:
 
 	"/class_json_schedule?department_id=D&semester=S&schedule_idx=I"
+
+the `schedule_idx` for a section can be fetch from
+`GetDepartmentData` function using rest api GET request:
+
+	"/v1/department_data?department_id=[N>0]&semester=[0-1]"
 */
 func GetJsonClassSchedule(ctx *gin.Context) {
 
@@ -46,7 +51,10 @@ func GetJsonClassSchedule(ctx *gin.Context) {
 
 	// load university schedules
 
-	university_schedules, has_obtained := ObtainUniversitySchedule(ctx, nil, semester)
+	department_to_validate := make(map[uint16]bool)
+	department_to_validate[uint16(department_id)] = true
+
+	university_schedules, has_obtained := ObtainUniversityScheduleNoHorizontalValidation(ctx, semester)
 
 	if !has_obtained {
 		return
@@ -67,6 +75,8 @@ func GetJsonClassSchedule(ctx *gin.Context) {
 	if !is_valid_idx {
 		return
 	}
+
+	// TODO: authenticate `schedule_idx` parameter, when someone deletes a curriculum
 
 	// extract selected schedule
 
@@ -184,7 +194,7 @@ func GetClassSchedule(ctx *gin.Context) {
 
 	// TODO: use department_id for authentication later on.
 
-	_, is_valid_department_id_param := IsValidParameterDepartmentID(ctx)
+	department_id, is_valid_department_id_param := IsValidParameterDepartmentID(ctx)
 
 	if !is_valid_department_id_param {
 		return
@@ -192,7 +202,10 @@ func GetClassSchedule(ctx *gin.Context) {
 
 	// load university schedules
 
-	university_schedules, has_obtained := ObtainUniversitySchedule(ctx, nil, semester)
+	department_to_validate := make(map[uint16]bool)
+	department_to_validate[uint16(department_id)] = true
+
+	university_schedules, has_obtained := ObtainUniversityScheduleNoHorizontalValidation(ctx, semester)
 
 	if !has_obtained {
 		return

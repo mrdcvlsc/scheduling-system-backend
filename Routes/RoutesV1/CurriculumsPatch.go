@@ -7,7 +7,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
+	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
+	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
+
+type CurriculumSectionKey struct {
+	YearLevelIndex int
+	SemesterIndex  int
+	SectionIndex   int
+}
 
 /*
 PATCH:
@@ -19,9 +27,140 @@ func PatchCurriculum(ctx *gin.Context) {
 
 	if err := ctx.BindJSON(&update_curriculum); err != nil {
 		log.Print(err)
-		ctx.String(http.StatusBadRequest, "we are unable to properly read the curriculum updated data")
+		ctx.String(http.StatusBadRequest, "we're unable to read the updated curriculum data")
 		return
 	}
+
+	// add or remove the section schedule index for the updated curriculum
+
+	all_curriculums, err_read_all_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
+
+	if err_read_all_curriculums != nil {
+		ctx.String(http.StatusInternalServerError, "we are unable retrieve the curriculums right now")
+		return
+	}
+
+	for selected_semester := range Curriculum.SUPPORTED_SEMESTERS {
+
+		// obtain univesity schedules for each semester
+
+		university_schedule, has_obtain := ObtainUniversityScheduleNoHorizontalValidation(ctx, selected_semester)
+		updated_university_schedule := make(Schedule.UniTimeTables, 0, len(university_schedule))
+
+		if !has_obtain {
+			return
+		}
+
+		// determine all the indices of the old untouched to be update curriculum
+
+		curriculum_key_to_weekly_section_sched := make(map[CurriculumSectionKey]Schedule.WeekTimeTable)
+
+		original_uni_sched_idx := 0
+		mid_starting_index := -1
+		mid_length := 0
+
+		for _, curriculum := range all_curriculums {
+			for yl_idx, year_level := range curriculum.YearLevels {
+
+				if !year_level.IsActive {
+					continue
+				}
+
+				for semester_idx, semester := range year_level.Semesters {
+					if semester_idx != selected_semester {
+						continue
+					}
+
+					for section_idx := 0; section_idx < semester.Sections; section_idx++ {
+
+						if curriculum.CurriculumID == update_curriculum.CurriculumID {
+
+							if mid_starting_index == -1 {
+								mid_starting_index = original_uni_sched_idx
+							}
+
+							curriculum_key_to_weekly_section_sched[CurriculumSectionKey{
+								YearLevelIndex: yl_idx,
+								SemesterIndex:  semester_idx,
+								SectionIndex:   section_idx,
+							}] = university_schedule[original_uni_sched_idx]
+
+							mid_length++
+						}
+
+						original_uni_sched_idx++
+					}
+				}
+			}
+		}
+
+		// partition university schedules
+
+		uni_sched_left_part, uni_sched_mid_part, uni_sched_right_part, err_midsection_split := Utils.MidSectionSplitInSlice(
+			university_schedule, mid_starting_index, mid_length,
+		)
+
+		if err_midsection_split != nil {
+			log.Print("PatchCurriculum:", err_midsection_split)
+			ctx.String(http.StatusInternalServerError, "we're unable to update the curriculum right now")
+			return
+		}
+
+		// rebuild updated curriculum's schedule chunk
+
+		updated_curriculum_schedules := make([]Schedule.WeekTimeTable, 0, len(uni_sched_mid_part))
+
+		for yl_idx, year_level := range update_curriculum.YearLevels {
+
+			if !year_level.IsActive {
+				continue
+			}
+
+			for semester_idx, semester := range year_level.Semesters {
+				if semester_idx != selected_semester {
+					continue
+				}
+
+				for section_idx := range semester.Sections {
+
+					week_section_sched, has_key := curriculum_key_to_weekly_section_sched[CurriculumSectionKey{
+						YearLevelIndex: yl_idx,
+						SemesterIndex:  semester_idx,
+						SectionIndex:   section_idx,
+					}]
+
+					if has_key {
+						updated_curriculum_schedules = append(updated_curriculum_schedules, week_section_sched)
+					} else {
+						updated_curriculum_schedules = append(updated_curriculum_schedules, Schedule.WeekTimeTable{})
+					}
+				}
+			}
+		}
+
+		// rebuild the university schedules
+
+		updated_university_schedule = append(updated_university_schedule, uni_sched_left_part...)
+		updated_university_schedule = append(updated_university_schedule, updated_curriculum_schedules...)
+		updated_university_schedule = append(updated_university_schedule, uni_sched_right_part...)
+
+		// save the new university schedules
+
+		err_save_schedules := RouteGlobals.SchedulePersistence.SaveService.SaveSchedules(updated_university_schedule, selected_semester)
+
+		if err_save_schedules != nil {
+			ctx.String(http.StatusInternalServerError, "we're unable to save the deletion of the curriculum from the university schedules right now")
+			return
+		}
+
+		err_set_cache := RouteGlobals.SetCachedUniversitySchedule(selected_semester, updated_university_schedule)
+
+		if err_set_cache != nil {
+			log.Print("PatchCurriculum: the new university schedule was saved, but we're unable to cache it")
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////////
 
 	err := RouteGlobals.ResourcesPersistence.WriterService.UpdateCurriculum(update_curriculum)
 

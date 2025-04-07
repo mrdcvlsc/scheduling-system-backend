@@ -12,3 +12,13 @@ func HasSubString(main string, sub string) bool {
 
 	return strings.Contains(processed_main, processed_sub)
 }
+
+func IsEqualStrCaseInsensitiveIgnoreWhiteSpace(a, b string) bool {
+	processed_a := RemoveWhiteSpace(a)
+	processed_a = strings.ToLower(processed_a)
+
+	processed_b := RemoveWhiteSpace(b)
+	processed_b = strings.ToLower(processed_b)
+
+	return processed_a == processed_b
+}

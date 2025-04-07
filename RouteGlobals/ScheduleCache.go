@@ -2,6 +2,7 @@ package RouteGlobals
 
 import (
 	"errors"
+	"log"
 	"sync"
 	"sync/atomic"
 
@@ -32,7 +33,10 @@ call this first on the main program, if not called panic will happen when callin
 */
 func InitializeCachedUniversitySchedule() {
 	if schedule_cache == nil {
+		log.Print("cache for schedule initialized")
 		schedule_cache = &scheduleCache{}
+	} else {
+		log.Print("cache for schedule is already initialized")
 	}
 }
 

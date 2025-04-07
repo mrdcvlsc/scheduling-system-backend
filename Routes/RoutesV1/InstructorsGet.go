@@ -109,7 +109,10 @@ func GetDepartmentInstructorsAllocated(ctx *gin.Context) {
 		return
 	}
 
-	university_schedule, has_obtained := ObtainUniversitySchedule(ctx, nil, selected_semester)
+	department_to_validate := make(map[uint16]bool)
+	department_to_validate[uint16(department_id)] = true
+
+	university_schedule, has_obtained := ObtainUniversitySchedule(ctx, department_to_validate, selected_semester)
 
 	if !has_obtained {
 		return
