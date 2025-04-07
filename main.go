@@ -132,8 +132,12 @@ func main() {
 
 	v1.GET("/const", RoutesV1.GetConst)
 
+	// ============= department routes and handlers =============
+
 	v1.GET("/all_departments", RoutesV1.GetAllDepartments)
 	v1.GET("/department_data", RoutesV1.GetDepartmentData)
+
+	// ============= instructor routes and handlers =============
 
 	v1.GET("/instructors/d", RoutesV1.GetDepartmentInstructorsDefaults)
 	v1.GET("/instructors/a", RoutesV1.GetDepartmentInstructorsAllocated)
@@ -145,15 +149,21 @@ func main() {
 	v2.GET("instructor_resources", RoutesV2.GetInstructorResource)
 	v2.GET("instructor_basic", RoutesV2.GetInstructorBasic)
 
+	// ============= room routes and handlers =============
+
 	v1.GET("/rooms", RoutesV1.GetDepartmentRooms)
 	v1.POST("/room_add", RoutesV1.PostRoom)
 	v1.PATCH("/room_update", RoutesV1.PatchRoom)
 	v1.DELETE("/room_remove", RoutesV1.DeleteRoom)
 
+	// ============= subject routes and handlers =============
+
 	v1.GET("/subjects", RoutesV1.GetSubjects)
 	v1.POST("/subject_add", RoutesV1.PostSubject)
 	v1.PATCH("/subject_update", RoutesV1.PatchSubject)
 	v1.DELETE("/subject_remove", RoutesV1.DeleteSubject)
+
+	// ============= curriculum routes and handlers =============
 
 	v1.GET("/curriculum_list", RoutesV1.GetDepartmentCurriculumList)
 	v1.GET("/curriculum_load", RoutesV1.GetCurriculum)
@@ -161,12 +171,15 @@ func main() {
 	v1.PATCH("/curriculum_update", RoutesV1.PatchCurriculum)
 	v1.DELETE("/curriculum_remove", RoutesV1.DeleteCurriculum)
 
+	// ============= schedule routes and handlers =============
+
 	v1.GET("/university_schedule", RoutesV1.GetUniversitySchedule)
 	v1.POST("/university_schedule", RoutesV1.PostUniversitySchedule)
 
 	v1.GET("/class_schedule", RoutesV1.GetClassSchedule)
 	v1.GET("/class_json_schedule", RoutesV1.GetJsonClassSchedule)
-
+	v1.DELETE("/clear_class_schedule", RoutesV1.DeleteClearClassSchedule)
+	v1.DELETE("/clear_department_schedules", RoutesV1.DeleteClearDepartmentSchedule)
 	v1.POST("/generate_schedule", RoutesV1.RequestGenerateSchedule)
 
 	if os.Getenv("GIN_MODE") != "release" {
