@@ -2,6 +2,7 @@ package GeneticAlgorithm_test
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
@@ -148,6 +149,33 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 
 			for _, e := range err_horizontal_validations {
 				t.Fatal(e)
+			}
+		}
+
+		///////////////// test : there should be no changes to the university schedules and encodingh resources when encoded again
+
+		if encoding_resource != nil {
+			re_university_schedules, re_encoding_resource, re_err := GeneticAlgorithm.EncodeIndividualGenome(
+				university_schedules,
+				curriculums,
+				dept_id_to_department, encoding_resource, nil,
+				target_semester, 0,
+			)
+
+			if len(university_schedules) == 0 {
+				t.Fatal("Test No Changes : error : No university schedules generated")
+			}
+
+			if re_err != nil {
+				t.Fatal("Test No Changes : error :", re_err)
+			}
+
+			if !reflect.DeepEqual(university_schedules, re_university_schedules) {
+				t.Fatal("Test No Changes : error university schedules equal test failed")
+			}
+
+			if !GeneticAlgorithm.IsEqualEncodingResource(encoding_resource, re_encoding_resource) {
+				t.Fatal("Test No Changes : error encoding resource equal test failed")
 			}
 		}
 	}
