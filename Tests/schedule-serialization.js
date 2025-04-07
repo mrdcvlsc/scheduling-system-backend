@@ -158,8 +158,8 @@ async function serialize_schedule(university_schedules, base_url = '') {
   return serialized_data;
 }
 
-async function generate_schedule(selected_semester, base_url = '') {
-  const response = await fetch(`${base_url}/v1/generate_schedule?semester=${selected_semester}`, {
+async function generate_schedule(selected_semester, department_id, base_url = '') {
+  const response = await fetch(`${base_url}/v1/generate_schedule?semester=${selected_semester}&department_id=${department_id}`, {
     method: 'POST',
     headers: {
       Accept: "text/plain",
@@ -175,11 +175,39 @@ async function generate_schedule(selected_semester, base_url = '') {
   console.log(`success response: ${msg}`);
 }
 
+export async function fetchAllDepartments(base_url = '') {
+  let api_request = `${base_url}/v1/all_departments`
+
+  const response = await fetch(api_request, {
+    headers: {
+      Accept: "application/json",
+    },
+    method: 'GET'
+  });
+
+  if (!response.ok) {
+    throw Error(`${response.status} :${await response.text()}`);
+  }
+
+  return response.json();
+}
+
 async function test(base_url = '') {
   try {
+    console.log('--------------------fetch departments---------------------------\n')
+    
+    const departments = await fetchAllDepartments(base_url)
+    
     console.log('--------------------generate_schedule---------------------------\n')
-    await generate_schedule(0, base_url)
-    await new Promise(resolve => setTimeout(resolve, 7000));
+
+    for (const department of departments) {
+      if (department.DepartmentID > 0) {
+        await generate_schedule(0, department.DepartmentID, base_url)
+      }
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 10000));
+
     console.log('--------------------fetch_serialized_schedule---------------------------\n')
     let [raw_data, _] = await fetch_serialized_schedule(0, base_url);
     console.log('--------------------deserialize_schedule---------------------------\n')
