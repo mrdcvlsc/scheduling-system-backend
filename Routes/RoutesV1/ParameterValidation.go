@@ -247,7 +247,7 @@ func IsValidIndex(ctx *gin.Context, param_name string) (int, bool) {
 		return -1, false
 	}
 
-	if index < 1 {
+	if index < 0 {
 		ctx.String(http.StatusBadRequest, fmt.Sprintf("invalid '%d' value", index))
 		return -1, false
 	}
