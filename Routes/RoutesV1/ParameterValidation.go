@@ -1,6 +1,7 @@
 package RoutesV1
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -229,4 +230,27 @@ func IsValidCurriculumID(ctx *gin.Context) (int, bool) {
 	}
 
 	return curriculum_id, true
+}
+
+func IsValidIndex(ctx *gin.Context, param_name string) (int, bool) {
+	param_index := ctx.Query(param_name)
+
+	if param_index == "" {
+		ctx.String(http.StatusBadRequest, fmt.Sprintf("missing '%s' parameter or parameter value", param_name))
+		return -1, false
+	}
+
+	index, err_atoi := strconv.Atoi(param_index)
+
+	if err_atoi != nil {
+		ctx.String(http.StatusBadRequest, fmt.Sprintf("invalid '%s' parameter value", param_name))
+		return -1, false
+	}
+
+	if index < 1 {
+		ctx.String(http.StatusBadRequest, fmt.Sprintf("invalid '%d' value", index))
+		return -1, false
+	}
+
+	return index, true
 }
