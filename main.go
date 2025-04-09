@@ -178,7 +178,7 @@ func main() {
 
 	v1.GET("/class_schedule", RoutesV1.GetClassSchedule)
 	v2.GET("/class_json_schedule", RoutesV2.GetJsonClassSchedule)
-	v1.DELETE("/clear_class_schedule", RoutesV1.DeleteClearClassSchedule)
+	v2.DELETE("/clear_class_schedule", RoutesV2.DeleteClearClassSchedule)
 	v1.DELETE("/clear_department_schedules", RoutesV1.DeleteClearDepartmentSchedule)
 	v1.POST("/generate_schedule", RoutesV1.RequestGenerateSchedule)
 
