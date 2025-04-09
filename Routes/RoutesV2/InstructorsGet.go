@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
@@ -36,7 +35,7 @@ GET:
 	"/instructors?
 		department_id=D&
 		page_size=[N>0]&
-		page[0-N>0]&
+		page[0-N>=1]&
 		firstname_match=<string>&
 		initial_match=<string>&
 		lastname_match=<string>
@@ -123,6 +122,7 @@ GET:
 */
 func GetInstructorResource(ctx *gin.Context) {
 	instructor_id, is_valid_instructor_id_param := RoutesV1.IsValidInstructorID(ctx)
+
 	if !is_valid_instructor_id_param {
 		return
 	}
@@ -156,54 +156,38 @@ func GetInstructorResource(ctx *gin.Context) {
 		return
 	}
 
-	time_encodings := make(map[string]any, 0)
-	time_encodings["base"] = selected_instructor_base.Time.Stringify()
+	response_body := make(map[string]any, 0)
+	response_body["base_time_slots"] = selected_instructor_base.Time.Stringify()
 
-	sched_1st_sem, has_obtained_1st_sem := RoutesV1.ObtainUniversityScheduleNoHorizontalValidation(ctx, GeneticAlgorithm.TERM_1ST_SEMESTER)
+	semesters_time_slots := make([][]string, 0)
+	semesters_sub_assign := make([][]InstructorSubjectAssignmentInfo, 0)
 
-	if !has_obtained_1st_sem {
-		return
-	}
+	for semester_idx := range Curriculum.SUPPORTED_SEMESTERS {
+		university_schedules, has_obtained := RoutesV1.ObtainUniversityScheduleNoHorizontalValidation(ctx, semester_idx)
 
-	if !sched_1st_sem.IsEmpty() {
-		sem_1st_time_allocation, sub_assign, err_get_instructor_time_allocation := get_instructor_time_allocation(
-			*selected_instructor_base,
-			sched_1st_sem, all_curriculums,
-			GeneticAlgorithm.TERM_1ST_SEMESTER,
-		)
-
-		if err_get_instructor_time_allocation != nil {
-			ctx.String(http.StatusInternalServerError, "we are unable to recreated the instructor time allocation for the 1st semester")
+		if !has_obtained {
 			return
 		}
 
-		time_encodings["sem_1st"] = sem_1st_time_allocation.Stringify()
-		time_encodings["sem_1st_sub_assign"] = sub_assign
-	}
-
-	sched_2nd_sem, has_obtained_2nd_sem := RoutesV1.ObtainUniversityScheduleNoHorizontalValidation(ctx, GeneticAlgorithm.TERM_2ND_SEMESTER)
-
-	if !has_obtained_2nd_sem {
-		return
-	}
-
-	if !sched_2nd_sem.IsEmpty() {
-		sem_2nd_time_allocation, sub_assign, err_get_instructor_time_allocation := get_instructor_time_allocation(
+		instructor_time_allocation, sub_assign, err_get_instructor_time_allocation := get_instructor_time_allocation(
 			*selected_instructor_base,
-			sched_2nd_sem, all_curriculums,
-			GeneticAlgorithm.TERM_2ND_SEMESTER,
+			university_schedules, all_curriculums,
+			semester_idx,
 		)
 
 		if err_get_instructor_time_allocation != nil {
-			ctx.String(http.StatusInternalServerError, "we are unable to recreated the instructor time allocation for the 2nd semester")
+			ctx.String(http.StatusInternalServerError, fmt.Sprintf("we are unable to recreated the instructor time allocation for the %s", Curriculum.SEMESTER_INDEX_NAME[semester_idx]))
 			return
 		}
 
-		time_encodings["sem_2nd"] = sem_2nd_time_allocation.Stringify()
-		time_encodings["sem_2nd_sub_assign"] = sub_assign
+		semesters_time_slots = append(semesters_time_slots, instructor_time_allocation.Stringify())
+		semesters_sub_assign = append(semesters_sub_assign, sub_assign)
 	}
 
-	ctx.JSON(http.StatusOK, time_encodings)
+	response_body["semesters_time_slots"] = semesters_time_slots
+	response_body["semesters_sub_assign"] = semesters_sub_assign
+
+	ctx.JSON(http.StatusOK, response_body)
 }
 
 type InstructorSubjectAssignmentInfo struct {
@@ -324,40 +308,4 @@ func get_instructor_time_allocation(base_instructor Instructors.Instructor, univ
 	} // ------------- end of curriculum loop -------------
 
 	return base_instructor.Time, sub_assign_info, nil
-}
-
-/*
-GET:
-
-	"/instructor_basic?instructor_id=[N>0]"
-*/
-func GetInstructorBasic(ctx *gin.Context) {
-	instructor_id, is_valid_instructor_id_param := RoutesV1.IsValidInstructorID(ctx)
-	if !is_valid_instructor_id_param {
-		return
-	}
-
-	all_instructors, err_read_all_instructors := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllInstructors()
-
-	if err_read_all_instructors != nil {
-		log.Println(err_read_all_instructors)
-		ctx.String(http.StatusInternalServerError, "we are unable to retrieve the instructors right now")
-		return
-	}
-
-	var selected_instructor_base *Instructors.Instructor
-
-	for _, instructor := range all_instructors {
-		if instructor.InstructorID == uint16(instructor_id) {
-			selected_instructor_base = &instructor
-			break
-		}
-	}
-
-	if selected_instructor_base == nil {
-		ctx.String(http.StatusNotFound, "that instructor does not exist")
-		return
-	}
-
-	ctx.JSON(http.StatusOK, selected_instructor_base)
 }

@@ -147,7 +147,6 @@ func main() {
 
 	v2.GET("instructors", RoutesV2.GetDepartmentInstructors)
 	v2.GET("instructor_resources", RoutesV2.GetInstructorResource)
-	v2.GET("instructor_basic", RoutesV2.GetInstructorBasic)
 
 	// ============= room routes and handlers =============
 
