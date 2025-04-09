@@ -224,8 +224,14 @@ func get_instructor_time_allocation(base_instructor Instructors.Instructor, univ
 			return base_instructor.Time, nil, errors.New("we can not retrieve the rooms information right now")
 		}
 
-		for _, room := range rooms {
-			if room.DepartmentID == base_instructor.DepartmentID || room.DepartmentID == 0 {
+		if base_instructor.DepartmentID != 0 {
+			for _, room := range rooms {
+				if room.DepartmentID == base_instructor.DepartmentID || room.DepartmentID == 0 {
+					room_id_to_room_name[room.RoomID] = room.Name
+				}
+			}
+		} else {
+			for _, room := range rooms {
 				room_id_to_room_name[room.RoomID] = room.Name
 			}
 		}
