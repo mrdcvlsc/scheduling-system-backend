@@ -135,7 +135,7 @@ func main() {
 	// ============= department routes and handlers =============
 
 	v1.GET("/all_departments", RoutesV1.GetAllDepartments)
-	v1.GET("/department_data", RoutesV1.GetDepartmentData)
+	v1.GET("/department_data", RoutesV1.GetCurriculumsDataInDepartment)
 
 	// ============= instructor routes and handlers =============
 
