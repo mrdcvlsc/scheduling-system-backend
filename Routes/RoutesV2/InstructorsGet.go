@@ -119,17 +119,11 @@ func GetDepartmentInstructors(ctx *gin.Context) {
 /*
 GET:
 
-	"/instructor?instructor_id=[N>0]&department_id=[N>0]"
+	"/instructor_resources?instructor_id=[N>0]"
 */
 func GetInstructorResource(ctx *gin.Context) {
 	instructor_id, is_valid_instructor_id_param := RoutesV1.IsValidInstructorID(ctx)
 	if !is_valid_instructor_id_param {
-		return
-	}
-
-	department_id, is_valid_department_id_param := RoutesV1.IsValidParameterDepartmentID(ctx)
-
-	if !is_valid_department_id_param {
 		return
 	}
 
@@ -165,10 +159,7 @@ func GetInstructorResource(ctx *gin.Context) {
 	time_encodings := make(map[string]any, 0)
 	time_encodings["base"] = selected_instructor_base.Time.Stringify()
 
-	department_to_validate := make(map[uint16]bool)
-	department_to_validate[uint16(department_id)] = true
-
-	sched_1st_sem, has_obtained_1st_sem := RoutesV1.ObtainUniversitySchedule(ctx, department_to_validate, GeneticAlgorithm.TERM_1ST_SEMESTER)
+	sched_1st_sem, has_obtained_1st_sem := RoutesV1.ObtainUniversityScheduleNoHorizontalValidation(ctx, GeneticAlgorithm.TERM_1ST_SEMESTER)
 
 	if !has_obtained_1st_sem {
 		return
@@ -190,7 +181,7 @@ func GetInstructorResource(ctx *gin.Context) {
 		time_encodings["sem_1st_sub_assign"] = sub_assign
 	}
 
-	sched_2nd_sem, has_obtained_2nd_sem := RoutesV1.ObtainUniversitySchedule(ctx, department_to_validate, GeneticAlgorithm.TERM_2ND_SEMESTER)
+	sched_2nd_sem, has_obtained_2nd_sem := RoutesV1.ObtainUniversityScheduleNoHorizontalValidation(ctx, GeneticAlgorithm.TERM_2ND_SEMESTER)
 
 	if !has_obtained_2nd_sem {
 		return
