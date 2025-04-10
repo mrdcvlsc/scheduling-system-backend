@@ -17,8 +17,8 @@ type CurriculumMicroData struct {
 }
 
 type YearLevelMicroData struct {
-	Name                            string `json:"Name"`
-	SectionsUniversityScheduleIndex []int  `json:"Sections"`
+	Name     string `json:"Name"`
+	Sections int    `json:"Sections"`
 }
 
 /*
@@ -53,7 +53,7 @@ GET:
 
 	"/department_data?department_id=D&semester=[0-1]"
 */
-func GetDepartmentData(ctx *gin.Context) {
+func GetCurriculumsDataInDepartment(ctx *gin.Context) {
 
 	department_id, is_valid_department_id_param := IsValidParameterDepartmentID(ctx)
 
@@ -67,7 +67,7 @@ func GetDepartmentData(ctx *gin.Context) {
 		return
 	}
 
-	curriculums, err_read_all_curriculum := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
+	all_curriculums, err_read_all_curriculum := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
 
 	if err_read_all_curriculum != nil {
 		ctx.String(http.StatusInternalServerError, "unable to read curriculums for that department")
@@ -76,18 +76,16 @@ func GetDepartmentData(ctx *gin.Context) {
 
 	slice_of_curriculum_micro_data := make([]CurriculumMicroData, 0)
 
-	schedule_idx := 0
-
-	for _, curriculum := range curriculums {
+	for _, curriculum := range all_curriculums {
 
 		curriculum_micro_data := &CurriculumMicroData{
 			CurriculumID:   curriculum.CurriculumID,
 			CurriculumName: curriculum.CurriculumName,
 			CurriculumCode: curriculum.CurriculumCode,
-			YearLevels:     make([]YearLevelMicroData, 0),
+			YearLevels:     make([]YearLevelMicroData, len(curriculum.YearLevels)),
 		}
 
-		for _, year_level := range curriculum.YearLevels {
+		for yl_idx, year_level := range curriculum.YearLevels {
 
 			if !year_level.IsActive {
 				continue
@@ -99,26 +97,8 @@ func GetDepartmentData(ctx *gin.Context) {
 					continue
 				}
 
-				year_level_micro_data := &YearLevelMicroData{
-					Name:                            year_level.Name,
-					SectionsUniversityScheduleIndex: make([]int, 0),
-				}
-
-				for section_idx := 0; section_idx < semester.Sections; section_idx++ {
-
-					if department_id == int(curriculum.DepartmentID) {
-						year_level_micro_data.SectionsUniversityScheduleIndex = append(
-							year_level_micro_data.SectionsUniversityScheduleIndex,
-							schedule_idx,
-						)
-					}
-
-					schedule_idx++
-				}
-
-				if department_id == int(curriculum.DepartmentID) {
-					curriculum_micro_data.YearLevels = append(curriculum_micro_data.YearLevels, *year_level_micro_data)
-				}
+				curriculum_micro_data.YearLevels[yl_idx].Name = year_level.Name
+				curriculum_micro_data.YearLevels[yl_idx].Sections = semester.Sections
 			}
 		}
 

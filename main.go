@@ -135,7 +135,7 @@ func main() {
 	// ============= department routes and handlers =============
 
 	v1.GET("/all_departments", RoutesV1.GetAllDepartments)
-	v1.GET("/department_data", RoutesV1.GetDepartmentData)
+	v1.GET("/department_data", RoutesV1.GetCurriculumsDataInDepartment)
 
 	// ============= instructor routes and handlers =============
 
@@ -147,7 +147,6 @@ func main() {
 
 	v2.GET("instructors", RoutesV2.GetDepartmentInstructors)
 	v2.GET("instructor_resources", RoutesV2.GetInstructorResource)
-	v2.GET("instructor_basic", RoutesV2.GetInstructorBasic)
 
 	// ============= room routes and handlers =============
 
@@ -177,8 +176,8 @@ func main() {
 	v1.POST("/university_schedule", RoutesV1.PostUniversitySchedule)
 
 	v1.GET("/class_schedule", RoutesV1.GetClassSchedule)
-	v1.GET("/class_json_schedule", RoutesV1.GetJsonClassSchedule)
-	v1.DELETE("/clear_class_schedule", RoutesV1.DeleteClearClassSchedule)
+	v2.GET("/class_json_schedule", RoutesV2.GetJsonClassSchedule)
+	v2.DELETE("/clear_class_schedule", RoutesV2.DeleteClearClassSchedule)
 	v1.DELETE("/clear_department_schedules", RoutesV1.DeleteClearDepartmentSchedule)
 	v1.POST("/generate_schedule", RoutesV1.RequestGenerateSchedule)
 
