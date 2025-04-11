@@ -24,6 +24,9 @@ func PostCurriculum(ctx *gin.Context) {
 		return
 	}
 
+	RouteGlobals.ReindexUniSchedMutex.Lock()
+	defer RouteGlobals.ReindexUniSchedMutex.Unlock()
+
 	// save new curriculum
 
 	err := RouteGlobals.ResourcesPersistence.WriterService.CreateCurriculum(add_curriculum)

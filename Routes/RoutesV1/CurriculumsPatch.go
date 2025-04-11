@@ -31,6 +31,9 @@ func PatchCurriculum(ctx *gin.Context) {
 		return
 	}
 
+	RouteGlobals.ReindexUniSchedMutex.Lock()
+	defer RouteGlobals.ReindexUniSchedMutex.Unlock()
+
 	// add or remove the section schedule index for the updated curriculum
 
 	all_curriculums, err_read_all_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
