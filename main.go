@@ -185,6 +185,10 @@ func main() {
 		v1.GET("/generate_schedule", RoutesV1.RequestGenerateSchedule) // for dev only
 	}
 
+	// ============= survery routes and handlers =============
+
+	v2.POST("/add_schedule_preference", RoutesV2.PostWeekTimeTableSurvery)
+
 	//////////////////////////////////////////////////////////////////////////
 
 	if os.Getenv("GIN_MODE") != "release" {
