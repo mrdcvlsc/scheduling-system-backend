@@ -1,3 +1,5 @@
+SEARCH_PATTERN:=
+
 build_dev:
 	go build -ldflags "-s -w" -o app && $(MAKE) frontend_local && ./app
 
@@ -66,7 +68,7 @@ todo:
 	python todo.py
 
 find:
-	grep -nr "Persistence" ./
+	grep -nr $(SEARCH_PATTERN) ./
 
 test_api:
 	./app & sleep 1 && node Tests/schedule-serialization.js
