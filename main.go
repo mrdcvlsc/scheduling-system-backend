@@ -145,6 +145,7 @@ func main() {
 	v1.PATCH("/instructor_update", RoutesV1.PatchInstructor)
 	v1.DELETE("/instructor_remove", RoutesV1.DeleteInstructor)
 
+	v2.GET("instructor_basic", RoutesV2.GetInstructorBasic)
 	v2.GET("instructors", RoutesV2.GetDepartmentInstructors)
 	v2.GET("instructor_resources", RoutesV2.GetInstructorResource)
 
