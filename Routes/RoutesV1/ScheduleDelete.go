@@ -66,8 +66,6 @@ func DeleteClearClassSchedule(ctx *gin.Context) {
 		return
 	}
 
-	// TODO: authenticate `schedule_idx` parameter, when someone deletes a curriculum
-
 	// clear class schedule
 
 	university_schedules[schedule_idx] = Schedule.WeekTimeTable{}
@@ -128,8 +126,6 @@ func DeleteClearDepartmentSchedule(ctx *gin.Context) {
 	if err_set_cache != nil {
 		log.Println(err_set_cache.Error())
 	}
-
-	// TODO: authenticate `schedule_idx` parameter, when someone deletes a curriculum
 
 	// get all curriculums
 

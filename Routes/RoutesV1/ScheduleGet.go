@@ -41,8 +41,6 @@ func GetJsonClassSchedule(ctx *gin.Context) {
 
 	// parse department_id parameter
 
-	// TODO: use department_id for authentication later on.
-
 	department_id, is_valid_department_id_param := IsValidParameterDepartmentID(ctx)
 
 	if !is_valid_department_id_param {
@@ -75,8 +73,6 @@ func GetJsonClassSchedule(ctx *gin.Context) {
 	if !is_valid_idx {
 		return
 	}
-
-	// TODO: authenticate `schedule_idx` parameter, when someone deletes a curriculum
 
 	// extract selected schedule
 
@@ -191,8 +187,6 @@ func GetClassSchedule(ctx *gin.Context) {
 	}
 
 	// parse department_id parameter
-
-	// TODO: use department_id for authentication later on.
 
 	department_id, is_valid_department_id_param := IsValidParameterDepartmentID(ctx)
 

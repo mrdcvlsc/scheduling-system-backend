@@ -112,8 +112,6 @@ curriculum_loop:
 		}
 	}
 
-	// TODO: authenticate `schedule_idx` parameter, when someone deletes a curriculum
-
 	// clear class schedule
 
 	university_schedules[schedule_idx] = Schedule.WeekTimeTable{}

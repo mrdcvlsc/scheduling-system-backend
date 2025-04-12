@@ -370,8 +370,6 @@ func EncodeIndividualGenome(
 										}
 									}
 
-									// TODO: analyze if this is really needed?
-
 									if !is_available_instructor {
 										continue // find other time slot if there is no available instructor
 									}
