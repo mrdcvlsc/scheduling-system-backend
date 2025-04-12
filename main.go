@@ -135,7 +135,11 @@ func main() {
 	// ============= department routes and handlers =============
 
 	v1.GET("/all_departments", RoutesV1.GetAllDepartments)
+	v1.GET("/departments", RoutesV1.GetDepartmentsPaginated)
 	v1.GET("/department_data", RoutesV1.GetCurriculumsDataInDepartment)
+	v1.POST("/department_add", RoutesV1.PostDepartment)
+	v1.PATCH("/department_update", RoutesV1.PatchDepartment)
+	v1.DELETE("/department_remove", RoutesV1.DeleteDepartment)
 
 	// ============= instructor routes and handlers =============
 
