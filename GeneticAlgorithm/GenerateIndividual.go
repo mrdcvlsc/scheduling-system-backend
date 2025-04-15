@@ -51,7 +51,7 @@ func EncodeIndividualGenome(
 	ro_dept_id_to_department map[uint16]Departments.Department,
 	rc_encoding_resource *EncodingResource,
 	ro_department_to_encode map[uint16]bool,
-	selected_semester, distribution_type int,
+	selected_semester, force_distribution_type int,
 ) (Schedule.UniTimeTables, *EncodingResource, error) {
 
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
@@ -259,11 +259,25 @@ func EncodeIndividualGenome(
 							//                                ITERATE THROUGH THE WEEKLY TIME SLOTS
 							/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-							for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
+							distribution_type := int(rng.Int31n(2))
+
+							m := Const.N_DAILY_TIME_SLOTS - subject_total_time_slots + 1
+							n := Const.N_WEEKLY_SCHOOL_DAYS
+							total_iterations := n * m
+
+							for i := range total_iterations {
+
+								var day, time_slot int
+
+								if distribution_type == 0 {
+									day = i / m
+									time_slot = i % m
+								} else {
+									time_slot = i / n
+									day = i % n
+								}
 
 								day_sched := week_time_table.GetDayTimeTable(day)
-
-								for time_slot := 0; time_slot <= (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots); time_slot++ {
 
 									/////////////////////////////////////////////////////////////////////////////////////////////////////////
 									//                      CHECK IF CURRENT TIME SLOT IS AVAILABLE FOR THE SUBJECT
@@ -271,7 +285,7 @@ func EncodeIndividualGenome(
 
 									is_time_slot_available := day_sched.IsTimeAvailable(time_slot, subject_total_time_slots)
 
-									if !is_time_slot_available && (time_slot > (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
+									if !is_time_slot_available && i == total_iterations-1 {
 										return university_schedules, nil, fmt.Errorf(
 											"no time slot found for %s in %s for %s %s %s section[%d] after generating schedules for %d other sections",
 											subject.Code, ro_dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
@@ -315,7 +329,7 @@ func EncodeIndividualGenome(
 
 											instructor_search_iteration++
 
-											if (!is_available_instructor && ((instructor_idx == len(specialized_instructors)-1) || selected_instructor != nil)) && (time_slot > (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
+											if (!is_available_instructor && ((instructor_idx == len(specialized_instructors)-1) || selected_instructor != nil)) && i == total_iterations-1 {
 												return university_schedules, nil, fmt.Errorf(
 													"not enough specialized_instructors (%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
 													instructor_idx, ro_dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
@@ -355,7 +369,7 @@ func EncodeIndividualGenome(
 
 											instructor_search_iteration++
 
-											if (!is_available_instructor && ((instructor_idx == len(instructors)-1) || selected_instructor != nil)) && (time_slot > (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
+											if (!is_available_instructor && ((instructor_idx == len(instructors)-1) || selected_instructor != nil)) && i == total_iterations-1 {
 												return university_schedules, nil, fmt.Errorf(
 													"not enough instructors (%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
 													instructor_idx, ro_dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
@@ -445,7 +459,7 @@ func EncodeIndividualGenome(
 
 									room_search_iteration++
 
-									if !has_available_room && (time_slot > (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
+									if !has_available_room && i == total_iterations-1 {
 										return university_schedules, nil, fmt.Errorf(
 											"not enough rooms (%d)-(type:%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
 											len(room_type_to_rooms[room_type]), room_type, ro_dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
@@ -525,13 +539,11 @@ func EncodeIndividualGenome(
 									subject_recorder[subject.ID] = subject
 
 									/////////////////////////////////////////////////////////////////////////////////////////////////////////
-									//                                  BREAK day AND time_slot LOOP
+									//                                  EXIT THE LOOP AFTER SUCCESSFUL ASSIGNMENT
 									/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-									day = 9999
-									time_slot = 9999
-								} // ------------- end of time_slot loop -------------
-							} // ------------- end of day loop -------------
+								break
+							}
 						} // ------------- end of class_type_iter loop -------------
 
 						// map encoding resource that this subject is already assigned.
