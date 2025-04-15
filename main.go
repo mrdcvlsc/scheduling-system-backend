@@ -49,6 +49,8 @@ func main() {
 	// MongoDB Setup
 	//////////////////////////////////////////////////////////////////////////
 
+	// TODO: implement mongo db persistence implementation
+
 	// fmt.Println("Connecting to MongoDB...")
 
 	// fmt.Printf("MONGO_DB_USER     = %s\n", os.Getenv("MONGO_DB_USER"))
