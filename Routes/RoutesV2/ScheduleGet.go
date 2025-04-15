@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 	"github.com/mrdcvlsc/scheduling-system-backend/Routes/RoutesV1"
@@ -117,6 +118,8 @@ curriculum_loop:
 	// extract selected schedule
 
 	selected_class_schedule := university_schedules[schedule_idx:(schedule_idx + 1)]
+
+	log.Printf("measured fitness : %f", GeneticAlgorithm.MeasureFitnessBasic(selected_class_schedule))
 
 	// process schedule information
 
