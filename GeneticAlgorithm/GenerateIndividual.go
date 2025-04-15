@@ -29,6 +29,12 @@ const (
 /*
 Generate individual university schedules.
 
+Parameter prefix meanings for map and list type objects:
+
+	ro_* - read only inside the function, original values are not modified.
+
+	rc_* - read then copy inside the function, original values are not modified, the copied object is the one that the function modifies inside.
+
 Different return types:
 
 	(nil, nil, error) // -> resources copy failed.
@@ -40,39 +46,38 @@ to generate whole university schedules, set department to encode to nil:
 	department_to_encode = nil
 */
 func EncodeIndividualGenome(
-	individual_university_schedules_arg Schedule.UniTimeTables,
-	curriculums_arg []Curriculum.Curriculum,
-	dept_id_to_department map[uint16]Departments.Department,
-	input_encoding_resource *EncodingResource,
-	department_to_encode map[uint16]bool,
-	selected_semester,
-	distribution_type int,
+	rc_university_schedules Schedule.UniTimeTables,
+	rc_curriculums []Curriculum.Curriculum,
+	ro_dept_id_to_department map[uint16]Departments.Department,
+	rc_encoding_resource *EncodingResource,
+	ro_department_to_encode map[uint16]bool,
+	selected_semester, distribution_type int,
 ) (Schedule.UniTimeTables, *EncodingResource, error) {
 
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	curriculums := make([]Curriculum.Curriculum, len(curriculums_arg))
-	copied_curriculums := copy(curriculums, curriculums_arg)
+	curriculums := make([]Curriculum.Curriculum, len(rc_curriculums))
+	copied_curriculums := copy(curriculums, rc_curriculums)
 
-	if copied_curriculums != len(curriculums_arg) {
+	if copied_curriculums != len(rc_curriculums) {
 		return nil, nil, fmt.Errorf("slice elements copied %d, internal curriculum copy operation failed in generate new individual function", copied_curriculums)
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	individual_university_schedules := make(Schedule.UniTimeTables, len(individual_university_schedules_arg))
+	university_schedules := make(Schedule.UniTimeTables, len(rc_university_schedules))
 
-	copied_week_time_table := copy(individual_university_schedules, individual_university_schedules_arg)
+	copied_week_time_table := copy(university_schedules, rc_university_schedules)
 
-	if copied_week_time_table != len(individual_university_schedules_arg) {
+	if copied_week_time_table != len(rc_university_schedules) {
 		return nil, nil, fmt.Errorf("slice elements copied %d, internal university schedule copy operation failed in generate new individual function", copied_week_time_table)
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	encoding_resource, err_make_copy := input_encoding_resource.MakeCopy()
+	encoding_resource, err_make_copy := rc_encoding_resource.MakeCopy()
 
 	if err_make_copy != nil {
 		return nil, nil, err_make_copy
@@ -109,8 +114,8 @@ func EncodeIndividualGenome(
 
 				for section_idx := range semester.Sections {
 
-					if department_to_encode != nil {
-						is_to_encode := department_to_encode[curriculum.DepartmentID]
+					if ro_department_to_encode != nil {
+						is_to_encode := ro_department_to_encode[curriculum.DepartmentID]
 
 						if !is_to_encode {
 							counted_sections++
@@ -118,7 +123,7 @@ func EncodeIndividualGenome(
 						}
 					}
 
-					week_time_table := individual_university_schedules[counted_sections]
+					week_time_table := university_schedules[counted_sections]
 
 					/////////////////////////////////////////////////////////////////////////////////////////////////////////
 					//                                    SHUFFLE ROOMS AND SUBJECT
@@ -267,9 +272,9 @@ func EncodeIndividualGenome(
 									is_time_slot_available := day_sched.IsTimeAvailable(time_slot, subject_total_time_slots)
 
 									if !is_time_slot_available && (time_slot > (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
-										return individual_university_schedules, nil, fmt.Errorf(
+										return university_schedules, nil, fmt.Errorf(
 											"no time slot found for %s in %s for %s %s %s section[%d] after generating schedules for %d other sections",
-											subject.Code, dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
+											subject.Code, ro_dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
 										)
 									}
 
@@ -311,9 +316,9 @@ func EncodeIndividualGenome(
 											instructor_search_iteration++
 
 											if (!is_available_instructor && ((instructor_idx == len(specialized_instructors)-1) || selected_instructor != nil)) && (time_slot > (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
-												return individual_university_schedules, nil, fmt.Errorf(
+												return university_schedules, nil, fmt.Errorf(
 													"not enough specialized_instructors (%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
-													instructor_idx, dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
+													instructor_idx, ro_dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
 												)
 											}
 
@@ -351,9 +356,9 @@ func EncodeIndividualGenome(
 											instructor_search_iteration++
 
 											if (!is_available_instructor && ((instructor_idx == len(instructors)-1) || selected_instructor != nil)) && (time_slot > (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
-												return individual_university_schedules, nil, fmt.Errorf(
+												return university_schedules, nil, fmt.Errorf(
 													"not enough instructors (%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
-													instructor_idx, dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
+													instructor_idx, ro_dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
 												)
 											}
 
@@ -441,9 +446,9 @@ func EncodeIndividualGenome(
 									room_search_iteration++
 
 									if !has_available_room && (time_slot > (Const.N_DAILY_TIME_SLOTS - subject_total_time_slots - 1)) && (day >= (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
-										return individual_university_schedules, nil, fmt.Errorf(
+										return university_schedules, nil, fmt.Errorf(
 											"not enough rooms (%d)-(type:%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
-											len(room_type_to_rooms[room_type]), room_type, dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
+											len(room_type_to_rooms[room_type]), room_type, ro_dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
 										)
 									}
 
@@ -548,7 +553,7 @@ func EncodeIndividualGenome(
 					if len(subject_recorder) != len(semester.Subjects) {
 						panic(fmt.Sprintf(
 							"there are some subjects in %s %s %s %s that was not assigned for some reason s(%d/%d), i(%d), r(%d)",
-							dept_id_to_department[curriculum.DepartmentID].Code,
+							ro_dept_id_to_department[curriculum.DepartmentID].Code,
 							curriculum.CurriculumCode,
 							year_level.Name,
 							semester.Name,
@@ -558,14 +563,14 @@ func EncodeIndividualGenome(
 						))
 					}
 
-					individual_university_schedules[counted_sections] = week_time_table
+					university_schedules[counted_sections] = week_time_table
 					counted_sections++
 				} // ------------- end of section_idx loop -------------
 			} // ------------- end of semester_idx loop -------------
 		} // ------------- end of year_level loop -------------
 	} // ------------- end of curriculum loop -------------
 
-	return individual_university_schedules, encoding_resource, nil
+	return university_schedules, encoding_resource, nil
 }
 
 // TODO: when generating solutions while the genetic algorithm is running, we should also generate an index file to be use for querying
