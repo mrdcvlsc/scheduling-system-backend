@@ -42,6 +42,8 @@ jobs:
 
       - name: Run Tests
         run: make gh_test
+        env:
+          GITHUB_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
 
       - name: Run Benchmarks
         run: make bench
