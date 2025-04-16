@@ -49,6 +49,8 @@ func main() {
 	// MongoDB Setup
 	//////////////////////////////////////////////////////////////////////////
 
+	// TODO: implement mongo db persistence implementation
+
 	// fmt.Println("Connecting to MongoDB...")
 
 	// fmt.Printf("MONGO_DB_USER     = %s\n", os.Getenv("MONGO_DB_USER"))
@@ -135,7 +137,11 @@ func main() {
 	// ============= department routes and handlers =============
 
 	v1.GET("/all_departments", RoutesV1.GetAllDepartments)
+	v1.GET("/departments", RoutesV1.GetDepartmentsPaginated)
 	v1.GET("/department_data", RoutesV1.GetCurriculumsDataInDepartment)
+	v1.POST("/department_add", RoutesV1.PostDepartment)
+	v1.PATCH("/department_update", RoutesV1.PatchDepartment)
+	v1.DELETE("/department_remove", RoutesV1.DeleteDepartment)
 
 	// ============= instructor routes and handlers =============
 
@@ -145,6 +151,7 @@ func main() {
 	v1.PATCH("/instructor_update", RoutesV1.PatchInstructor)
 	v1.DELETE("/instructor_remove", RoutesV1.DeleteInstructor)
 
+	v2.GET("instructor_basic", RoutesV2.GetInstructorBasic)
 	v2.GET("instructors", RoutesV2.GetDepartmentInstructors)
 	v2.GET("instructor_resources", RoutesV2.GetInstructorResource)
 
@@ -184,6 +191,10 @@ func main() {
 	if os.Getenv("GIN_MODE") != "release" {
 		v1.GET("/generate_schedule", RoutesV1.RequestGenerateSchedule) // for dev only
 	}
+
+	// ============= survery routes and handlers =============
+
+	v2.POST("/add_schedule_preference", RoutesV2.PostWeekTimeTableSurvery)
 
 	//////////////////////////////////////////////////////////////////////////
 

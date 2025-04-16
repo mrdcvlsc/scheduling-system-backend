@@ -315,3 +315,39 @@ func get_instructor_time_allocation(base_instructor Instructors.Instructor, univ
 
 	return base_instructor.Time, sub_assign_info, nil
 }
+
+/*
+GET:
+
+	"/instructor_basic?instructor_id=[N>0]"
+*/
+func GetInstructorBasic(ctx *gin.Context) {
+	instructor_id, is_valid_instructor_id_param := RoutesV1.IsValidInstructorID(ctx)
+	if !is_valid_instructor_id_param {
+		return
+	}
+
+	all_instructors, err_read_all_instructors := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllInstructors()
+
+	if err_read_all_instructors != nil {
+		log.Println(err_read_all_instructors)
+		ctx.String(http.StatusInternalServerError, "we are unable to retrieve the instructors right now")
+		return
+	}
+
+	var selected_instructor_base *Instructors.Instructor
+
+	for _, instructor := range all_instructors {
+		if instructor.InstructorID == uint16(instructor_id) {
+			selected_instructor_base = &instructor
+			break
+		}
+	}
+
+	if selected_instructor_base == nil {
+		ctx.String(http.StatusNotFound, "that instructor does not exist")
+		return
+	}
+
+	ctx.JSON(http.StatusOK, selected_instructor_base)
+}

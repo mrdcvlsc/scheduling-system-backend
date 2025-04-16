@@ -62,6 +62,9 @@ func encode_schedule() {
 	RouteGlobals.IsGeneratingSchedule.Store(true)
 	defer RouteGlobals.IsGeneratingSchedule.Store(false)
 
+	RouteGlobals.ReindexUniSchedMutex.Lock()
+	defer RouteGlobals.ReindexUniSchedMutex.Unlock()
+
 	log.Println("encode_schedule [0]: generating schedule...")
 
 	////////////////////////////////////////////////////////////////////////////////////////

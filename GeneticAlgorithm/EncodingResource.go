@@ -70,7 +70,6 @@ func (s *EncodingResource) MakeCopy() (*EncodingResource, error) {
 	}, nil
 }
 
-// TODO: make a function to compare two `EncodingResource`.
 func IsEqualEncodingResource(a, b *EncodingResource) bool {
 
 	////////////////////////////////////////////////////////////////////////////////////////

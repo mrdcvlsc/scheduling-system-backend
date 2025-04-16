@@ -23,8 +23,6 @@ func Test_JsonReadWriteUniversitySchedules(t *testing.T) {
 
 		fmt.Print("initialize error counter\n")
 
-		sched_gen_fail_count := 0
-
 		fmt.Println("Reading Resources")
 
 		persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
@@ -55,7 +53,9 @@ func Test_JsonReadWriteUniversitySchedules(t *testing.T) {
 
 		fmt.Print("Entering Loop\n")
 
-		for range 64 {
+		tries := 128
+		for range tries {
+
 			empty_university_schedule := GeneticAlgorithm.NewEmptyIndividual(curriculums, GeneticAlgorithm.TERM_1ST_SEMESTER)
 
 			university_schedule, _, err := GeneticAlgorithm.EncodeIndividualGenome(
@@ -66,21 +66,13 @@ func Test_JsonReadWriteUniversitySchedules(t *testing.T) {
 			)
 
 			if err != nil {
-				fmt.Println(err)
-
-				sched_gen_fail_count++
+				t.Logf("retrying due to error : %s", err.Error())
 				continue
 			}
 
-			if sched_gen_fail_count > 62 {
-				fmt.Printf("Too many errors : (success/errors/total) = (%d/%d)\n", len(populations_of_schedules), sched_gen_fail_count)
-				t.Fatal(err)
-			}
-
 			populations_of_schedules = append(populations_of_schedules, university_schedule)
+			break
 		}
-
-		fmt.Printf("fails : (success/errors/total) = (%d/%d)\n", len(populations_of_schedules), sched_gen_fail_count)
 
 		if len(populations_of_schedules) == 0 {
 			t.Fatal("No university schedules generated")

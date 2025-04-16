@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Departments"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
+	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
 type CurriculumMicroData struct {
@@ -108,4 +109,70 @@ func GetCurriculumsDataInDepartment(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, slice_of_curriculum_micro_data)
+}
+
+type DepartmentTablePage struct {
+	Departments      []Departments.Department `json:"Departments"`
+	TotalDepartments int                      `json:"TotalDepartments"`
+}
+
+/*
+paginated get request for departments
+
+GET:
+
+	"/departments?page_size=[N>0]&page[0-N>0]&code_match=<string>&name_match=<string>"
+*/
+func GetDepartmentsPaginated(ctx *gin.Context) {
+	page_size, is_valid_page_size_param := IsValidPageSize(ctx)
+	if !is_valid_page_size_param {
+		return
+	}
+
+	page, is_valid_page_param := IsValidPage(ctx)
+	if !is_valid_page_param {
+		return
+	}
+
+	code_match := ctx.Query("code_match")
+	name_match := ctx.Query("name_match")
+
+	all_departments, err_read_all_departments := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllDepartments()
+
+	if err_read_all_departments != nil {
+		ctx.String(http.StatusInternalServerError, "we're currently unable to get the departments")
+		return
+	}
+
+	departments_page := make([]Departments.Department, 0)
+
+	total_departments := 0
+
+	for _, department := range all_departments {
+
+		if code_match != "" && !Utils.HasSubString(department.Code, code_match) {
+			continue
+		}
+
+		if name_match != "" && !Utils.HasSubString(department.Name, name_match) {
+			continue
+		}
+
+		total_departments++
+
+		if (total_departments - 1) < (page_size * page) {
+			continue
+		}
+
+		if len(departments_page) < page_size {
+			departments_page = append(departments_page, department)
+		}
+	}
+
+	department_table_page := &DepartmentTablePage{
+		Departments:      departments_page,
+		TotalDepartments: total_departments,
+	}
+
+	ctx.JSON(http.StatusOK, department_table_page)
 }

@@ -33,16 +33,16 @@ func DeleteClearClassSchedule(ctx *gin.Context) {
 
 	// TODO: use department_id for authentication later on.
 
-	department_id, is_valid_department_id_param := IsValidParameterDepartmentID(ctx)
+	// department_id, is_valid_department_id_param := IsValidParameterDepartmentID(ctx)
 
-	if !is_valid_department_id_param {
-		return
-	}
+	// if !is_valid_department_id_param {
+	// 	return
+	// }
+
+	RouteGlobals.ReindexUniSchedMutex.Lock()
+	defer RouteGlobals.ReindexUniSchedMutex.Unlock()
 
 	// load university schedules
-
-	department_to_validate := make(map[uint16]bool)
-	department_to_validate[uint16(department_id)] = true
 
 	university_schedules, has_obtained := ObtainUniversityScheduleNoHorizontalValidation(ctx, semester)
 
@@ -65,8 +65,6 @@ func DeleteClearClassSchedule(ctx *gin.Context) {
 	if !is_valid_idx {
 		return
 	}
-
-	// TODO: authenticate `schedule_idx` parameter, when someone deletes a curriculum
 
 	// clear class schedule
 
@@ -110,10 +108,10 @@ func DeleteClearDepartmentSchedule(ctx *gin.Context) {
 		return
 	}
 
-	// load university schedules
+	RouteGlobals.ReindexUniSchedMutex.Lock()
+	defer RouteGlobals.ReindexUniSchedMutex.Unlock()
 
-	department_to_validate := make(map[uint16]bool)
-	department_to_validate[uint16(department_id)] = true
+	// load university schedules
 
 	university_schedules, has_obtained := ObtainUniversityScheduleNoHorizontalValidation(ctx, semester)
 
@@ -128,8 +126,6 @@ func DeleteClearDepartmentSchedule(ctx *gin.Context) {
 	if err_set_cache != nil {
 		log.Println(err_set_cache.Error())
 	}
-
-	// TODO: authenticate `schedule_idx` parameter, when someone deletes a curriculum
 
 	// get all curriculums
 
