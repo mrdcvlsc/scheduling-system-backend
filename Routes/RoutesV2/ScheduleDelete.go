@@ -59,6 +59,9 @@ func DeleteClearClassSchedule(ctx *gin.Context) {
 	// 	return
 	// }
 
+	RouteGlobals.ReindexUniSchedMutex.Lock()
+	defer RouteGlobals.ReindexUniSchedMutex.Unlock()
+
 	// load university schedules
 
 	university_schedules, has_obtained := RoutesV1.ObtainUniversityScheduleNoHorizontalValidation(ctx, selected_semester)
