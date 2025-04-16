@@ -239,8 +239,6 @@ func get_instructor_time_allocation(base_instructor Instructors.Instructor, univ
 
 	////////////////
 
-	SECTION := []string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"}
-
 	counted_sections := 0
 
 	sub_assign_info := make([]InstructorSubjectAssignmentInfo, 0)
@@ -278,7 +276,7 @@ func get_instructor_time_allocation(base_instructor Instructors.Instructor, univ
 
 								new_sub_assignment := InstructorSubjectAssignmentInfo{
 									SubjectCode:      sub_id_to_subject_code[subject_id],
-									CourseSection:    fmt.Sprintf("%s-%d%s", curriculum.CurriculumCode, year_level_idx+1, SECTION[section_idx]),
+									CourseSection:    fmt.Sprintf("%s-%d%s", curriculum.CurriculumCode, year_level_idx+1, Curriculum.SECTION[section_idx]),
 									RoomName:         room_id_to_room_name[room_id],
 									DayIdx:           uint8(day),
 									TimeSlotIdx:      uint8(time_slot),
