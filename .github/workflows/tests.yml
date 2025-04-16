@@ -41,7 +41,7 @@ jobs:
         run: tree scheduling-system-temporary-data
 
       - name: Run Tests
-        run: make test
+        run: make gh_test
 
       - name: Run Benchmarks
         run: make bench
