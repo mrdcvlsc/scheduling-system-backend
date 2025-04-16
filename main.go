@@ -188,6 +188,8 @@ func main() {
 	v1.DELETE("/clear_department_schedules", RoutesV1.DeleteClearDepartmentSchedule)
 	v1.POST("/generate_schedule", RoutesV1.RequestGenerateSchedule)
 
+	v2.GET("/validate_schedules", RoutesV2.GetValidateSchedules)
+
 	if os.Getenv("GIN_MODE") != "release" {
 		v1.GET("/generate_schedule", RoutesV1.RequestGenerateSchedule) // for dev only
 	}

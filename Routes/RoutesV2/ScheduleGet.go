@@ -214,6 +214,96 @@ curriculum_loop:
 	ctx.JSON(http.StatusOK, sub_assign_info)
 }
 
+/*
+GET:
+
+	"/validate_schedules?department_id=[N>0]&semester=[0-N>=1]"
+*/
+func GetValidateSchedules(ctx *gin.Context) {
+
+	// parse parameters
+
+	selected_semester, is_valid_semester_param := RoutesV1.IsValidParameterSemesterIndex(ctx)
+
+	if !is_valid_semester_param {
+		return
+	}
+
+	department_id, is_valid_department_id_param := RoutesV1.IsValidParameterDepartmentID(ctx)
+
+	if !is_valid_department_id_param {
+		return
+	}
+
+	department_to_horizontal_validate := make(map[uint16]bool)
+	department_to_horizontal_validate[uint16(department_id)] = true
+
+	// load university schedules
+
+	university_schedules, err_obtain := RoutesV1.ObtainUniversityScheduleNoValidation(selected_semester)
+
+	if err_obtain != nil {
+		log.Print("GetClassScheduleValidate - obtain error:", err_obtain)
+		ctx.String(http.StatusInternalServerError, err_obtain.Error())
+		return
+	}
+
+	// cache the found university schedule for the semester
+
+	err_set_cache := RouteGlobals.SetCachedUniversitySchedule(selected_semester, university_schedules)
+
+	if err_set_cache != nil {
+		log.Println("GetClassScheduleValidate - cache error:", err_set_cache.Error())
+	}
+
+	// get all curriculums
+
+	// all_curriculums, err_read_all_curriculum := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
+
+	// if err_read_all_curriculum != nil {
+	// 	ctx.String(http.StatusInternalServerError, "unable to read curriculums for that department")
+	// 	return
+	// }
+
+	// extract selected schedule
+
+	validation_results := make([]any, 0)
+
+	if university_schedules.IsEmpty() {
+		validation_results = append(validation_results, "all university schedules are empty")
+		ctx.JSON(http.StatusNotFound, validation_results)
+		return
+	}
+
+	errs_vertical_validation := university_schedules.VerticalValidation(RouteGlobals.ResourcesPersistence)
+
+	for _, err_vertical_validation := range errs_vertical_validation {
+		if err_vertical_validation != nil {
+			validation_results = append(validation_results, err_vertical_validation.Error())
+		}
+	}
+
+	if len(errs_vertical_validation) > 0 {
+		ctx.JSON(http.StatusConflict, validation_results)
+		return
+	}
+
+	errs_horizontal_validation := university_schedules.HorizontalValidation(RouteGlobals.ResourcesPersistence, department_to_horizontal_validate, selected_semester)
+
+	for _, err_horizontal_validation := range errs_horizontal_validation {
+		if err_horizontal_validation != nil {
+			validation_results = append(validation_results, err_horizontal_validation.Error())
+		}
+	}
+
+	if len(errs_horizontal_validation) > 0 {
+		ctx.JSON(http.StatusConflict, validation_results)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, validation_results)
+}
+
 type WeekTimeTableSubjects []RoutesV1.SubjectAssignmentInfo
 
 /*
