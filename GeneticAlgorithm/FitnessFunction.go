@@ -69,10 +69,11 @@ func MeasureFitnessBasic(uni_sched Schedule.UniTimeTables) float64 {
 				section_sched_fitness -= 0.5
 			}
 
-			if total_hours > 0.0 {
-				section_sched_fitness += reciprocal_distance(total_hours, PREFERED_MAX_CLASS_HOUR_PER_DAY) * 1.5
+			if total_hours >= PREFERED_MAX_CLASS_HOUR_PER_DAY {
+				fitness_punishment := total_hours - PREFERED_MAX_CLASS_HOUR_PER_DAY
+				section_sched_fitness -= fitness_punishment * 0.75
 			} else {
-				section_sched_fitness += 0.5
+				section_sched_fitness += 3.5
 			}
 
 			// no class during saturday.
