@@ -340,12 +340,14 @@ func (university_sched UniTimeTables) HorizontalValidation(
 
 					if len(semester.Subjects) != len(subject_id_to_time_slot_count) {
 						errs_slice = append(errs_slice, fmt.Errorf(
-							"detected missing subject(s) [%d/%d] in %s %s %s section[%d], university schedule_idx = %d",
-							len(subject_id_to_time_slot_count), len(semester.Subjects),
-							curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, schedule_idx,
+							"detected %d missing subject(s) in %s, %s, %s, section %s (usi:%d)",
+							len(semester.Subjects)-len(subject_id_to_time_slot_count),
+							curriculum.CurriculumCode,
+							semester.Name,
+							year_level.Name,
+							Curriculum.SECTION[section_idx],
+							schedule_idx,
 						))
-
-						return errs_slice
 					}
 
 					for _, subject := range semester.Subjects {
@@ -353,20 +355,23 @@ func (university_sched UniTimeTables) HorizontalValidation(
 
 						if !has_subject_id {
 							errs_slice = append(errs_slice, fmt.Errorf(
-								"detected missing subject %s in %s %s %s section[%d], university schedule_idx = %d",
-								subject.Code, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, schedule_idx,
+								"the subject %s was not assigned to %s, %s, %s, section %s (usi:%d)",
+								subject.Code, curriculum.CurriculumCode, year_level.Name, semester.Name, Curriculum.SECTION[section_idx], schedule_idx,
 							))
-						}
-
-						if ((subject.LecHours + subject.LabHours) * Const.N_HOUR_TIME_SLOTS) != uint8(subject_id_to_time_slot_count[subject.ID]) {
+						} else if ((subject.LecHours + subject.LabHours) * Const.N_HOUR_TIME_SLOTS) > uint8(subject_id_to_time_slot_count[subject.ID]) {
 							errs_slice = append(errs_slice, fmt.Errorf(
-								"detected wrong subject [id : %d / %s] time slot allocation count (persistence : %d != %d : schedule) in %s %s %s section[%d], university schedule_idx[%d]",
-								subject.ID, subject.Code,
+								"the subject %s has missing time slot allocations, expecting %d, but only found %d in %s, %s, %s, section %s (usi:%d)",
+								subject.Code,
 								((subject.LecHours+subject.LabHours)*Const.N_HOUR_TIME_SLOTS), uint8(subject_id_to_time_slot_count[subject.ID]),
-								curriculum.CurriculumCode, semester.Name,
-								year_level.Name, section_idx, schedule_idx,
+								curriculum.CurriculumCode, year_level.Name, semester.Name, Curriculum.SECTION[section_idx], schedule_idx,
 							))
-							return errs_slice
+						} else if ((subject.LecHours + subject.LabHours) * Const.N_HOUR_TIME_SLOTS) < uint8(subject_id_to_time_slot_count[subject.ID]) {
+							errs_slice = append(errs_slice, fmt.Errorf(
+								"the subject %s has extra time slot allocations, expecting only %d, but found %d in %s, %s, %s, section %s (usi:%d)",
+								subject.Code,
+								((subject.LecHours+subject.LabHours)*Const.N_HOUR_TIME_SLOTS), uint8(subject_id_to_time_slot_count[subject.ID]),
+								curriculum.CurriculumCode, year_level.Name, semester.Name, Curriculum.SECTION[section_idx], schedule_idx,
+							))
 						}
 					}
 
