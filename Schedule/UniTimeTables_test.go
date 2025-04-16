@@ -2,10 +2,12 @@ package Schedule_test
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
@@ -131,5 +133,248 @@ func Test_UniTimeTablesSerializationAndDeserialization(t *testing.T) {
 
 	if err != nil {
 		t.Fatalf("error deleting file: %v\n", err)
+	}
+}
+
+func TestVerticalValidation_InstructorWithoutSubject(t *testing.T) {
+	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+	uni := Schedule.NewUniTimeTables(1)
+	// instructor assigned but no subject
+	if err := uni[0].GetDayTimeTable(0).GetTimeSlot(0).Set(0, 42, 0); err != nil {
+		t.Fatal(err)
+	}
+	errs := uni.VerticalValidation(&persistence)
+	if len(errs) != 1 {
+		t.Fatalf("expected 1 error, got %d", len(errs))
+	}
+	if !strings.Contains(errs[0].Error(), "an instructor was assigned, but no subject was scheduled") {
+		t.Errorf("unexpected error: %v", errs[0])
+	}
+}
+
+func TestVerticalValidation_RoomWithoutSubject(t *testing.T) {
+	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+	rooms, err := persistence.ReaderService.ReadAllRooms()
+	if err != nil || len(rooms) == 0 {
+		t.Skip("no rooms available for test")
+	}
+	roomID := rooms[0].RoomID
+
+	uni := Schedule.NewUniTimeTables(1)
+	if err := uni[0].GetDayTimeTable(0).GetTimeSlot(0).Set(0, 0, roomID); err != nil {
+		t.Fatal(err)
+	}
+	errs := uni.VerticalValidation(&persistence)
+	if len(errs) != 1 {
+		t.Fatalf("expected 1 error, got %d", len(errs))
+	}
+	if !strings.Contains(errs[0].Error(), "a room was assigned, but no subject was scheduled") {
+		t.Errorf("unexpected error: %v", errs[0])
+	}
+}
+
+func TestVerticalValidation_OverlappingInstructor(t *testing.T) {
+	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+	// two sections, same instructor, same slot
+	uni := Schedule.NewUniTimeTables(2)
+	for i := 0; i < 2; i++ {
+		if err := uni[i].GetDayTimeTable(1).GetTimeSlot(2).Set(10, 99, 0); err != nil {
+			t.Fatal(err)
+		}
+	}
+	errs := uni.VerticalValidation(&persistence)
+	if len(errs) != 1 {
+		t.Fatalf("expected 1 error, got %d", len(errs))
+	}
+	if !strings.Contains(errs[0].Error(), "overlapping instructor time slot") {
+		t.Errorf("unexpected error: %v", errs[0])
+	}
+}
+
+func TestVerticalValidation_OverlappingRoomWithinAndExceedingCapacity(t *testing.T) {
+	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+	rooms, err := persistence.ReaderService.ReadAllRooms()
+	if err != nil || len(rooms) == 0 {
+		t.Skip("no rooms available for test")
+	}
+	room := rooms[0]
+	cap := int(room.Capacity)
+
+	// within capacity
+	uniWithin := Schedule.NewUniTimeTables(uint(cap))
+	for i := 0; i < cap; i++ {
+		if err := uniWithin[i].GetDayTimeTable(2).GetTimeSlot(3).Set(10, 0, room.RoomID); err != nil {
+			t.Fatal(err)
+		}
+	}
+	errs := uniWithin.VerticalValidation(&persistence)
+	if len(errs) != 0 {
+		t.Errorf("expected no errors within capacity, got %d", len(errs))
+	}
+
+	// exceeding capacity
+	uniExceed := Schedule.NewUniTimeTables(uint(cap + 1))
+	for i := 0; i < cap+1; i++ {
+		if err := uniExceed[i].GetDayTimeTable(2).GetTimeSlot(3).Set(10, 0, room.RoomID); err != nil {
+			t.Fatal(err)
+		}
+	}
+	errs2 := uniExceed.VerticalValidation(&persistence)
+	if len(errs2) != 1 {
+		t.Fatalf("expected 1 error exceeding capacity, got %d", len(errs2))
+	}
+	if !strings.Contains(errs2[0].Error(), "overlapping room time slot") {
+		t.Errorf("unexpected error: %v", errs2[0])
+	}
+}
+
+func TestVerticalValidation_MixedErrors(t *testing.T) {
+	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+	rooms, err := persistence.ReaderService.ReadAllRooms()
+	if err != nil || len(rooms) == 0 {
+		t.Skip("no rooms available for test")
+	}
+	roomID := rooms[0].RoomID
+
+	uni := Schedule.NewUniTimeTables(2)
+	// section 0: instructor without subject
+	if err := uni[0].GetDayTimeTable(0).GetTimeSlot(0).Set(0, 8, 0); err != nil {
+		t.Fatal(err)
+	}
+	// section 1: overlapping instructor
+	if err := uni[1].GetDayTimeTable(0).GetTimeSlot(0).Set(100, 8, roomID); err != nil {
+		t.Fatal(err)
+	}
+
+	errs := uni.VerticalValidation(&persistence)
+	if len(errs) != 2 {
+		t.Fatalf("expected 2 errors, got %d", len(errs))
+	}
+	if !strings.Contains(errs[0].Error(), "an instructor was assigned, but no subject was scheduled") {
+		t.Errorf("unexpected error[0]: %v", errs[0])
+	}
+	if !strings.Contains(errs[1].Error(), "overlapping instructor time slot") {
+		t.Errorf("unexpected error[1]: %v", errs[1])
+	}
+}
+
+func TestHorizontalValidation_MissingEntireSubject(t *testing.T) {
+	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+	currs, err := persistence.ReaderService.ReadAllCurriculum()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// find first active semester
+	var sem Curriculum.Semester
+	var deptID uint16
+	for _, c := range currs {
+		for _, yl := range c.YearLevels {
+			if !yl.IsActive {
+				continue
+			}
+			if len(yl.Semesters) > 0 {
+				sem = yl.Semesters[0]
+				deptID = c.DepartmentID
+				break
+			}
+		}
+		if sem.Name != "" {
+			break
+		}
+	}
+	if sem.Name == "" || len(sem.Subjects) == 0 {
+		t.Skip("no subjects/semester to test")
+	}
+	total := Curriculum.GetTotalNumberOfSections(currs, 0)
+	uni := Schedule.NewUniTimeTables(uint(total))
+
+	errs := uni.HorizontalValidation(&persistence, map[uint16]bool{deptID: true}, 0)
+	if len(errs) == 0 {
+		t.Fatalf("expected missing‐subject errors, got none")
+	}
+	foundDetected, foundNotAssigned := false, false
+	for _, e := range errs {
+		msg := e.Error()
+		if strings.Contains(msg, "detected") {
+			foundDetected = true
+		}
+		if strings.Contains(msg, "was not assigned") {
+			foundNotAssigned = true
+		}
+	}
+	if !foundDetected || !foundNotAssigned {
+		t.Errorf("expected both 'detected' and 'was not assigned' errors, got: %v", errs)
+	}
+}
+
+func TestHorizontalValidation_TimeSlotAllocationBounds(t *testing.T) {
+	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+	currs, err := persistence.ReaderService.ReadAllCurriculum()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// pick first subject of first active semester
+	var subj Curriculum.Subject
+	var deptID uint16
+	for _, c := range currs {
+		for _, yl := range c.YearLevels {
+			if !yl.IsActive {
+				continue
+			}
+			for _, sem := range yl.Semesters {
+				if len(sem.Subjects) > 0 {
+					subj = sem.Subjects[0]
+					deptID = c.DepartmentID
+					break
+				}
+			}
+		}
+		if subj.ID != 0 {
+			break
+		}
+	}
+	if subj.ID == 0 {
+		t.Skip("no subject to test")
+	}
+	slotsRequired := int((subj.LecHours + subj.LabHours) * uint8(Const.N_HOUR_TIME_SLOTS))
+	total := Curriculum.GetTotalNumberOfSections(currs, 0)
+	uniFew := Schedule.NewUniTimeTables(uint(total))
+	// assign fewer slots for section 0
+	for i := 0; i < slotsRequired-1 && i < Const.N_DAILY_TIME_SLOTS; i++ {
+		uniFew[0].GetDayTimeTable(0).GetTimeSlot(i).Set(subj.ID, 0, 0)
+	}
+	errsFew := uniFew.HorizontalValidation(&persistence, map[uint16]bool{deptID: true}, 0)
+	if len(errsFew) == 0 {
+		t.Errorf("expected missing time‐slot allocation error, got none")
+	}
+	// assign extra slots
+	uniMany := Schedule.NewUniTimeTables(uint(total))
+	for i := 0; i < slotsRequired+1 && i < Const.N_DAILY_TIME_SLOTS; i++ {
+		uniMany[0].GetDayTimeTable(0).GetTimeSlot(i).Set(subj.ID, 0, 0)
+	}
+	errsMany := uniMany.HorizontalValidation(&persistence, map[uint16]bool{deptID: true}, 0)
+	if len(errsMany) == 0 {
+		t.Errorf("expected extra time‐slot allocation error, got none")
+	}
+}
+
+func TestHorizontalValidation_DepartmentFilterReducesErrors(t *testing.T) {
+	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+	currs, err := persistence.ReaderService.ReadAllCurriculum()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(currs) < 2 {
+		t.Skip("not enough departments to test filter")
+	}
+	// build full schedule with no assignments
+	total := Curriculum.GetTotalNumberOfSections(currs, 0)
+	uni := Schedule.NewUniTimeTables(uint(total))
+	errsNoFilter := uni.HorizontalValidation(&persistence, nil, 0)
+	// filter only first department
+	filter := map[uint16]bool{currs[0].DepartmentID: true}
+	errsFilter := uni.HorizontalValidation(&persistence, filter, 0)
+	if len(errsFilter) > len(errsNoFilter) {
+		t.Errorf("expected filter to reduce or equal errors, got %d > %d", len(errsFilter), len(errsNoFilter))
 	}
 }
