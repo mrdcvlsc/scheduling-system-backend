@@ -118,8 +118,11 @@ func (university_sched UniTimeTables) IsEmpty() bool {
 }
 
 // validate rooms and instructors time slot availability, this function detects overlapping instructor or room time slots.
-func (university_sched UniTimeTables) VerticalValidation(resource_persistence *StorageResources.Persistence) []error {
-
+func (university_sched UniTimeTables) VerticalRangedValidation(
+	resource_persistence *StorageResources.Persistence,
+	day_start, day_size,
+	time_slot_start, time_slot_size int,
+) []error {
 	errs_slice := make([]error, 0, 16)
 
 	rooms, err_read_all_rooms := resource_persistence.ReaderService.ReadAllRooms()
@@ -139,8 +142,8 @@ func (university_sched UniTimeTables) VerticalValidation(resource_persistence *S
 	//                             VERTICAL CHECKS
 	/////////////////////////////////////////////////////////////////////////////////
 
-	for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
-		for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
+	for day := day_start; day < (day_start + day_size); day++ {
+		for time_slot := time_slot_start; time_slot < (time_slot_start + time_slot_size); time_slot++ {
 
 			instructor_counter := make(map[uint16][]uint16)
 
@@ -258,6 +261,15 @@ func (university_sched UniTimeTables) VerticalValidation(resource_persistence *S
 	}
 
 	return errs_slice
+}
+
+// validate rooms and instructors time slot availability, this function detects overlapping instructor or room time slots.
+func (university_sched UniTimeTables) VerticalValidation(resource_persistence *StorageResources.Persistence) []error {
+	return university_sched.VerticalRangedValidation(
+		resource_persistence,
+		0, Const.N_WEEKLY_SCHOOL_DAYS,
+		0, Const.N_DAILY_TIME_SLOTS,
+	)
 }
 
 /*
