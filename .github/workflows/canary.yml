@@ -46,7 +46,7 @@ jobs:
         run: make build
 
       - name: create github canary release
-        run: gh release create canary-build-v${{ github.run_number }} dist.zip scheduling-system-temporary-data.zip --title "Release resources for canary buid" --notes "canary build version number ${{ github.run_number }}" --draft=false --prerelease=false
+        run: gh release create canary-build-v${{ github.run_number }} dist.zip scheduling-system-temporary-data.zip --title "Canary Build" --notes "canary build version number ${{ github.run_number }}" --draft=false --prerelease=false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
