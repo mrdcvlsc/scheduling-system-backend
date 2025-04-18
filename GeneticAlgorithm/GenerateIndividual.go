@@ -87,500 +87,531 @@ func EncodeIndividualGenome(
 
 	counted_sections := 0
 
-	for _, curriculum := range curriculums {
+	var room_type_to_rooms map[uint16][]Rooms.Room
+	var instructors []Instructors.Instructor
 
-		room_type_to_rooms := encoding_resource.DeptIdToRoomtypeToRooms[curriculum.DepartmentID]
-		instructors := encoding_resource.DeptIdToInstructors[curriculum.DepartmentID]
+	is_to_return := false
+	var return_uni_time_table Schedule.UniTimeTables
+	var return_encoding_resource *EncodingResource
+	var return_error error
 
-		for _, year_level := range curriculum.YearLevels {
+	IterateSectionsWeekSchedule(university_schedules, curriculums, selected_semester,
 
-			if !year_level.IsActive {
-				continue // skip inactive year levels
+		func(curriculum_idx int, curriculum *Curriculum.Curriculum) IterReturnType {
+			room_type_to_rooms = encoding_resource.DeptIdToRoomtypeToRooms[curriculum.DepartmentID]
+			instructors = encoding_resource.DeptIdToInstructors[curriculum.DepartmentID]
+			return IterProceed
+		},
+
+		func(indicies IterIndices, values IterValues) IterReturnType {
+
+			curriculum := values.Curriculum
+			semester := values.Semester
+			year_level := values.YearLevel
+			section_idx := indicies.Section
+
+			if ro_department_to_encode != nil {
+				is_to_encode := ro_department_to_encode[curriculum.DepartmentID]
+
+				if !is_to_encode {
+					counted_sections++
+					return IterContinue
+				}
 			}
 
-			for semester_idx, semester := range year_level.Semesters {
+			week_time_table := university_schedules[counted_sections]
 
-				if selected_semester != semester_idx {
-					continue // skip not selected semesters
+			/////////////////////////////////////////////////////////////////////////////////////////////////////////
+			//                                    SHUFFLE ROOMS AND SUBJECT
+			/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			// shuffle the rooms
+			for _, rooms := range room_type_to_rooms {
+				rng.Shuffle(len(rooms), func(i, j int) {
+					rooms[i], rooms[j] = rooms[j], rooms[i]
+				})
+			}
+
+			// shuffle the subjects
+			rng.Shuffle(len(semester.Subjects), func(i, j int) {
+				semester.Subjects[i], semester.Subjects[j] = semester.Subjects[j], semester.Subjects[i]
+			})
+
+			/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			// TODO: implement distribution types
+			//
+			// front compressed distribution : start
+			//
+			// for now the this is a brute force implementation, yet it is still enough
+			// considering the current low numbers of courses, instructors, rooms and sections.
+			// but I believe this still can be optimize in the future if we wanted to.
+			//
+			// or just create another implementation for inidividual generation.
+
+			// iterate over the subjects
+
+			// TODO: the map below was added for debugging purposes only, remove when the code becomes stable and optimized.
+
+			subject_recorder := make(map[uint16]Curriculum.Subject)
+
+			for _, subject := range semester.Subjects {
+
+				non_final_sched_idx := uint16(counted_sections)
+
+				if _, has_sched_idx := encoding_resource.IsSchedIdxToSubIdToSkip[non_final_sched_idx]; has_sched_idx {
+					_, has_sub_id := encoding_resource.IsSchedIdxToSubIdToSkip[non_final_sched_idx][subject.ID]
+					if has_sub_id {
+						if encoding_resource.IsSchedIdxToSubIdToSkip[non_final_sched_idx][subject.ID] {
+							subject_recorder[subject.ID] = subject
+							continue // skip since subject was already assigned
+						}
+					}
 				}
 
-				if len(semester.Subjects) == 0 {
-					continue // skip semesters that don't have subjects
-				}
+				var selected_instructor *Instructors.Instructor
 
 				/////////////////////////////////////////////////////////////////////////////////////////////////////////
-				//                           GENERATE WEEK TIME TABLE FOR EACH SECTIONS
+				//               POPULATE SPECIALIZED INSTRUCTOR LIST FOR THE SUBJECT IF THEY EXIST
 				/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-				for section_idx := range semester.Sections {
+				specialized_instructors := make([]*Instructors.Instructor, 0)
 
-					if ro_department_to_encode != nil {
-						is_to_encode := ro_department_to_encode[curriculum.DepartmentID]
+				if subject.DesignatedInstructors != nil {
+					instructor_id_to_instructor := make(map[uint16]*Instructors.Instructor)
 
-						if !is_to_encode {
-							counted_sections++
-							continue
+					for i := range instructors {
+						instructor_id_to_instructor[instructors[i].InstructorID] = &instructors[i]
+					}
+
+					for i := range encoding_resource.DeptIdToInstructors[0] {
+						instructor_id_to_instructor[encoding_resource.DeptIdToInstructors[0][i].InstructorID] = &encoding_resource.DeptIdToInstructors[0][i]
+					}
+
+					for _, specialized_id := range subject.DesignatedInstructors {
+						if _, has_id := instructor_id_to_instructor[specialized_id]; has_id {
+							specialized_instructors = append(specialized_instructors, instructor_id_to_instructor[specialized_id])
 						}
 					}
 
-					week_time_table := university_schedules[counted_sections]
+					if len(specialized_instructors) == 0 {
+						is_to_return = true
 
-					/////////////////////////////////////////////////////////////////////////////////////////////////////////
-					//                                    SHUFFLE ROOMS AND SUBJECT
-					/////////////////////////////////////////////////////////////////////////////////////////////////////////
+						return_uni_time_table = nil
+						return_encoding_resource = nil
+						return_error = fmt.Errorf(
+							"the specialized instructor(s) added in %s %s %s section[%d] subject %s are not found in the department instructors and general instructors",
+							curriculum.CurriculumCode, year_level.Name, semester.Name, section_idx, subject.Code,
+						)
 
-					// shuffle the rooms
-					for _, rooms := range room_type_to_rooms {
-						rng.Shuffle(len(rooms), func(i, j int) {
-							rooms[i], rooms[j] = rooms[j], rooms[i]
-						})
+						return IterBreakCurriculumLoop
 					}
 
-					// shuffle the subjects
-					rng.Shuffle(len(semester.Subjects), func(i, j int) {
-						semester.Subjects[i], semester.Subjects[j] = semester.Subjects[j], semester.Subjects[i]
+					// shuffle specialized instructors
+					rng.Shuffle(len(specialized_instructors), func(i, j int) {
+						specialized_instructors[i], specialized_instructors[j] = specialized_instructors[j], specialized_instructors[i]
 					})
 
+					// sort the specialized_instructors based on the number of subjects they are assigned
+					sort.Slice(specialized_instructors, func(i, j int) bool {
+						return specialized_instructors[i].TotalTeachingHours < specialized_instructors[j].TotalTeachingHours
+					})
+				} else {
+					// shuffle instructors
+					rng.Shuffle(len(instructors), func(i, j int) {
+						instructors[i], instructors[j] = instructors[j], instructors[i]
+					})
+
+					// sort the instructors based on the number of subjects they are assigned
+					sort.Slice(instructors, func(i, j int) bool {
+						return instructors[i].TotalTeachingHours < instructors[j].TotalTeachingHours
+					})
+				}
+
+				/////////////////////////////////////////////////////////////////////////////////////////////////////////
+				//                         RANDOMIZE LECTURE AND LABORATORY ASSIGNMENT ORDER
+				/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+				// iterate over the class type of the subject lec = 0 or lab = 1
+				is_subject_type_added_once := false
+
+				rand_class_type := int(rng.Int31n(2))
+
+				for class_type_iter := 0; class_type_iter < 2; class_type_iter++ {
+
+					class_type := (rand_class_type + class_type_iter) % 2
+
+					var selected_room *Rooms.Room
+
+					var subject_hours int
+
+					if class_type == 0 {
+						subject_hours = int(subject.LecHours)
+					} else {
+						subject_hours = int(subject.LabHours)
+					}
+
+					if subject_hours == 0 {
+						continue // skip subject class type if there is no contact hours
+					}
+
+					subject_total_time_slots := subject_hours * Const.N_HOUR_TIME_SLOTS
+
+					/////////////////////////////////////////////////////////////////////////////////////////////////////////
+					//                                ITERATE THROUGH THE WEEKLY TIME SLOTS
 					/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-					// TODO: implement distribution types
-					//
-					// front compressed distribution : start
-					//
-					// for now the this is a brute force implementation, yet it is still enough
-					// considering the current low numbers of courses, instructors, rooms and sections.
-					// but I believe this still can be optimize in the future if we wanted to.
-					//
-					// or just create another implementation for inidividual generation.
+					distribution_type := int(rng.Int31n(2))
 
-					// iterate over the subjects
+					m := Const.N_DAILY_TIME_SLOTS - subject_total_time_slots + 1
+					n := Const.N_WEEKLY_SCHOOL_DAYS
+					total_iterations := n * m
 
-					// TODO: the map below was added for debugging purposes only, remove when the code becomes stable and optimized.
+					for i := range total_iterations {
 
-					subject_recorder := make(map[uint16]Curriculum.Subject)
+						var day, time_slot int
 
-					for _, subject := range semester.Subjects {
-
-						non_final_sched_idx := uint16(counted_sections)
-
-						if _, has_sched_idx := encoding_resource.IsSchedIdxToSubIdToSkip[non_final_sched_idx]; has_sched_idx {
-							_, has_sub_id := encoding_resource.IsSchedIdxToSubIdToSkip[non_final_sched_idx][subject.ID]
-							if has_sub_id {
-								if encoding_resource.IsSchedIdxToSubIdToSkip[non_final_sched_idx][subject.ID] {
-									subject_recorder[subject.ID] = subject
-									continue // skip since subject was already assigned
-								}
-							}
+						if distribution_type == 0 {
+							day = i / m
+							time_slot = i % m
+						} else {
+							time_slot = i / n
+							day = i % n
 						}
 
-						var selected_instructor *Instructors.Instructor
+						day_sched := week_time_table.GetDayTimeTable(day)
 
 						/////////////////////////////////////////////////////////////////////////////////////////////////////////
-						//               POPULATE SPECIALIZED INSTRUCTOR LIST FOR THE SUBJECT IF THEY EXIST
+						//                      CHECK IF CURRENT TIME SLOT IS AVAILABLE FOR THE SUBJECT
 						/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-						specialized_instructors := make([]*Instructors.Instructor, 0)
+						is_time_slot_available := day_sched.IsTimeAvailable(time_slot, subject_total_time_slots)
+
+						if !is_time_slot_available && i == total_iterations-1 {
+							is_to_return = true
+
+							return_uni_time_table = university_schedules
+							return_encoding_resource = nil
+							return_error = fmt.Errorf(
+								"no time slot found for %s in %s for %s %s %s section[%d] after generating schedules for %d other sections",
+								subject.Code, ro_dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
+							)
+
+							return IterBreakCurriculumLoop
+						}
+
+						if !is_time_slot_available {
+							continue // if the current time slot is not available, go to the next time slot
+						}
+
+						/////////////////////////////////////////////////////////////////////////////////////////////////////////
+						//                          FIND AVAILABLE INSTRUCTOR FOR THE TIME SLOT
+						/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+						// if the time slot is available proceed to find then assign an available instructor
+
+						instructor_search_iteration := 0
+
+						selected_instructor_idx := -1
+						var is_available_instructor bool
 
 						if subject.DesignatedInstructors != nil {
-							instructor_id_to_instructor := make(map[uint16]*Instructors.Instructor)
-
-							for i := range instructors {
-								instructor_id_to_instructor[instructors[i].InstructorID] = &instructors[i]
-							}
-
-							for i := range encoding_resource.DeptIdToInstructors[0] {
-								instructor_id_to_instructor[encoding_resource.DeptIdToInstructors[0][i].InstructorID] = &encoding_resource.DeptIdToInstructors[0][i]
-							}
-
-							for _, specialized_id := range subject.DesignatedInstructors {
-								if _, has_id := instructor_id_to_instructor[specialized_id]; has_id {
-									specialized_instructors = append(specialized_instructors, instructor_id_to_instructor[specialized_id])
-								}
-							}
-
-							if len(specialized_instructors) == 0 {
-								return nil, nil, fmt.Errorf(
-									"the specialized instructor(s) added in %s %s %s section[%d] subject %s are not found in the department instructors and general instructors",
-									curriculum.CurriculumCode, year_level.Name, semester.Name, section_idx, subject.Code,
-								)
-							}
-
-							// shuffle specialized instructors
-							rng.Shuffle(len(specialized_instructors), func(i, j int) {
-								specialized_instructors[i], specialized_instructors[j] = specialized_instructors[j], specialized_instructors[i]
-							})
-
-							// sort the specialized_instructors based on the number of subjects they are assigned
-							sort.Slice(specialized_instructors, func(i, j int) bool {
-								return specialized_instructors[i].TotalTeachingHours < specialized_instructors[j].TotalTeachingHours
-							})
-						} else {
-							// shuffle instructors
-							rng.Shuffle(len(instructors), func(i, j int) {
-								instructors[i], instructors[j] = instructors[j], instructors[i]
-							})
-
-							// sort the instructors based on the number of subjects they are assigned
-							sort.Slice(instructors, func(i, j int) bool {
-								return instructors[i].TotalTeachingHours < instructors[j].TotalTeachingHours
-							})
-						}
-
-						/////////////////////////////////////////////////////////////////////////////////////////////////////////
-						//                         RANDOMIZE LECTURE AND LABORATORY ASSIGNMENT ORDER
-						/////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-						// iterate over the class type of the subject lec = 0 or lab = 1
-						is_subject_type_added_once := false
-
-						rand_class_type := int(rng.Int31n(2))
-
-						for class_type_iter := 0; class_type_iter < 2; class_type_iter++ {
-
-							class_type := (rand_class_type + class_type_iter) % 2
-
-							var selected_room *Rooms.Room
-
-							var subject_hours int
-
-							if class_type == 0 {
-								subject_hours = int(subject.LecHours)
-							} else {
-								subject_hours = int(subject.LabHours)
-							}
-
-							if subject_hours == 0 {
-								continue // skip subject class type if there is no contact hours
-							}
-
-							subject_total_time_slots := subject_hours * Const.N_HOUR_TIME_SLOTS
 
 							/////////////////////////////////////////////////////////////////////////////////////////////////////////
-							//                                ITERATE THROUGH THE WEEKLY TIME SLOTS
+							//                               find available specialized instructors
 							/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-							distribution_type := int(rng.Int31n(2))
+							for instructor_idx := range specialized_instructors {
 
-							m := Const.N_DAILY_TIME_SLOTS - subject_total_time_slots + 1
-							n := Const.N_WEEKLY_SCHOOL_DAYS
-							total_iterations := n * m
+								is_available_instructor = true
 
-							for i := range total_iterations {
-
-								var day, time_slot int
-
-								if distribution_type == 0 {
-									day = i / m
-									time_slot = i % m
+								if selected_instructor == nil {
+									for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
+										is_available_instructor = is_available_instructor && specialized_instructors[instructor_idx].Time.GetAvailability(day, instructor_time_slot)
+									}
 								} else {
-									time_slot = i / n
-									day = i % n
+									for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
+										is_available_instructor = is_available_instructor && selected_instructor.Time.GetAvailability(day, instructor_time_slot)
+									}
 								}
 
-								day_sched := week_time_table.GetDayTimeTable(day)
+								instructor_search_iteration++
 
-								/////////////////////////////////////////////////////////////////////////////////////////////////////////
-								//                      CHECK IF CURRENT TIME SLOT IS AVAILABLE FOR THE SUBJECT
-								/////////////////////////////////////////////////////////////////////////////////////////////////////////
+								if (!is_available_instructor && ((instructor_idx == len(specialized_instructors)-1) || selected_instructor != nil)) && i == total_iterations-1 {
+									is_to_return = true
+									is_to_return = true
 
-								is_time_slot_available := day_sched.IsTimeAvailable(time_slot, subject_total_time_slots)
-
-								if !is_time_slot_available && i == total_iterations-1 {
-									return university_schedules, nil, fmt.Errorf(
-										"no time slot found for %s in %s for %s %s %s section[%d] after generating schedules for %d other sections",
-										subject.Code, ro_dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
+									return_uni_time_table = university_schedules
+									return_encoding_resource = nil
+									return_error = fmt.Errorf(
+										"not enough specialized_instructors (%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
+										instructor_idx, ro_dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
 									)
+
+									return IterBreakCurriculumLoop
 								}
 
-								if !is_time_slot_available {
-									continue // if the current time slot is not available, go to the next time slot
-								}
-
-								/////////////////////////////////////////////////////////////////////////////////////////////////////////
-								//                          FIND AVAILABLE INSTRUCTOR FOR THE TIME SLOT
-								/////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-								// if the time slot is available proceed to find then assign an available instructor
-
-								instructor_search_iteration := 0
-
-								selected_instructor_idx := -1
-								var is_available_instructor bool
-
-								if subject.DesignatedInstructors != nil {
-
-									/////////////////////////////////////////////////////////////////////////////////////////////////////////
-									//                               find available specialized instructors
-									/////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-									for instructor_idx := range specialized_instructors {
-
-										is_available_instructor = true
-
-										if selected_instructor == nil {
-											for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
-												is_available_instructor = is_available_instructor && specialized_instructors[instructor_idx].Time.GetAvailability(day, instructor_time_slot)
-											}
-										} else {
-											for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
-												is_available_instructor = is_available_instructor && selected_instructor.Time.GetAvailability(day, instructor_time_slot)
-											}
-										}
-
-										instructor_search_iteration++
-
-										if (!is_available_instructor && ((instructor_idx == len(specialized_instructors)-1) || selected_instructor != nil)) && i == total_iterations-1 {
-											return university_schedules, nil, fmt.Errorf(
-												"not enough specialized_instructors (%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
-												instructor_idx, ro_dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
-											)
-										}
-
-										if !is_available_instructor && selected_instructor != nil {
-											break // immediately find other time slots if there is already a selected instructor yet is not available
-										}
-
-										if !is_available_instructor {
-											continue // find another instructor if not available for the time slot
-										}
-
-										selected_instructor_idx = instructor_idx
-										break
-									}
-								} else {
-									/////////////////////////////////////////////////////////////////////////////////////////////////////////
-									//                                find available department instructors
-									/////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-									for instructor_idx := range instructors {
-
-										is_available_instructor = true
-
-										if selected_instructor == nil {
-											for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
-												is_available_instructor = is_available_instructor && instructors[instructor_idx].Time.GetAvailability(day, instructor_time_slot)
-											}
-
-										} else {
-											for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
-												is_available_instructor = is_available_instructor && selected_instructor.Time.GetAvailability(day, instructor_time_slot)
-											}
-										}
-
-										instructor_search_iteration++
-
-										if (!is_available_instructor && ((instructor_idx == len(instructors)-1) || selected_instructor != nil)) && i == total_iterations-1 {
-											return university_schedules, nil, fmt.Errorf(
-												"not enough instructors (%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
-												instructor_idx, ro_dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
-											)
-										}
-
-										if !is_available_instructor && selected_instructor != nil {
-											break // immediately find other time slots if there is already a selected instructor yet is not available
-										}
-
-										if !is_available_instructor {
-											continue // find another instructor if not available for the time slot
-										}
-
-										selected_instructor_idx = instructor_idx
-										break
-									}
+								if !is_available_instructor && selected_instructor != nil {
+									break // immediately find other time slots if there is already a selected instructor yet is not available
 								}
 
 								if !is_available_instructor {
-									continue // find other time slot if there is no available instructor
+									continue // find another instructor if not available for the time slot
 								}
 
-								/////////////////////////////////////////////////////////////////////////////////////////////////////////
-								//                             FIND AVAILABLE ROOM FOR THE TIME SLOT
-								/////////////////////////////////////////////////////////////////////////////////////////////////////////
+								selected_instructor_idx = instructor_idx
+								break
+							}
+						} else {
+							/////////////////////////////////////////////////////////////////////////////////////////////////////////
+							//                                find available department instructors
+							/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-								room_search_iteration := 0
-								room_type := uint16(class_type)
+							for instructor_idx := range instructors {
 
-								var has_available_room bool
+								is_available_instructor = true
 
-								if subject.IsGymType() {
-
-									/////////////////////////////////////////////////////////////////////////////////////////////////////////
-									//                                       find available gym room
-									/////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-									// search available gym for physical education subjects
-
-									gym := encoding_resource.DeptIdToRoomtypeToRooms[0][2]
-
-									for room_idx := range gym {
-
-										has_available_room = true
-
-										for room_time_slot := time_slot; room_time_slot < (time_slot + subject_total_time_slots); room_time_slot++ {
-											has_available_room = has_available_room && gym[room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(gym[room_idx].Capacity)
-										}
-
-										if !has_available_room {
-											continue
-										}
-
-										selected_room = &gym[room_idx]
-										break
+								if selected_instructor == nil {
+									for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
+										is_available_instructor = is_available_instructor && instructors[instructor_idx].Time.GetAvailability(day, instructor_time_slot)
 									}
+
 								} else {
-
-									/////////////////////////////////////////////////////////////////////////////////////////////////////////
-									//                                  find available department rooms
-									/////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-									// search for department specific rooms that are available
-
-									for room_idx := range room_type_to_rooms[room_type] {
-
-										has_available_room = true
-
-										for room_time_slot := time_slot; room_time_slot < (time_slot + subject_total_time_slots); room_time_slot++ {
-											has_available_room = has_available_room && room_type_to_rooms[room_type][room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(room_type_to_rooms[room_type][room_idx].Capacity)
-										}
-
-										if !has_available_room {
-											continue
-										}
-
-										// fmt.Printf("selecting the available room[type:%d] for the time slot [d:%d, ts:%d]...\n", room_type, day, time_slot) // DEBUG PRINTS
-										selected_room = &room_type_to_rooms[room_type][room_idx]
-										break
+									for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
+										is_available_instructor = is_available_instructor && selected_instructor.Time.GetAvailability(day, instructor_time_slot)
 									}
-
-									// TODO: [implement below] search for general rooms that are available (consult first)
-
-									// TODO: [implement below] search available lab room for lecture subjects (consult first)
 								}
 
-								room_search_iteration++
+								instructor_search_iteration++
 
-								if !has_available_room && i == total_iterations-1 {
-									return university_schedules, nil, fmt.Errorf(
-										"not enough rooms (%d)-(type:%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
-										len(room_type_to_rooms[room_type]), room_type, ro_dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
+								if (!is_available_instructor && ((instructor_idx == len(instructors)-1) || selected_instructor != nil)) && i == total_iterations-1 {
+									is_to_return = true
+
+									return_uni_time_table = university_schedules
+									return_encoding_resource = nil
+									return_error = fmt.Errorf(
+										"not enough instructors (%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
+										instructor_idx, ro_dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
 									)
+
+									return IterBreakCurriculumLoop
+								}
+
+								if !is_available_instructor && selected_instructor != nil {
+									break // immediately find other time slots if there is already a selected instructor yet is not available
+								}
+
+								if !is_available_instructor {
+									continue // find another instructor if not available for the time slot
+								}
+
+								selected_instructor_idx = instructor_idx
+								break
+							}
+						}
+
+						if !is_available_instructor {
+							continue // find other time slot if there is no available instructor
+						}
+
+						/////////////////////////////////////////////////////////////////////////////////////////////////////////
+						//                             FIND AVAILABLE ROOM FOR THE TIME SLOT
+						/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+						room_search_iteration := 0
+						room_type := uint16(class_type)
+
+						var has_available_room bool
+
+						if subject.IsGymType() {
+
+							/////////////////////////////////////////////////////////////////////////////////////////////////////////
+							//                                       find available gym room
+							/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+							// search available gym for physical education subjects
+
+							gym := encoding_resource.DeptIdToRoomtypeToRooms[0][2]
+
+							for room_idx := range gym {
+
+								has_available_room = true
+
+								for room_time_slot := time_slot; room_time_slot < (time_slot + subject_total_time_slots); room_time_slot++ {
+									has_available_room = has_available_room && gym[room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(gym[room_idx].Capacity)
 								}
 
 								if !has_available_room {
-									// fmt.Printf("No room found for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
-									continue // find another time slot
+									continue
 								}
 
-								/////////////////////////////////////////////////////////////////////////////////////////////////////////
-								//   if there is an available room then finalize instructor selection if there is no one selected yet
-								/////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-								// fmt.Printf("room found for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
-
-								if selected_instructor == nil {
-									// fmt.Printf("selecting the instructor found for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
-
-									if subject.DesignatedInstructors != nil {
-										selected_instructor = specialized_instructors[selected_instructor_idx]
-									} else {
-										selected_instructor = &instructors[selected_instructor_idx]
-									}
-								}
-
-								/////////////////////////////////////////////////////////////////////////////////////////////////////////
-								//                       ALLOCATE THE FINAL AVAILABLE INSTRUCTOR FOR THE TIME SLOT
-								/////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-								time_slot_assignment_sanity_counter := 0
-
-								for selected_time_slot := time_slot; selected_time_slot < (time_slot + subject_total_time_slots); selected_time_slot++ {
-									if day_sched.GetTimeSlot(selected_time_slot).GetSubjectID() != 0 {
-										panic("woah woah woah! you are overwriting a subject allocated in that time slot")
-									}
-
-									if day_sched.GetTimeSlot(selected_time_slot).GetInstructorID() != 0 {
-										panic("woah woah woah! you are overwriting an instructor allocated in that time slot")
-									}
-
-									if day_sched.GetTimeSlot(selected_time_slot).GetRoomID() != 0 {
-										panic("woah woah woah! you are overwriting a room allocated in that time slot")
-									}
-
-									selected_instructor.Time.SetAvailability(false, day, selected_time_slot)
-									selected_room.IncTimeSlotClassCount(day, selected_time_slot)
-
-									if subject.ID == 0 {
-										panic(fmt.Sprintf(
-											"%s %s %s section[%d] %s %s's subject id should never be zero",
-											curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, subject.Code, subject.Name,
-										))
-									}
-
-									day_sched.GetTimeSlot(selected_time_slot).SetSubjectID(subject.ID)
-									day_sched.GetTimeSlot(selected_time_slot).SetInstructorID(selected_instructor.InstructorID)
-									day_sched.GetTimeSlot(selected_time_slot).SetRoomID(selected_room.RoomID)
-
-									time_slot_assignment_sanity_counter++
-								}
-
-								if time_slot_assignment_sanity_counter != subject_total_time_slots {
-									panic(
-										"total time slot assigned did not match the subject total time slot",
-									)
-								}
-
-								if !is_subject_type_added_once {
-									selected_instructor.AssignedSubjects++
-									is_subject_type_added_once = true
-								}
-
-								selected_instructor.TotalTeachingHours += float32(subject_hours)
-
-								subject_recorder[subject.ID] = subject
-
-								/////////////////////////////////////////////////////////////////////////////////////////////////////////
-								//                                  EXIT THE LOOP AFTER SUCCESSFUL ASSIGNMENT
-								/////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+								selected_room = &gym[room_idx]
 								break
 							}
-						} // ------------- end of class_type_iter loop -------------
-
-						// map encoding resource that this subject is already assigned.
-
-						if _, has_sched_idx := encoding_resource.IsSchedIdxToSubIdToSkip[non_final_sched_idx]; !has_sched_idx {
-							encoding_resource.IsSchedIdxToSubIdToSkip[non_final_sched_idx] = make(map[uint16]bool)
-							encoding_resource.IsSchedIdxToSubIdToSkip[non_final_sched_idx][subject.ID] = true
 						} else {
-							if _, has_sub_id := encoding_resource.IsSchedIdxToSubIdToSkip[non_final_sched_idx][subject.ID]; !has_sub_id {
-								encoding_resource.IsSchedIdxToSubIdToSkip[non_final_sched_idx][subject.ID] = true
+
+							/////////////////////////////////////////////////////////////////////////////////////////////////////////
+							//                                  find available department rooms
+							/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+							// search for department specific rooms that are available
+
+							for room_idx := range room_type_to_rooms[room_type] {
+
+								has_available_room = true
+
+								for room_time_slot := time_slot; room_time_slot < (time_slot + subject_total_time_slots); room_time_slot++ {
+									has_available_room = has_available_room && room_type_to_rooms[room_type][room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(room_type_to_rooms[room_type][room_idx].Capacity)
+								}
+
+								if !has_available_room {
+									continue
+								}
+
+								// fmt.Printf("selecting the available room[type:%d] for the time slot [d:%d, ts:%d]...\n", room_type, day, time_slot) // DEBUG PRINTS
+								selected_room = &room_type_to_rooms[room_type][room_idx]
+								break
+							}
+
+							// TODO: [implement below] search for general rooms that are available (consult first)
+
+							// TODO: [implement below] search available lab room for lecture subjects (consult first)
+						}
+
+						room_search_iteration++
+
+						if !has_available_room && i == total_iterations-1 {
+							is_to_return = true
+
+							return_uni_time_table = university_schedules
+							return_encoding_resource = nil
+							return_error = fmt.Errorf(
+								"not enough rooms (%d)-(type:%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
+								len(room_type_to_rooms[room_type]), room_type, ro_dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, counted_sections,
+							)
+
+							return IterBreakCurriculumLoop
+						}
+
+						if !has_available_room {
+							// fmt.Printf("No room found for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
+							continue // find another time slot
+						}
+
+						/////////////////////////////////////////////////////////////////////////////////////////////////////////
+						//   if there is an available room then finalize instructor selection if there is no one selected yet
+						/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+						// fmt.Printf("room found for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
+
+						if selected_instructor == nil {
+							// fmt.Printf("selecting the instructor found for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
+
+							if subject.DesignatedInstructors != nil {
+								selected_instructor = specialized_instructors[selected_instructor_idx]
 							} else {
-								panic("woah woah woah!, you're not supposed to be here")
+								selected_instructor = &instructors[selected_instructor_idx]
 							}
 						}
-					} // ------------- end of subject loop -------------
 
-					// front compressed distribution : end
+						/////////////////////////////////////////////////////////////////////////////////////////////////////////
+						//                       ALLOCATE THE FINAL AVAILABLE INSTRUCTOR FOR THE TIME SLOT
+						/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-					if len(subject_recorder) != len(semester.Subjects) {
-						panic(fmt.Sprintf(
-							"there are some subjects in %s %s %s %s that was not assigned for some reason s(%d/%d), i(%d), r(%d)",
-							ro_dept_id_to_department[curriculum.DepartmentID].Code,
-							curriculum.CurriculumCode,
-							year_level.Name,
-							semester.Name,
-							len(subject_recorder), len(semester.Subjects),
-							len(instructors),
-							len(room_type_to_rooms[Rooms.ROOM_TYPE_LAB])+len(room_type_to_rooms[Rooms.ROOM_TYPE_LEC]),
-						))
+						time_slot_assignment_sanity_counter := 0
+
+						for selected_time_slot := time_slot; selected_time_slot < (time_slot + subject_total_time_slots); selected_time_slot++ {
+							if day_sched.GetTimeSlot(selected_time_slot).GetSubjectID() != 0 {
+								panic("woah woah woah! you are overwriting a subject allocated in that time slot")
+							}
+
+							if day_sched.GetTimeSlot(selected_time_slot).GetInstructorID() != 0 {
+								panic("woah woah woah! you are overwriting an instructor allocated in that time slot")
+							}
+
+							if day_sched.GetTimeSlot(selected_time_slot).GetRoomID() != 0 {
+								panic("woah woah woah! you are overwriting a room allocated in that time slot")
+							}
+
+							selected_instructor.Time.SetAvailability(false, day, selected_time_slot)
+							selected_room.IncTimeSlotClassCount(day, selected_time_slot)
+
+							if subject.ID == 0 {
+								panic(fmt.Sprintf(
+									"%s %s %s section[%d] %s %s's subject id should never be zero",
+									curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, subject.Code, subject.Name,
+								))
+							}
+
+							day_sched.GetTimeSlot(selected_time_slot).SetSubjectID(subject.ID)
+							day_sched.GetTimeSlot(selected_time_slot).SetInstructorID(selected_instructor.InstructorID)
+							day_sched.GetTimeSlot(selected_time_slot).SetRoomID(selected_room.RoomID)
+
+							time_slot_assignment_sanity_counter++
+						}
+
+						if time_slot_assignment_sanity_counter != subject_total_time_slots {
+							panic(
+								"total time slot assigned did not match the subject total time slot",
+							)
+						}
+
+						if !is_subject_type_added_once {
+							selected_instructor.AssignedSubjects++
+							is_subject_type_added_once = true
+						}
+
+						selected_instructor.TotalTeachingHours += float32(subject_hours)
+
+						subject_recorder[subject.ID] = subject
+
+						/////////////////////////////////////////////////////////////////////////////////////////////////////////
+						//                                  EXIT THE LOOP AFTER SUCCESSFUL ASSIGNMENT
+						/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+						break
 					}
+				} // ------------- end of class_type_iter loop -------------
 
-					university_schedules[counted_sections] = week_time_table
-					counted_sections++
-				} // ------------- end of section_idx loop -------------
-			} // ------------- end of semester_idx loop -------------
-		} // ------------- end of year_level loop -------------
-	} // ------------- end of curriculum loop -------------
+				// map encoding resource that this subject is already assigned.
+
+				if _, has_sched_idx := encoding_resource.IsSchedIdxToSubIdToSkip[non_final_sched_idx]; !has_sched_idx {
+					encoding_resource.IsSchedIdxToSubIdToSkip[non_final_sched_idx] = make(map[uint16]bool)
+					encoding_resource.IsSchedIdxToSubIdToSkip[non_final_sched_idx][subject.ID] = true
+				} else {
+					if _, has_sub_id := encoding_resource.IsSchedIdxToSubIdToSkip[non_final_sched_idx][subject.ID]; !has_sub_id {
+						encoding_resource.IsSchedIdxToSubIdToSkip[non_final_sched_idx][subject.ID] = true
+					} else {
+						panic("woah woah woah!, you're not supposed to be here")
+					}
+				}
+			} // ------------- end of subject loop -------------
+
+			// front compressed distribution : end
+
+			if len(subject_recorder) != len(semester.Subjects) {
+				panic(fmt.Sprintf(
+					"there are some subjects in %s %s %s %s that was not assigned for some reason s(%d/%d), i(%d), r(%d)",
+					ro_dept_id_to_department[curriculum.DepartmentID].Code,
+					curriculum.CurriculumCode,
+					year_level.Name,
+					semester.Name,
+					len(subject_recorder), len(semester.Subjects),
+					len(instructors),
+					len(room_type_to_rooms[Rooms.ROOM_TYPE_LAB])+len(room_type_to_rooms[Rooms.ROOM_TYPE_LEC]),
+				))
+			}
+
+			university_schedules[counted_sections] = week_time_table
+			counted_sections++
+
+			return IterProceed
+		},
+	)
+
+	if is_to_return {
+		return return_uni_time_table, return_encoding_resource, return_error
+	}
 
 	return university_schedules, encoding_resource, nil
 }
