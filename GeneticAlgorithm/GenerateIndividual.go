@@ -97,12 +97,15 @@ func EncodeIndividualGenome(
 
 	IterateSectionsWeekSchedule(university_schedules, curriculums, selected_semester,
 
-		func(curriculum_idx int, curriculum *Curriculum.Curriculum) IterReturnType {
+		func(indicies IterIndices, values IterValues) IterReturnType {
+			curriculum := values.Curriculum
+
 			room_type_to_rooms = encoding_resource.DeptIdToRoomtypeToRooms[curriculum.DepartmentID]
 			instructors = encoding_resource.DeptIdToInstructors[curriculum.DepartmentID]
+
 			return IterProceed
 		},
-
+		nil,
 		func(indicies IterIndices, values IterValues) IterReturnType {
 
 			curriculum := values.Curriculum
