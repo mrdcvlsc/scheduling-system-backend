@@ -50,14 +50,27 @@ func RunGeneticAlgorithm(
 	//             PUT THE BASE SCHEDULE AT THE TOP OF GENESIS POPULATION
 	////////////////////////////////////////////////////////////////////////////////////////
 
+	new_base_sched, new_base_sched_resource, err_encoding_new_base_sched := EncodeIndividualGenome(
+		base_uni_sched,
+		curriculums,
+		dept_id_to_department,
+		base_encoding_resource,
+		department_to_encode,
+		selected_semester, 0,
+	)
+
+	if err_encoding_new_base_sched != nil {
+		return new_base_sched, new_base_sched_resource, err_encoding_new_base_sched
+	}
+
 	log.Printf("university schedule fitness : %f", MeasureCompleteUniSchedBasicFitness(base_uni_sched, curriculums, nil, selected_semester))
 	log.Printf("department schedule fitness : %f", MeasureCompleteUniSchedBasicFitness(base_uni_sched, curriculums, department_to_encode, selected_semester))
 
 	genesis_population := make([]SchedAndResources, 0)
 
 	genesis_population = append(genesis_population, SchedAndResources{
-		UniSched:  base_uni_sched,
-		Resources: base_encoding_resource,
+		UniSched:  new_base_sched,
+		Resources: new_base_sched_resource,
 	})
 
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -178,64 +191,57 @@ func RunGeneticAlgorithm(
 		//				                     CROSSOVER
 		////////////////////////////////////////////////////////////////////////////////////////
 
-		// TODO: perform crossover on the current population (below is just simple generation of schedule not crossover - temporary only)
-		// TODO: crossover some individuals and add them to the CURRENT population
-
 		log.Printf("populate the population with new offspring from parents")
 
-		tries := 0
+		crossover_tries := 0
+
+		population_size_before_crossover := len(population)
 
 		for len(population) < population_size {
 
-			copy_uni_sched := make(Schedule.UniTimeTables, len(genesis_population[0].UniSched))
+			parent1_idx := rng.Intn(population_size_before_crossover)
+			parent2_idx := rng.Intn(population_size_before_crossover)
 
-			copied_week_time_table := copy(copy_uni_sched, genesis_population[0].UniSched)
-
-			if copied_week_time_table != len(genesis_population[0].UniSched) {
-				return nil, nil, fmt.Errorf("slice elements copied %d, internal university schedule copy operation failed in generate new individual function", copied_week_time_table)
+			if parent1_idx == parent2_idx {
+				continue
 			}
 
-			ApplyClearDepartmentSchedule(copy_uni_sched, curriculums, department_id, selected_semester)
+			parent1 := population[parent1_idx]
+			parent2 := population[parent2_idx]
 
-			copy_encoding_resource, err_gen_copy_encoding_resource := GenerateEncodingResourceFromUniTimeTable(copy_uni_sched, curriculums, selected_semester, resource_persistence)
-
-			if err_gen_copy_encoding_resource != nil {
-				return nil, nil, fmt.Errorf("unable to generate encoding resource from individual during generation %d at crossover phase", g)
-			}
-
-			new_uni_sched, new_encoding_resource, err_encode_new := EncodeIndividualGenome(
-				copy_uni_sched,
-				curriculums,
-				dept_id_to_department,
-				copy_encoding_resource,
-				department_to_encode,
-				selected_semester, 0,
+			offspring, err_crossover := Crossover(
+				parent1.UniSched, parent2.UniSched,
+				curriculums, selected_semester,
+				dept_id_to_department, department_to_encode,
+				resource_persistence,
 			)
 
-			if err_encode_new != nil {
-				tries++
+			if err_crossover != nil {
+				crossover_tries++
 
-				if tries >= MAX_NEW_INDIVIDUAL_GENERATION_TRIALS {
-					if new_uni_sched == nil {
+				if crossover_tries >= MAX_NEW_INDIVIDUAL_GENERATION_TRIALS {
+					log.Printf("failed to crossover some parents %d and %d after %d re-tries", parent1_idx, parent2_idx, crossover_tries)
+
+					if offspring.UniSched == nil {
 						return nil, nil, fmt.Errorf(
 							"unable to generate new a individual during generation %d after %d tries : %s",
-							g, MAX_NEW_INDIVIDUAL_GENERATION_TRIALS, err_encode_new.Error(),
+							g, MAX_NEW_INDIVIDUAL_GENERATION_TRIALS, err_crossover.Error(),
 						)
 					} else {
-						return new_uni_sched, nil, fmt.Errorf(
+						return offspring.UniSched, nil, fmt.Errorf(
 							"unable to generate new a individual during generation %d after %d tries : %s",
-							g, MAX_NEW_INDIVIDUAL_GENERATION_TRIALS, err_encode_new.Error(),
+							g, MAX_NEW_INDIVIDUAL_GENERATION_TRIALS, err_crossover.Error(),
 						)
 					}
 				}
 
 				continue
+			} else {
+				log.Printf("successful crossover parents %d and %d after %d re-tries", parent1_idx, parent2_idx, crossover_tries)
+				crossover_tries = 0
 			}
 
-			population = append(population, SchedAndResources{
-				UniSched:  new_uni_sched,
-				Resources: new_encoding_resource,
-			})
+			population = append(population, *offspring)
 		}
 
 		////////////////////////////////////////////////////////////////////////////////////////
