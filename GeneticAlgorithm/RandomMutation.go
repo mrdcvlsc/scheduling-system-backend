@@ -133,7 +133,13 @@ func ApplyRandomSubjectDaySwap(sched Schedule.UniTimeTables, resource_persistenc
 							continue
 						}
 
-						subject_count_to_try_day_swap := rng.Intn(len(subjects_json)) + 1
+						rng_n := len(subjects_json)
+
+						if rng_n < 0 {
+							continue
+						}
+
+						subject_count_to_try_day_swap := rng.Intn(rng_n) + 1
 
 						total_lec_and_lab_subjects += len(subjects_json)
 						total_tried_day_swaps += subject_count_to_try_day_swap
@@ -231,7 +237,13 @@ func ApplyRandomSubjectTimeSlotNudge(sched Schedule.UniTimeTables, resource_pers
 							continue
 						}
 
-						subject_count_to_try_time_slot_nudge := rng.Intn(len(subjects_json)) + 1
+						rng_n := len(subjects_json)
+
+						if rng_n < 0 {
+							continue
+						}
+
+						subject_count_to_try_time_slot_nudge := rng.Intn(rng_n) + 1
 
 						rng.Shuffle(len(subjects_json), func(i, j int) {
 							subjects_json[i], subjects_json[j] = subjects_json[j], subjects_json[i]
@@ -347,7 +359,13 @@ func ApplyRandomSubjectErasure(sched Schedule.UniTimeTables, resource_persistenc
 							continue
 						}
 
-						subject_count_to_try_erase := rng.Intn(len(subjects_json)/3) + 1 // ~33.33% of the subjects to try to erase
+						rng_n := len(subjects_json) / 3
+
+						if rng_n < 0 {
+							continue
+						}
+
+						subject_count_to_try_erase := rng.Intn(rng_n) + 1 // ~33.33% of the subjects to try to erase
 
 						total_lec_and_lab_subjects += len(subjects_json)
 
@@ -415,7 +433,13 @@ func ApplyRandomSubjectTimeSlotAndDayNudge(sched Schedule.UniTimeTables, resourc
 							continue
 						}
 
-						subject_count_to_try_nudge := rng.Intn(len(subjects_json)) + 1
+						rng_n := len(subjects_json)
+
+						if rng_n < 0 {
+							continue
+						}
+
+						subject_count_to_try_nudge := rng.Intn(rng_n) + 1
 
 						rng.Shuffle(len(subjects_json), func(i, j int) {
 							subjects_json[i], subjects_json[j] = subjects_json[j], subjects_json[i]
