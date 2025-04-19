@@ -9,17 +9,24 @@ import (
 )
 
 func TestEmptyScheduleFitness(t *testing.T) {
-	uni_sched := make(Schedule.UniTimeTables, 0)
-	uni_sched = append(uni_sched, Schedule.WeekTimeTable{})
+	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
 
-	fitness := GeneticAlgorithm.MeasureFitnessBasic(uni_sched)
+	curriculums, err_all_curriculums := persistence.ReaderService.ReadAllCurriculum()
+
+	if err_all_curriculums != nil {
+		t.Fatal(err_all_curriculums)
+	}
+
+	uni_sched := GeneticAlgorithm.NewEmptyIndividual(curriculums, GeneticAlgorithm.TERM_1ST_SEMESTER)
+
+	fitness := GeneticAlgorithm.MeasureCompleteUniSchedBasicFitness(uni_sched, curriculums, nil, GeneticAlgorithm.TERM_1ST_SEMESTER)
 	t.Logf("empty schedule fitness : %f", fitness)
 
 	for range 50 {
 		uni_sched = append(uni_sched, Schedule.WeekTimeTable{})
 	}
 
-	fitness_of_51_empty_schedules := GeneticAlgorithm.MeasureFitnessBasic(uni_sched)
+	fitness_of_51_empty_schedules := GeneticAlgorithm.MeasureCompleteUniSchedBasicFitness(uni_sched, curriculums, nil, GeneticAlgorithm.TERM_1ST_SEMESTER)
 
 	// TODO: complete this empty schedule fitness test
 
@@ -98,7 +105,7 @@ func TestGeneratedScheduleFitness(t *testing.T) {
 		}
 	}
 
-	fitness := GeneticAlgorithm.MeasureFitnessBasic(*new_university_schedule)
+	fitness := GeneticAlgorithm.MeasureCompleteUniSchedBasicFitness(*new_university_schedule, curriculums, nil, target_semester)
 
 	// TODO: complete this generated schedule fitness test
 

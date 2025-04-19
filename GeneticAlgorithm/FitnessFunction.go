@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 )
 
@@ -24,68 +25,93 @@ func reciprocal_distance(actual_hours, target_hours float64) float64 {
 
 }
 
-// A basic fitness function
-func MeasureFitnessBasic(uni_sched Schedule.UniTimeTables) float64 {
-	accumulated_fitness := 0.0
+func MeasureWeekTimeTableBasicFitness(week_sched Schedule.WeekTimeTable) float64 {
+	week_sched_fitness := 0.0
 
-	for i := range uni_sched {
-		section_sched_fitness := 0.0
+	for day := range Const.N_WEEKLY_SCHOOL_DAYS {
 
-		for day := range Const.N_WEEKLY_SCHOOL_DAYS {
+		has_class_after_5pm := false
+		has_time_for_lunch := false
+		day_total_hours := 0.0
+		continuous_hours := 0.0
 
-			has_class_after_5pm := false
-			has_time_for_lunch := false
-			total_hours := 0.0
-			continuous_hours := 0.0
-
-			for time_slot := range Const.N_DAILY_TIME_SLOTS {
-				if time_slot >= 20 && continuous_hours > 0 {
-					has_class_after_5pm = true
-				}
-
-				if uni_sched[i][day][time_slot].GetSubjectID() > 0 {
-					total_hours += (1.0 / float64(Const.N_HOUR_TIME_SLOTS))
-					continuous_hours += (1.0 / float64(Const.N_HOUR_TIME_SLOTS))
-				} else {
-					if continuous_hours > 4.5 {
-						section_sched_fitness -= 0.75
-					}
-
-					continuous_hours = 0.0
-				}
-
-				if time_slot >= 8 && time_slot <= 12 && uni_sched[i][day][time_slot].GetSubjectID() == 0 {
-					has_time_for_lunch = true
-				}
+		for time_slot := range Const.N_DAILY_TIME_SLOTS {
+			if time_slot >= 20 && continuous_hours > 0 {
+				has_class_after_5pm = true
 			}
 
-			if has_time_for_lunch {
-				section_sched_fitness += 1.0
+			if week_sched[day][time_slot].GetSubjectID() > 0 {
+				day_total_hours += (1.0 / float64(Const.N_HOUR_TIME_SLOTS))
+				continuous_hours += (1.0 / float64(Const.N_HOUR_TIME_SLOTS))
 			} else {
-				section_sched_fitness -= 2.0
+				if continuous_hours > 4.5 {
+					week_sched_fitness -= 0.75
+				}
+
+				continuous_hours = 0.0
 			}
 
-			if has_class_after_5pm {
-				section_sched_fitness -= 0.5
-			}
-
-			if total_hours >= PREFERED_MAX_CLASS_HOUR_PER_DAY {
-				fitness_punishment := total_hours - PREFERED_MAX_CLASS_HOUR_PER_DAY
-				section_sched_fitness -= fitness_punishment * 0.75
-			} else {
-				section_sched_fitness += 3.5
-			}
-
-			// no class during saturday.
-			if total_hours > 4 && day == Const.N_WEEKLY_SCHOOL_DAYS-1 {
-				section_sched_fitness -= 0.75
+			if time_slot >= 8 && time_slot <= 12 && week_sched[day][time_slot].GetSubjectID() == 0 {
+				has_time_for_lunch = true
 			}
 		}
 
-		accumulated_fitness += section_sched_fitness
+		if has_time_for_lunch {
+			week_sched_fitness += 7.0
+		} else {
+			week_sched_fitness -= 2.0
+		}
+
+		if has_class_after_5pm {
+			week_sched_fitness -= 0.5
+		}
+
+		if day_total_hours >= PREFERED_MAX_CLASS_HOUR_PER_DAY {
+			fitness_punishment := day_total_hours - PREFERED_MAX_CLASS_HOUR_PER_DAY
+			week_sched_fitness -= fitness_punishment * 0.75
+		} else if day_total_hours == 0 {
+			week_sched_fitness = 0
+			continue
+		} else {
+			week_sched_fitness += 3.5
+		}
+
+		// no class during saturday.
+		if day_total_hours > 4 && day == Const.N_WEEKLY_SCHOOL_DAYS-1 {
+			week_sched_fitness -= 0.75
+		}
+
 	}
 
-	return accumulated_fitness / float64(len(uni_sched))
+	return week_sched_fitness
+}
+
+// A basic fitness function
+func MeasureCompleteUniSchedBasicFitness(complete_uni_sched Schedule.UniTimeTables, all_curriculums []Curriculum.Curriculum, department_to_measure map[uint16]bool, selected_semester int) float64 {
+	if complete_uni_sched.IsEmpty() {
+		return 0.0
+	}
+
+	accumulated_fitness := 0.0
+	total_fitness_measurements := 0
+
+	IterateSectionsWeekSchedule(complete_uni_sched, all_curriculums, selected_semester, nil, nil, func(indicies IterIndices, values IterValues) IterReturnType {
+
+		if len(department_to_measure) > 0 {
+			is_to_measure, has_key := department_to_measure[values.Curriculum.DepartmentID]
+
+			if !(has_key && is_to_measure) {
+				return IterProceed
+			}
+		}
+
+		accumulated_fitness += MeasureWeekTimeTableBasicFitness(*values.WeekSched)
+		total_fitness_measurements++
+
+		return IterProceed
+	})
+
+	return accumulated_fitness / float64(total_fitness_measurements)
 }
 
 func MeasureFitnessPrefHeatMapComparison(uni_sched Schedule.DayTimeTable) float64 {
