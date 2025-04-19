@@ -2,6 +2,7 @@ package GeneticAlgorithm
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"sort"
 	"time"
@@ -157,6 +158,12 @@ func EncodeIndividualGenome(
 			// TODO: the map below was added for debugging purposes only, remove when the code becomes stable and optimized.
 
 			subject_recorder := make(map[uint16]Curriculum.Subject)
+
+			subj_assign_fail_possible_reason := make(map[string]int)
+
+			subj_assign_fail_possible_reason["not-enough-time-slots"] = 0
+			subj_assign_fail_possible_reason["not-enough-instructors"] = 0
+			subj_assign_fail_possible_reason["not-enough-rooms"] = 0
 
 			for _, subject := range semester.Subjects {
 
@@ -342,7 +349,6 @@ func EncodeIndividualGenome(
 
 								if (!is_available_instructor && ((instructor_idx == len(specialized_instructors)-1) || selected_instructor != nil)) && i == total_iterations-1 {
 									is_to_return = true
-									is_to_return = true
 
 									return_uni_time_table = university_schedules
 									return_encoding_resource = nil
@@ -414,6 +420,7 @@ func EncodeIndividualGenome(
 						}
 
 						if !is_available_instructor {
+							subj_assign_fail_possible_reason["not-enough-instructors"]++
 							continue // find other time slot if there is no available instructor
 						}
 
@@ -498,6 +505,7 @@ func EncodeIndividualGenome(
 
 						if !has_available_room {
 							// fmt.Printf("No room found for the time slot [d:%d, ts:%d]...\n", day, time_slot) // DEBUG PRINTS
+							subj_assign_fail_possible_reason["not-enough-rooms"]++
 							continue // find another time slot
 						}
 
@@ -593,8 +601,8 @@ func EncodeIndividualGenome(
 			// front compressed distribution : end
 
 			if len(subject_recorder) != len(semester.Subjects) {
-				panic(fmt.Sprintf(
-					"there are some subjects in %s %s %s %s that was not assigned for some reason s(%d/%d), i(%d), r(%d)",
+				log.Printf("this is an unkown failure in EncodeIndividualGenome : %s", fmt.Sprintf(
+					"there are some subjects in %s %s %s %s that was not assigned for some reason s(%d/%d), i(%d), r(%d), IvsR(%d/%d)",
 					ro_dept_id_to_department[curriculum.DepartmentID].Code,
 					curriculum.CurriculumCode,
 					year_level.Name,
@@ -602,7 +610,28 @@ func EncodeIndividualGenome(
 					len(subject_recorder), len(semester.Subjects),
 					len(instructors),
 					len(room_type_to_rooms[Rooms.ROOM_TYPE_LAB])+len(room_type_to_rooms[Rooms.ROOM_TYPE_LEC]),
+					subj_assign_fail_possible_reason["not-enough-instructors"],
+					subj_assign_fail_possible_reason["not-enough-rooms"],
 				))
+
+				is_to_return = true
+
+				return_uni_time_table = university_schedules
+				return_encoding_resource = nil
+				return_error = fmt.Errorf(
+					"there are some subjects in %s %s %s %s that was not assigned for some reason s(%d/%d), i(%d), r(%d), IvsR(%d/%d)",
+					ro_dept_id_to_department[curriculum.DepartmentID].Code,
+					curriculum.CurriculumCode,
+					year_level.Name,
+					semester.Name,
+					len(subject_recorder), len(semester.Subjects),
+					len(instructors),
+					len(room_type_to_rooms[Rooms.ROOM_TYPE_LAB])+len(room_type_to_rooms[Rooms.ROOM_TYPE_LEC]),
+					subj_assign_fail_possible_reason["not-enough-instructors"],
+					subj_assign_fail_possible_reason["not-enough-rooms"],
+				)
+
+				return IterBreakCurriculumLoop
 			}
 
 			university_schedules[counted_sections] = week_time_table
