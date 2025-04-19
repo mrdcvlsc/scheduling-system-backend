@@ -174,6 +174,8 @@ func encode_schedule() {
 
 		log.Println("encode_schedule [2.4]: trying to generate the schedule")
 
+		is_retry_success := true
+
 		for retry = 0; retry < max_retries; retry++ {
 			log.Println("encode_schedule [2.2]: obtain schedule for the specified semester")
 
@@ -210,6 +212,7 @@ func encode_schedule() {
 					}
 
 					log.Print("encode_schedule [2.5]: max retires - unable to generate schedules")
+					is_retry_success = false
 					break
 				}
 
@@ -234,6 +237,7 @@ func encode_schedule() {
 					},
 				)
 
+				is_retry_success = false
 				break
 			}
 
@@ -287,6 +291,7 @@ func encode_schedule() {
 			}
 
 			if vertical_overlaps {
+				is_retry_success = false
 				break
 			}
 
@@ -318,6 +323,7 @@ func encode_schedule() {
 			}
 
 			if horizontal_overlaps {
+				is_retry_success = false
 				break
 			}
 
@@ -335,6 +341,8 @@ func encode_schedule() {
 						),
 					},
 				)
+
+				is_retry_success = false
 				break
 			}
 
@@ -354,8 +362,6 @@ func encode_schedule() {
 						),
 					},
 				)
-
-				break
 			}
 
 			// specific department schedule generation done
@@ -363,15 +369,20 @@ func encode_schedule() {
 			break
 		}
 
-		RouteGlobals.SetDeptSchedGenResult(
-			RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
-			RouteGlobals.SchedGenResult{
-				Status:  RouteGlobals.SchedGenStatusSuccess,
-				Message: "schedule generation done",
-			},
-		)
+		if is_retry_success {
+			RouteGlobals.SetDeptSchedGenResult(
+				RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
+				RouteGlobals.SchedGenResult{
+					Status:  RouteGlobals.SchedGenStatusSuccess,
+					Message: "schedule generation done",
+				},
+			)
 
-		log.Println("encode_schedule [5.1]: schedule generation loop done")
+			log.Println("encode_schedule [5.1]: schedule generation loop done : success")
+		} else {
+			log.Println("encode_schedule [5.1]: schedule generation loop done : failed")
+		}
+
 	}
 
 	log.Println("encode_schedule [6]: all department schedule generation requests are done...")

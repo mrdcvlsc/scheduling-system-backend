@@ -174,5 +174,16 @@ func DeleteClearDepartmentSchedule(ctx *gin.Context) {
 		return
 	}
 
+	RouteGlobals.SetDeptSchedGenResult(
+		RouteGlobals.DeptSchedGenKey{
+			DepartmentID: uint16(department_id),
+			Semester:     semester,
+		},
+		RouteGlobals.SchedGenResult{
+			Status:  RouteGlobals.SchedGenStatusNotStarted,
+			Message: "department schedules was deleted in the last action",
+		},
+	)
+
 	ctx.String(http.StatusOK, "all department schedule was successfully cleared")
 }
