@@ -41,6 +41,13 @@ func RequestGenerateSchedule(ctx *gin.Context) {
 		Semester:     semester,
 	}) {
 		response_msg += fmt.Sprintf("department with id %d was added to the schedule generation queue,", department_id)
+		RouteGlobals.SetDeptSchedGenResult(
+			RouteGlobals.DeptSchedGenKey{DepartmentID: uint16(department_id), Semester: semester},
+			RouteGlobals.SchedGenResult{
+				Status:  RouteGlobals.SchedGenStatusOnQueue,
+				Message: "waiting other department schedule generation request to finish",
+			},
+		)
 	} else {
 		response_msg += fmt.Sprintf("the department with id %d is already in schedule generation queue,", department_id)
 		response_status = http.StatusContinue
@@ -113,15 +120,23 @@ func encode_schedule() {
 
 		log.Println("encode_schedule [2.1]: pop latest task from queue")
 
+		RouteGlobals.SetDeptSchedGenResult(
+			RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
+			RouteGlobals.SchedGenResult{
+				Status:  RouteGlobals.SchedGenStatusInProgress,
+				Message: "schedule generation is now in progress",
+			},
+		)
+
 		// get the current university schedules for the specific semester requested by the first department in the queue
 
 		university_schedule, err_obtain_uni_sched_no_ctx := ObtainUniversityScheduleNoContextNoHorizontalValidation(semester_to_encode)
 
 		if err_obtain_uni_sched_no_ctx != nil {
-			RouteGlobals.SetDepartmentsLastScheduleGenerationResult(
+			RouteGlobals.SetDeptSchedGenResult(
 				RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
-				RouteGlobals.ScheduleGenerationLastResult{
-					Status:  false,
+				RouteGlobals.SchedGenResult{
+					Status:  RouteGlobals.SchedGenStatusInternalError,
 					Message: err_obtain_uni_sched_no_ctx.Error(),
 				},
 			)
@@ -139,10 +154,10 @@ func encode_schedule() {
 				dept_id_to_department[department_id].Name, Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
 			)
 
-			RouteGlobals.SetDepartmentsLastScheduleGenerationResult(
+			RouteGlobals.SetDeptSchedGenResult(
 				RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
-				RouteGlobals.ScheduleGenerationLastResult{
-					Status:  false,
+				RouteGlobals.SchedGenResult{
+					Status:  RouteGlobals.SchedGenStatusInternalError,
 					Message: err_gen_encoding_resource.Error(),
 				},
 			)
@@ -176,13 +191,23 @@ func encode_schedule() {
 
 			if err_genetic_algorithm != nil {
 				if retry == max_retries-1 {
-					RouteGlobals.SetDepartmentsLastScheduleGenerationResult(
-						RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
-						RouteGlobals.ScheduleGenerationLastResult{
-							Status:  false,
-							Message: err_genetic_algorithm.Error(),
-						},
-					)
+					if new_encoded_university_schedule == nil {
+						RouteGlobals.SetDeptSchedGenResult(
+							RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
+							RouteGlobals.SchedGenResult{
+								Status:  RouteGlobals.SchedGenStatusInternalError,
+								Message: err_genetic_algorithm.Error(),
+							},
+						)
+					} else {
+						RouteGlobals.SetDeptSchedGenResult(
+							RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
+							RouteGlobals.SchedGenResult{
+								Status:  RouteGlobals.SchedGenStatusFailed,
+								Message: err_genetic_algorithm.Error(),
+							},
+						)
+					}
 
 					log.Print("encode_schedule [2.5]: max retires - unable to generate schedules")
 					break
@@ -198,10 +223,10 @@ func encode_schedule() {
 			if new_encoded_university_schedule == nil {
 				log.Print("encode_schedule [3]: unable to generate schedules")
 
-				RouteGlobals.SetDepartmentsLastScheduleGenerationResult(
+				RouteGlobals.SetDeptSchedGenResult(
 					RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
-					RouteGlobals.ScheduleGenerationLastResult{
-						Status: false,
+					RouteGlobals.SchedGenResult{
+						Status: RouteGlobals.SchedGenStatusFailed,
 						Message: fmt.Sprintf(
 							"unable to generate schedules for the department with id %d %s",
 							department_id, Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
@@ -246,10 +271,10 @@ func encode_schedule() {
 
 			vertical_overlaps := false
 			for _, e := range new_encoded_university_schedule.VerticalValidation(RouteGlobals.ResourcesPersistence) {
-				RouteGlobals.SetDepartmentsLastScheduleGenerationResult(
+				RouteGlobals.SetDeptSchedGenResult(
 					RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
-					RouteGlobals.ScheduleGenerationLastResult{
-						Status: false,
+					RouteGlobals.SchedGenResult{
+						Status: RouteGlobals.SchedGenStatusFailed,
 						Message: fmt.Sprintf(
 							"error vertical overlaps detected: %s", e.Error(),
 						),
@@ -270,10 +295,10 @@ func encode_schedule() {
 			errs_horizontal_overlaps := new_encoded_university_schedule.HorizontalValidation(RouteGlobals.ResourcesPersistence, department_to_encode, semester_to_encode)
 
 			for _, e := range new_encoded_university_schedule.HorizontalValidation(RouteGlobals.ResourcesPersistence, department_to_encode, semester_to_encode) {
-				RouteGlobals.SetDepartmentsLastScheduleGenerationResult(
+				RouteGlobals.SetDeptSchedGenResult(
 					RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
-					RouteGlobals.ScheduleGenerationLastResult{
-						Status: false,
+					RouteGlobals.SchedGenResult{
+						Status: RouteGlobals.SchedGenStatusFailed,
 						Message: fmt.Sprintf(
 							"error horizontal overlaps detected: %s", e.Error(),
 						),
@@ -301,10 +326,10 @@ func encode_schedule() {
 			if err_save_schedules != nil {
 				log.Print("encode_schedule [4]:", err_save_schedules.Error())
 
-				RouteGlobals.SetDepartmentsLastScheduleGenerationResult(
+				RouteGlobals.SetDeptSchedGenResult(
 					RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
-					RouteGlobals.ScheduleGenerationLastResult{
-						Status: false,
+					RouteGlobals.SchedGenResult{
+						Status: RouteGlobals.SchedGenStatusInternalError,
 						Message: fmt.Sprintf(
 							"error saving schedule: %s", err_save_schedules.Error(),
 						),
@@ -320,10 +345,10 @@ func encode_schedule() {
 			if err_set_cache != nil {
 				log.Print("encode_schedule [5]:", err_set_cache.Error())
 
-				RouteGlobals.SetDepartmentsLastScheduleGenerationResult(
+				RouteGlobals.SetDeptSchedGenResult(
 					RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
-					RouteGlobals.ScheduleGenerationLastResult{
-						Status: false,
+					RouteGlobals.SchedGenResult{
+						Status: RouteGlobals.SchedGenStatusInternalError,
 						Message: fmt.Sprintf(
 							"error caching schedule: %s", err_set_cache.Error(),
 						),
@@ -337,6 +362,14 @@ func encode_schedule() {
 
 			break
 		}
+
+		RouteGlobals.SetDeptSchedGenResult(
+			RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
+			RouteGlobals.SchedGenResult{
+				Status:  RouteGlobals.SchedGenStatusSuccess,
+				Message: "schedule generation done",
+			},
+		)
 
 		log.Println("encode_schedule [5.1]: schedule generation loop done")
 	}

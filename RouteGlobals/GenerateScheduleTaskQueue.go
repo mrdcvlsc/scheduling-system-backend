@@ -8,39 +8,54 @@ import (
 	"sync"
 )
 
+type SchedGenStatusType string
+
+const (
+	SchedGenStatusSuccess       SchedGenStatusType = "success"
+	SchedGenStatusFailed        SchedGenStatusType = "failed"
+	SchedGenStatusInternalError SchedGenStatusType = "internal server error"
+	SchedGenStatusNotStarted    SchedGenStatusType = "not started"
+	SchedGenStatusOnQueue       SchedGenStatusType = "on queue"
+	SchedGenStatusInProgress    SchedGenStatusType = "in progress"
+)
+
+type SchedGenResult struct {
+	Status  SchedGenStatusType `json:"Status"` // values: "success", "failed", "internal server error", "not started", "on queue", "in progress"
+	Message string             `json:"Message"`
+}
+
 var rw_map_mutex sync.RWMutex
-var department_id_to_sched_gen_last_result map[DeptSchedGenKey]ScheduleGenerationLastResult
+var department_id_to_sched_gen_last_result map[DeptSchedGenKey]SchedGenResult
 
 type DeptSchedGenKey struct {
 	DepartmentID uint16
 	Semester     int
 }
 
-type ScheduleGenerationLastResult struct {
-	Status  bool
-	Message string
-}
-
-func SetDepartmentsLastScheduleGenerationResult(key DeptSchedGenKey, value ScheduleGenerationLastResult) {
+func SetDeptSchedGenResult(key DeptSchedGenKey, value SchedGenResult) {
 	rw_map_mutex.Lock()
 	defer rw_map_mutex.Unlock()
 
 	if department_id_to_sched_gen_last_result == nil {
-		department_id_to_sched_gen_last_result = make(map[DeptSchedGenKey]ScheduleGenerationLastResult)
+		department_id_to_sched_gen_last_result = make(map[DeptSchedGenKey]SchedGenResult)
 	}
 
 	department_id_to_sched_gen_last_result[key] = value
 }
 
-func GetDepartmentsLastScheduleGenerationResult(key DeptSchedGenKey) ScheduleGenerationLastResult {
+func GetDepartSchedGenResult(key DeptSchedGenKey) SchedGenResult {
 	rw_map_mutex.RLock()
 	defer rw_map_mutex.RUnlock()
+
+	if department_id_to_sched_gen_last_result == nil {
+		department_id_to_sched_gen_last_result = make(map[DeptSchedGenKey]SchedGenResult)
+	}
 
 	last_sched_gen_result, has_key := department_id_to_sched_gen_last_result[key]
 
 	if !has_key {
-		return ScheduleGenerationLastResult{
-			Status:  false,
+		return SchedGenResult{
+			Status:  SchedGenStatusNotStarted,
 			Message: fmt.Sprintf("schedule is not generated yet for the department with id %d", key),
 		}
 	}

@@ -179,6 +179,9 @@ func main() {
 
 	// ============= schedule routes and handlers =============
 
+	v1.GET("/gen_status", RoutesV1.GetGenStatus)
+	v1.GET("/dept_gen_result", RoutesV1.GetDeptartmentGenerationResult)
+
 	v1.GET("/university_schedule", RoutesV1.GetUniversitySchedule)
 	v1.POST("/university_schedule", RoutesV1.PostUniversitySchedule)
 
