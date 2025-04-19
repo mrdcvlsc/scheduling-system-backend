@@ -206,7 +206,7 @@ async function test(base_url = '') {
       }
     }
 
-    await new Promise(resolve => setTimeout(resolve, 10000));
+    await new Promise(resolve => setTimeout(resolve, 1000 * 60 * 8));
 
     console.log('--------------------fetch_serialized_schedule---------------------------\n')
     let [raw_data, _] = await fetch_serialized_schedule(0, base_url);
