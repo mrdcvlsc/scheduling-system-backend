@@ -119,7 +119,12 @@ curriculum_loop:
 
 	selected_class_schedule := university_schedules[schedule_idx:(schedule_idx + 1)]
 
-	log.Printf("measured fitness : %f", GeneticAlgorithm.MeasureFitnessBasic(selected_class_schedule))
+	department_to_measure := make(map[uint16]bool)
+	department_to_measure[uint16(department_id)] = true
+
+	log.Printf("measured fitness : %f", GeneticAlgorithm.MeasureWeekTimeTableBasicFitness(
+		selected_class_schedule[0],
+	))
 
 	// process schedule information
 
