@@ -10,7 +10,6 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
-	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
 const DEFAULT_INITIAL_REQUEST_COUNT uint = 30
@@ -81,6 +80,13 @@ func encode_schedule() {
 		log.Fatal("encode_schedule [2]:", err_dept_id_to_department)
 	}
 
+	default_encoding_resource, err_default_encoding_resource := GeneticAlgorithm.ReadDefaultEncodingResource(RouteGlobals.ResourcesPersistence)
+
+	if err_default_encoding_resource != nil {
+		log.Fatal("encode_schedule [3]:", err_default_encoding_resource)
+		return
+	}
+
 	////////////////////////////////////////////////////////////////////////////////////////
 
 	var generated_encoding_resource *GeneticAlgorithm.EncodingResource
@@ -123,10 +129,6 @@ func encode_schedule() {
 			continue
 		}
 
-		log.Println("encode_schedule [2.2]: obtain schedule for the specified semester")
-
-		// generate the encoding resource for the obtained university schedule
-
 		generated_encoding_resource, err_gen_encoding_resource = GeneticAlgorithm.GenerateEncodingResourceFromUniTimeTable(
 			university_schedule, curriculums, semester_to_encode, RouteGlobals.ResourcesPersistence,
 		)
@@ -158,20 +160,27 @@ func encode_schedule() {
 		log.Println("encode_schedule [2.4]: trying to generate the schedule")
 
 		for retry = 0; retry < max_retries; retry++ {
-			new_encoded_university_schedule, new_encoding_resource, err_encode_individual_genome := GeneticAlgorithm.EncodeIndividualGenome(
-				university_schedule,
-				curriculums, dept_id_to_department,
-				generated_encoding_resource, department_to_encode,
-				semester_to_encode, 0,
+			log.Println("encode_schedule [2.2]: obtain schedule for the specified semester")
+
+			// generate the encoding resource for the obtained university schedule
+
+			// TODO: on genetic algorithm error - just use normal schedule generation result
+
+			new_encoded_university_schedule, new_encoding_resource, err_genetic_algorithm := GeneticAlgorithm.RunGeneticAlgorithm(
+				university_schedule, curriculums, dept_id_to_department,
+				default_encoding_resource, generated_encoding_resource,
+				department_to_encode, semester_to_encode,
+				20, 10,
+				RouteGlobals.ResourcesPersistence,
 			)
 
-			if err_encode_individual_genome != nil {
+			if err_genetic_algorithm != nil {
 				if retry == max_retries-1 {
 					RouteGlobals.SetDepartmentsLastScheduleGenerationResult(
 						RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
 						RouteGlobals.ScheduleGenerationLastResult{
 							Status:  false,
-							Message: err_encode_individual_genome.Error(),
+							Message: err_genetic_algorithm.Error(),
 						},
 					)
 
@@ -203,6 +212,10 @@ func encode_schedule() {
 				break
 			}
 
+			if new_encoded_university_schedule.IsEmpty() {
+				log.Print("final generated schedule is empty")
+			}
+
 			if reflect.DeepEqual(university_schedule, new_encoded_university_schedule) {
 				log.Print("encode_schedule [3.-1]: (equal) result no changes made after generating new schedule encoding")
 			} else {
@@ -213,6 +226,22 @@ func encode_schedule() {
 				log.Print("encode_schedule [3.-2]: (equal) result no changes made after generating new encoding resources")
 			} else {
 				log.Print("encode_schedule [3.-2]: (not-equal) new changes are made after generating new encoding resources")
+			}
+
+			if new_encoding_resource == nil {
+				panic("this re-encoding resource is empty")
+			}
+
+			if len(new_encoding_resource.DeptIdToInstructors) <= 0 {
+				panic("this re-encoding resource has an empty DeptIdToInstructors")
+			}
+
+			if len(new_encoding_resource.DeptIdToRoomtypeToRooms) <= 0 {
+				panic("this re-encoding resource has an empty DeptIdToRoomtypeToRooms")
+			}
+
+			if len(new_encoding_resource.IsSchedIdxToSubIdToSkip) <= 0 {
+				panic("this re-encoding resource has an empty IsSchedIdxToSubIdToSkip")
 			}
 
 			vertical_overlaps := false
@@ -254,7 +283,9 @@ func encode_schedule() {
 				horizontal_overlaps = true
 				log.Printf("encode_schedule [3.2]: error horizontal overlaps \n\n%s\n\n", e.Error())
 
-				Utils.PrettyPrint(errs_horizontal_overlaps)
+				for _, err := range errs_horizontal_overlaps {
+					fmt.Println(err.Error())
+				}
 
 				fmt.Print("\n\n")
 
