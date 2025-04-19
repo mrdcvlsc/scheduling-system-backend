@@ -99,10 +99,17 @@ func RunGeneticAlgorithm(
 			genesis_generation_tries++
 
 			if genesis_generation_tries >= MAX_NEW_INDIVIDUAL_GENERATION_TRIALS {
-				return nil, nil, fmt.Errorf(
-					"unable to generate new a individual for the genesis population after %d tries",
-					MAX_NEW_INDIVIDUAL_GENERATION_TRIALS,
-				)
+				if initial_sched == nil {
+					return nil, nil, fmt.Errorf(
+						"unable to generate new a individual for the genesis population after %d tries : %s",
+						MAX_NEW_INDIVIDUAL_GENERATION_TRIALS, err_encode_initial.Error(),
+					)
+				} else {
+					return initial_sched, nil, fmt.Errorf(
+						"unable to generate new a individual for the genesis population after %d tries : %s",
+						MAX_NEW_INDIVIDUAL_GENERATION_TRIALS, err_encode_initial.Error(),
+					)
+				}
 			}
 
 			continue
@@ -209,10 +216,17 @@ func RunGeneticAlgorithm(
 				tries++
 
 				if tries >= MAX_NEW_INDIVIDUAL_GENERATION_TRIALS {
-					return nil, nil, fmt.Errorf(
-						"unable to generate new a individual during generation %d after %d tries",
-						g, MAX_NEW_INDIVIDUAL_GENERATION_TRIALS,
-					)
+					if new_uni_sched == nil {
+						return nil, nil, fmt.Errorf(
+							"unable to generate new a individual during generation %d after %d tries : %s",
+							g, MAX_NEW_INDIVIDUAL_GENERATION_TRIALS, err_encode_new.Error(),
+						)
+					} else {
+						return new_uni_sched, nil, fmt.Errorf(
+							"unable to generate new a individual during generation %d after %d tries : %s",
+							g, MAX_NEW_INDIVIDUAL_GENERATION_TRIALS, err_encode_new.Error(),
+						)
+					}
 				}
 
 				continue
@@ -299,11 +313,9 @@ func RunGeneticAlgorithm(
 				)
 
 				if err_generate_encoding_resource != nil {
-					// return nil, nil, fmt.Errorf(
-					// 	"unable to generate encoding resource from individual during generation %d", g,
-					// )
-
-					panic("generate encoding resource : after generate encoding resource")
+					return nil, nil, fmt.Errorf(
+						"unable to generate encoding resource from individual during generation %d", g,
+					)
 				}
 
 				re_encoded_individual, re_encoded_encoding_resource, err_re_encode_schedule := EncodeIndividualGenome(
@@ -316,16 +328,17 @@ func RunGeneticAlgorithm(
 					re_encode_tries++
 
 					if re_encode_tries >= MAX_RE_ENCODE_TRYS {
-
-						panic(fmt.Sprintf(
-							"unable to generate encoding resource from individual during generation %d after %d tries : %s",
-							g, MAX_RE_ENCODE_TRYS, err_re_encode_schedule.Error(),
-						))
-
-						// return nil, nil, fmt.Errorf(
-						// 	"unable to generate encoding resource from individual during generation %d after %d tries : %s",
-						// 	g, MAX_RE_ENCODE_TRYS, err_re_encode_schedule.Error(),
-						// )
+						if re_encoded_individual == nil {
+							return nil, nil, fmt.Errorf(
+								"unable to generate encoding resource from individual during generation %d after %d tries : %s",
+								g, MAX_RE_ENCODE_TRYS, err_re_encode_schedule.Error(),
+							)
+						} else {
+							return re_encoded_individual, nil, fmt.Errorf(
+								"unable to generate encoding resource from individual during generation %d after %d tries : %s",
+								g, MAX_RE_ENCODE_TRYS, err_re_encode_schedule.Error(),
+							)
+						}
 					} else {
 						ApplyRandomSubjectErasure(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
 						ApplyRandomDaySwapTimeSlots(population[i].UniSched, curriculums, department_id, selected_semester)
