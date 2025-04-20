@@ -192,12 +192,40 @@ export async function fetchAllDepartments(base_url = '') {
   return response.json();
 }
 
+export async function getValidateSchedules(semesterIndex, departmentID, base_url = '') {
+  console.log('call: getValidateSchedules')
+  api_request = `${base_url}/v2/validate_schedules?semester=${semesterIndex}&department_id=${departmentID}`
+
+  const response = await fetch(api_request, {
+    method: 'GET',
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  switch (response.status) {
+    case 404: {
+      return await response.json()
+    }
+    case 409: {
+      return await response.json()
+    }
+    default: {
+      if (!response.ok) {
+        throw new Error(`${response.status} : ${await response.text()}`);
+      }
+    }
+  }
+
+  return await response.text()
+}
+
 async function test(base_url = '') {
   try {
     console.log('--------------------fetch departments---------------------------\n')
-    
+
     const departments = await fetchAllDepartments(base_url)
-    
+
     console.log('--------------------generate_schedule---------------------------\n')
 
     for (const department of departments) {
@@ -207,6 +235,13 @@ async function test(base_url = '') {
     }
 
     await new Promise(resolve => setTimeout(resolve, 1000 * 60 * 16));
+
+    console.log('-----------validate each departments one-by-one-----------------\n')
+
+    for (const department of departments) {
+      const result = await getValidateSchedules(0, department.DepartmentID, base_url)
+      console.log(result)
+    }
 
     console.log('--------------------fetch_serialized_schedule---------------------------\n')
     let [raw_data, _] = await fetch_serialized_schedule(0, base_url);
