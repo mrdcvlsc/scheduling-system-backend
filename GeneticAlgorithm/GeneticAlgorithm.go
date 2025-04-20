@@ -1,6 +1,7 @@
 package GeneticAlgorithm
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
@@ -336,7 +337,7 @@ func RunGeneticAlgorithm(
 				panic("vertical validation error 5 : after time slot nudge")
 			}
 
-			// re-encode to fix missing geneome/individual's schedule
+			// re-encode to repair/fix missing geneome/individual schedule
 
 			re_encode_tries := 0
 
@@ -358,24 +359,24 @@ func RunGeneticAlgorithm(
 					)
 				}
 
-				re_encoded_individual, re_encoded_encoding_resource, err_re_encode_schedule := EncodeIndividualGenome(
+				repaired_uni_sched, repaired_encoding_resource, err_repair_schedule := EncodeIndividualGenome(
 					population[i].UniSched, curriculums, dept_id_to_department,
 					generated_encoding_resource, department_to_encode,
 					selected_semester, 0,
 				)
 
-				if err_re_encode_schedule != nil {
+				if err_repair_schedule != nil {
 					re_encode_tries++
 
 					if re_encode_tries >= MAX_RE_ENCODE_REPAIR_TRIALS {
 						log.Printf(
 							"GA-ERROR [Random Mutation]: unable to repair an individual on generation %d after %d tries : caused by error %s",
-							g, MAX_RE_ENCODE_REPAIR_TRIALS, err_re_encode_schedule.Error(),
+							g, MAX_RE_ENCODE_REPAIR_TRIALS, err_repair_schedule.Error(),
 						)
 
 						return nil, nil, fmt.Errorf(
 							"GA-ERROR [Random Mutation]: unable to repair an individual on generation %d after %d tries : caused by error %s",
-							g, MAX_RE_ENCODE_REPAIR_TRIALS, err_re_encode_schedule.Error(),
+							g, MAX_RE_ENCODE_REPAIR_TRIALS, err_repair_schedule.Error(),
 						)
 					} else {
 						ApplyRandomSubjectErasure(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
@@ -394,15 +395,15 @@ func RunGeneticAlgorithm(
 				//				          RANDOM MUTATIONS - SANITY CHECK FOR DEBUGGING
 				////////////////////////////////////////////////////////////////////////////////////////
 
-				if re_encoded_individual.IsEmpty() {
+				if repaired_uni_sched.IsEmpty() {
 					panic(">>> re-encoded individual best individual is empty")
 				}
 
-				if len(re_encoded_individual.VerticalValidation(resource_persistence)) > 0 {
+				if len(repaired_uni_sched.VerticalValidation(resource_persistence)) > 0 {
 					panic(">>> re-encoded individual individual has vertical validation error")
 				}
 
-				err_hr := re_encoded_individual.HorizontalValidation(resource_persistence, department_to_encode, selected_semester)
+				err_hr := repaired_uni_sched.HorizontalValidation(resource_persistence, department_to_encode, selected_semester)
 
 				if len(err_hr) > 0 {
 					fmt.Println(">>> department to encode:")
@@ -415,19 +416,19 @@ func RunGeneticAlgorithm(
 					panic(">>> re-encoded individual has horizontal validation error")
 				}
 
-				if re_encoded_encoding_resource == nil {
+				if repaired_encoding_resource == nil {
 					panic("this re-encoding resource is empty")
 				}
 
-				if len(re_encoded_encoding_resource.DeptIdToInstructors) <= 0 {
+				if len(repaired_encoding_resource.DeptIdToInstructors) <= 0 {
 					panic("this re-encoding resource has an empty DeptIdToInstructors")
 				}
 
-				if len(re_encoded_encoding_resource.DeptIdToRoomtypeToRooms) <= 0 {
+				if len(repaired_encoding_resource.DeptIdToRoomtypeToRooms) <= 0 {
 					panic("this re-encoding resource has an empty DeptIdToRoomtypeToRooms")
 				}
 
-				if len(re_encoded_encoding_resource.IsSchedIdxToSubIdToSkip) <= 0 {
+				if len(repaired_encoding_resource.IsSchedIdxToSubIdToSkip) <= 0 {
 					panic("this re-encoding resource has an empty IsSchedIdxToSubIdToSkip")
 				}
 
@@ -435,8 +436,8 @@ func RunGeneticAlgorithm(
 				//				                   RANDOM MUTATIONS
 				////////////////////////////////////////////////////////////////////////////////////////
 
-				population[i].UniSched = re_encoded_individual
-				population[i].Resources = re_encoded_encoding_resource
+				population[i].UniSched = repaired_uni_sched
+				population[i].Resources = repaired_encoding_resource
 
 				break
 			}
@@ -472,20 +473,39 @@ func RunGeneticAlgorithm(
 	//            GENETIC ALGORITHM END : PICK THE BEST INDIVIDUAL SOLUTION
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	log.Printf("final best individual fitness : %f", MeasureCompleteUniSchedBasicFitness(genesis_population[0].UniSched, curriculums, department_to_encode, selected_semester))
+	log.Printf("ga: fittest individual fitness : %f", MeasureCompleteUniSchedBasicFitness(genesis_population[0].UniSched, curriculums, department_to_encode, selected_semester))
 
 	if genesis_population[0].UniSched.IsEmpty() {
-		panic("final best individual is empty")
+		log.Printf("GA-ERROR: fittest university schedule is empty")
+		return nil, nil, errors.New("fittest university schedule is empty")
 	}
 
-	if len(genesis_population[0].UniSched.VerticalValidation(resource_persistence)) > 0 {
-		panic("final best individual has vertical validation error")
+	if errs := genesis_population[0].UniSched.VerticalValidation(resource_persistence); len(errs) > 0 {
+		log.Printf("GA-ERROR: fittest university schedule have vertical overlaps:\n\n%v\n\n", errs)
+		return nil, nil, errors.New("fittest university schedule have vertical overlaps")
+	} else {
+		for k, v := range department_to_encode {
+			if v {
+				log.Printf(
+					"ga: [passed] final vertical validation for %s %s fittest university schedule",
+					dept_id_to_department[k].Code, Curriculum.SEMESTER_INDEX_NAME[selected_semester],
+				)
+			}
+		}
 	}
 
 	if len(genesis_population[0].UniSched.HorizontalValidation(resource_persistence, department_to_encode, selected_semester)) > 0 {
-		fmt.Println(">>> department to encode:")
-		Utils.PrettyPrint(department_to_encode)
-		panic("final best individual has horizontal validation error")
+		log.Printf("GA-ERROR: fittest university schedule is empty")
+		return nil, nil, errors.New("fittest university schedule is empty")
+	} else {
+		for k, v := range department_to_encode {
+			if v {
+				log.Printf(
+					"ga: [passed] final horizontal validation for %s %s fittest university schedule",
+					dept_id_to_department[k].Code, Curriculum.SEMESTER_INDEX_NAME[selected_semester],
+				)
+			}
+		}
 	}
 
 	return genesis_population[0].UniSched, genesis_population[0].Resources, nil
