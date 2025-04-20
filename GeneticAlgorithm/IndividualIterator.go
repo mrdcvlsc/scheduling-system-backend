@@ -10,8 +10,6 @@ type IterReturnType int
 const (
 	IterProceed             IterReturnType = 0
 	IterBreakCurriculumLoop IterReturnType = 1
-	IterContinue            IterReturnType = 2
-	IterBreak               IterReturnType = 3
 )
 
 type IterIndices struct {
@@ -62,10 +60,6 @@ curriculum_loop:
 			switch irt_curriculum_block {
 			case IterBreakCurriculumLoop:
 				break curriculum_loop
-			case IterContinue:
-				continue
-			case IterBreak:
-				break
 			}
 		}
 
@@ -79,10 +73,6 @@ curriculum_loop:
 
 				if selected_semester != semester_idx {
 					continue // skip not selected semesters
-				}
-
-				if len(semester.Subjects) == 0 {
-					continue // skip semesters that don't have subjects
 				}
 
 				if fn_semester_block != nil {
@@ -104,10 +94,6 @@ curriculum_loop:
 					switch irt_semester_block {
 					case IterBreakCurriculumLoop:
 						break curriculum_loop
-					case IterContinue:
-						continue
-					case IterBreak:
-						break
 					}
 				}
 
@@ -143,10 +129,6 @@ curriculum_loop:
 						switch irt_section_block {
 						case IterBreakCurriculumLoop:
 							break curriculum_loop
-						case IterContinue:
-							continue
-						case IterBreak:
-							break
 						}
 					}
 
