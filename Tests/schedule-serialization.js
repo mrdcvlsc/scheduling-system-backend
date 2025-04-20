@@ -194,7 +194,7 @@ export async function fetchAllDepartments(base_url = '') {
 
 export async function getValidateSchedules(semesterIndex, departmentID, base_url = '') {
   console.log('call: getValidateSchedules')
-  api_request = `${base_url}/v2/validate_schedules?semester=${semesterIndex}&department_id=${departmentID}`
+  const api_request = `${base_url}/v2/validate_schedules?semester=${semesterIndex}&department_id=${departmentID}`
 
   const response = await fetch(api_request, {
     method: 'GET',
