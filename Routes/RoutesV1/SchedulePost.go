@@ -401,6 +401,8 @@ queue_pop_loop:
 				)
 
 				continue
+			} else {
+				log.Print("encode_schedule: [passed] vertical validation")
 			}
 
 			// check for missing subjects or missing subject time slot allocations
@@ -434,6 +436,8 @@ queue_pop_loop:
 				)
 
 				continue
+			} else {
+				log.Print("encode_schedule: [passed] horizontal validation")
 			}
 
 			// save genetic algorithm's generated university schedule
