@@ -1,6 +1,7 @@
 package GeneticAlgorithm
 
 import (
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 )
@@ -26,6 +27,35 @@ type IterValues struct {
 	Curriculum *Curriculum.Curriculum  // current curriculum
 	YearLevel  *Curriculum.YearLevel   // current year level
 	Semester   *Curriculum.Semester    // current semester
+}
+
+func IsDepartmentScheduleEmpty(
+	full_uni_sched Schedule.UniTimeTables,
+	curriculums []Curriculum.Curriculum,
+	selected_semester int,
+	department_to_check map[uint16]bool,
+) bool {
+	is_empty := true
+
+	IterateSectionsWeekSchedule(full_uni_sched, curriculums, selected_semester, nil, nil, func(indicies IterIndices, values IterValues) IterReturnType {
+
+		is_to_check, has_key := department_to_check[values.Curriculum.DepartmentID]
+
+		if has_key && is_to_check {
+			for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
+				for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
+					if values.WeekSched[day][time_slot].GetSubjectID() != 0 {
+						is_empty = false
+						return IterBreakCurriculumLoop
+					}
+				}
+			}
+		}
+
+		return IterProceed
+	})
+
+	return is_empty
 }
 
 func IterateSectionsWeekSchedule(
