@@ -14,8 +14,9 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
-const MAX_NEW_INDIVIDUAL_GENERATION_TRIALS int = 64
-const MAX_RE_ENCODE_TRYS int = 64
+const MAX_GENESIS_INDIVIDUAL_GENERATION_TRIALS int = 64
+const MAX_CROSSOVER_TRIALS int = 64
+const MAX_RE_ENCODE_REPAIR_TRIALS int = 64
 
 type SchedAndResources struct {
 	UniSched  Schedule.UniTimeTables
@@ -45,6 +46,8 @@ func RunGeneticAlgorithm(
 	for k := range department_to_encode {
 		department_id = k
 	}
+
+	log.Printf("||||||||||||||||||||||||||||||| Performing GA with %s ||||||||||||||||||||||||||||||| ", dept_id_to_department[department_id].Name)
 
 	////////////////////////////////////////////////////////////////////////////////////////
 	//             PUT THE BASE SCHEDULE AT THE TOP OF GENESIS POPULATION
@@ -77,9 +80,11 @@ func RunGeneticAlgorithm(
 	//               POPULATE THE GENESIS POPULATION WITH RANDOM INDIVIDUALS
 	////////////////////////////////////////////////////////////////////////////////////////
 
+	start := time.Now()
+
 	genesis_generation_tries := 0
 
-	log.Print("generating genesis population")
+	log.Print("generating genesis population...")
 
 	for len(genesis_population) < population_size {
 
@@ -111,16 +116,21 @@ func RunGeneticAlgorithm(
 		if err_encode_initial != nil {
 			genesis_generation_tries++
 
-			if genesis_generation_tries >= MAX_NEW_INDIVIDUAL_GENERATION_TRIALS {
+			if genesis_generation_tries >= MAX_GENESIS_INDIVIDUAL_GENERATION_TRIALS {
 				if initial_sched == nil {
+					log.Printf(
+						"GA-ERROR [Genesis Population]: unable to generate new a individual after %d tries, cause by error: %s",
+						MAX_GENESIS_INDIVIDUAL_GENERATION_TRIALS, err_encode_initial.Error(),
+					)
+
 					return nil, nil, fmt.Errorf(
-						"unable to generate new a individual for the genesis population after %d tries : %s",
-						MAX_NEW_INDIVIDUAL_GENERATION_TRIALS, err_encode_initial.Error(),
+						"GA-ERROR [Genesis Population]: unable to generate new a individual after %d tries, cause by error: %s",
+						MAX_GENESIS_INDIVIDUAL_GENERATION_TRIALS, err_encode_initial.Error(),
 					)
 				} else {
 					return initial_sched, nil, fmt.Errorf(
-						"unable to generate new a individual for the genesis population after %d tries : %s",
-						MAX_NEW_INDIVIDUAL_GENERATION_TRIALS, err_encode_initial.Error(),
+						"GA-ERROR [Genesis Population]: unable to generate new a individual after %d tries, cause by error: %s",
+						MAX_GENESIS_INDIVIDUAL_GENERATION_TRIALS, err_encode_initial.Error(),
 					)
 				}
 			}
@@ -135,6 +145,8 @@ func RunGeneticAlgorithm(
 			Resources: initial_encoding_resource,
 		})
 	}
+
+	fmt.Printf("ga: [generate genesis population] - took %s\n", time.Since(start))
 
 	////////////////////////////////////////////////////////////////////////////////////////
 	//                   START GENETIC ALGORITHM SCHEDULE GENERATION
@@ -166,6 +178,8 @@ func RunGeneticAlgorithm(
 
 		log.Printf("apply tournament selection to the population")
 
+		start = time.Now()
+
 		non_elite_population := genesis_population[1:]
 
 		rng.Shuffle(len(non_elite_population), func(i, j int) {
@@ -187,15 +201,23 @@ func RunGeneticAlgorithm(
 
 		log.Printf("remaining missing population after tournament selection : %d", remaining_missing_population)
 
+		fmt.Printf("ga: [tournament selection] - took %s\n", time.Since(start))
+
 		////////////////////////////////////////////////////////////////////////////////////////
 		//				                     CROSSOVER
 		////////////////////////////////////////////////////////////////////////////////////////
+
+		start = time.Now()
 
 		log.Printf("populate the population with new offspring from parents")
 
 		crossover_tries := 0
 
 		population_size_before_crossover := len(population)
+
+		if population_size_before_crossover == 0 {
+			panic("detected population size of 0 after tournament selection, that should not happen")
+		}
 
 		for len(population) < population_size {
 
@@ -219,34 +241,40 @@ func RunGeneticAlgorithm(
 			if err_crossover != nil {
 				crossover_tries++
 
-				if crossover_tries >= MAX_NEW_INDIVIDUAL_GENERATION_TRIALS {
-					log.Printf("failed to crossover some parents %d and %d after %d re-tries", parent1_idx, parent2_idx, crossover_tries)
+				if crossover_tries >= MAX_CROSSOVER_TRIALS {
+					log.Printf(
+						"GA-ERROR [Crossover]: unable to produce offspring at generation %d after %d tries, cause by error : %s",
+						g, MAX_CROSSOVER_TRIALS, err_crossover.Error(),
+					)
 
 					if offspring.UniSched == nil {
 						return nil, nil, fmt.Errorf(
-							"unable to generate new a individual during generation %d after %d tries : %s",
-							g, MAX_NEW_INDIVIDUAL_GENERATION_TRIALS, err_crossover.Error(),
+							"GA-ERROR [Crossover]: unable to produce offspring at generation %d after %d tries, cause by error : %s",
+							g, MAX_CROSSOVER_TRIALS, err_crossover.Error(),
 						)
 					} else {
 						return offspring.UniSched, nil, fmt.Errorf(
-							"unable to generate new a individual during generation %d after %d tries : %s",
-							g, MAX_NEW_INDIVIDUAL_GENERATION_TRIALS, err_crossover.Error(),
+							"GA-ERROR [Crossover]: unable to produce offspring at generation %d after %d tries, cause by error : %s",
+							g, MAX_CROSSOVER_TRIALS, err_crossover.Error(),
 						)
 					}
 				}
 
 				continue
 			} else {
-				log.Printf("successful crossover parents %d and %d after %d re-tries", parent1_idx, parent2_idx, crossover_tries)
 				crossover_tries = 0
 			}
 
 			population = append(population, *offspring)
 		}
 
+		fmt.Printf("ga: [crossover] - took %s\n", time.Since(start))
+
 		////////////////////////////////////////////////////////////////////////////////////////
 		//				                   RANDOM MUTATIONS
 		////////////////////////////////////////////////////////////////////////////////////////
+
+		start = time.Now()
 
 		log.Print("applying random mutation to the population")
 
@@ -264,7 +292,7 @@ func RunGeneticAlgorithm(
 				panic("vertical validation error 1 : after subject erasure")
 			}
 
-			ApplyRandomDaySwapTimeSlots(population[i].UniSched, curriculums, department_id, selected_semester)
+			ApplyRandomDaySwapTimeSlots(population[i].UniSched, curriculums, department_id, selected_semester, resource_persistence)
 
 			// TODO: when code-base become stable remove vertical validation panic 2
 
@@ -312,15 +340,21 @@ func RunGeneticAlgorithm(
 
 			re_encode_tries := 0
 
-			for re_encode_tries < MAX_RE_ENCODE_TRYS {
+			for re_encode_tries < MAX_RE_ENCODE_REPAIR_TRIALS {
 
 				generated_encoding_resource, err_generate_encoding_resource := GenerateEncodingResourceFromUniTimeTable(
 					population[i].UniSched, curriculums, selected_semester, resource_persistence,
 				)
 
 				if err_generate_encoding_resource != nil {
+					log.Printf(
+						"GA-ERROR [Random Mutation]: unable to generate encoding resource from an individual on generation %d, casued by %s",
+						g, err_generate_encoding_resource.Error(),
+					)
+
 					return nil, nil, fmt.Errorf(
-						"unable to generate encoding resource from individual during generation %d", g,
+						"GA-ERROR [Random Mutation]: unable to generate encoding resource from an individual on generation %d, casued by %s",
+						g, err_generate_encoding_resource.Error(),
 					)
 				}
 
@@ -333,21 +367,19 @@ func RunGeneticAlgorithm(
 				if err_re_encode_schedule != nil {
 					re_encode_tries++
 
-					if re_encode_tries >= MAX_RE_ENCODE_TRYS {
-						if re_encoded_individual == nil {
-							return nil, nil, fmt.Errorf(
-								"unable to generate encoding resource from individual during generation %d after %d tries : %s",
-								g, MAX_RE_ENCODE_TRYS, err_re_encode_schedule.Error(),
-							)
-						} else {
-							return re_encoded_individual, nil, fmt.Errorf(
-								"unable to generate encoding resource from individual during generation %d after %d tries : %s",
-								g, MAX_RE_ENCODE_TRYS, err_re_encode_schedule.Error(),
-							)
-						}
+					if re_encode_tries >= MAX_RE_ENCODE_REPAIR_TRIALS {
+						log.Printf(
+							"GA-ERROR [Random Mutation]: unable to repair an individual on generation %d after %d tries : caused by error %s",
+							g, MAX_RE_ENCODE_REPAIR_TRIALS, err_re_encode_schedule.Error(),
+						)
+
+						return nil, nil, fmt.Errorf(
+							"GA-ERROR [Random Mutation]: unable to repair an individual on generation %d after %d tries : caused by error %s",
+							g, MAX_RE_ENCODE_REPAIR_TRIALS, err_re_encode_schedule.Error(),
+						)
 					} else {
 						ApplyRandomSubjectErasure(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
-						ApplyRandomDaySwapTimeSlots(population[i].UniSched, curriculums, department_id, selected_semester)
+						ApplyRandomDaySwapTimeSlots(population[i].UniSched, curriculums, department_id, selected_semester, resource_persistence)
 						ApplyRandomSubjectDaySwap(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
 						ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
 						ApplyRandomSubjectTimeSlotAndDayNudge(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
@@ -410,9 +442,13 @@ func RunGeneticAlgorithm(
 			}
 		}
 
+		fmt.Printf("ga: [random mutation] - took %s\n", time.Since(start))
+
 		////////////////////////////////////////////////////////////////////////////////////////
 		//				PREPARE PREPARE FINAL POPULATION FOR THE NEXT GENERATION
 		////////////////////////////////////////////////////////////////////////////////////////
+
+		start = time.Now()
 
 		sort.Slice(population, func(i, j int) bool {
 			fitness_a := MeasureCompleteUniSchedBasicFitness(population[i].UniSched, curriculums, department_to_encode, selected_semester)
@@ -428,6 +464,8 @@ func RunGeneticAlgorithm(
 		genesis_population = append(genesis_population, population...)
 
 		log.Printf("best individual fitness : %f", MeasureCompleteUniSchedBasicFitness(genesis_population[0].UniSched, curriculums, department_to_encode, selected_semester))
+
+		fmt.Printf("ga: [population to transfer to next generation] - took %s\n", time.Since(start))
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
