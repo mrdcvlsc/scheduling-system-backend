@@ -52,9 +52,12 @@ jobs:
         run: make build
 
       - name: Run Server And Node Fetch Test
-        run: ./app & sleep 1 && node Tests/schedule-serialization.js
+        run: |
+            ./app & sleep 1 && node Tests/schedule-serialization.js
+            make devr && ./app & sleep 1 && node Tests/schedule-serialization.js
         env:
           PORT: 3000
           GIN_MODE: debug
           PROTOCOL: tcp
           NODE_VERSION: lts
+          GITHUB_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
