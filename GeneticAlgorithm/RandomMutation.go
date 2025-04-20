@@ -29,7 +29,11 @@ func ApplyClearDepartmentSchedule(sched Schedule.UniTimeTables, all_curriculums 
 	})
 }
 
-func ApplyRandomDaySwapTimeSlots(sched Schedule.UniTimeTables, all_curriculums []Curriculum.Curriculum, department_id uint16, selected_semester int) {
+func ApplyRandomDaySwapTimeSlots(
+	sched Schedule.UniTimeTables, all_curriculums []Curriculum.Curriculum,
+	department_id uint16, selected_semester int,
+	resource_persistence *StorageResources.Persistence,
+) {
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 
 	for day := range Const.N_WEEKLY_SCHOOL_DAYS {
@@ -44,30 +48,28 @@ func ApplyRandomDaySwapTimeSlots(sched Schedule.UniTimeTables, all_curriculums [
 			continue
 		}
 
-		usi := 0
+		IterateSectionsWeekSchedule(sched, all_curriculums, selected_semester, nil, nil, func(indecies IterIndices, values IterValues) IterReturnType {
+			if values.Curriculum.DepartmentID == department_id {
+				usi := indecies.Usi
 
-		for _, curriculum := range all_curriculums {
-			for _, year_level := range curriculum.YearLevels {
-				if !year_level.IsActive {
-					continue
+				for time_slot := range Const.N_DAILY_TIME_SLOTS {
+					sched[usi][day][time_slot], sched[usi][day_swap][time_slot] = sched[usi][day_swap][time_slot], sched[usi][day][time_slot]
 				}
 
-				for semester_idx, semester := range year_level.Semesters {
-					if semester_idx != selected_semester {
-						continue
-					}
+				err_day_a := sched.VerticalRangedValidation(resource_persistence, day, 1, 0, Const.N_DAILY_TIME_SLOTS)
+				err_day_b := sched.VerticalRangedValidation(resource_persistence, day_swap, 1, 0, Const.N_DAILY_TIME_SLOTS)
 
-					for section_idx := 0; section_idx < semester.Sections; section_idx++ {
+				// if there are vertical errors, undo the mutation
 
-						for time_slot := range Const.N_DAILY_TIME_SLOTS {
-							sched[usi][day][time_slot], sched[usi][day_swap][time_slot] = sched[usi][day_swap][time_slot], sched[usi][day][time_slot]
-						}
-
-						usi++
+				if len(err_day_a) != 0 || len(err_day_b) != 0 {
+					for time_slot := range Const.N_DAILY_TIME_SLOTS {
+						sched[usi][day][time_slot], sched[usi][day_swap][time_slot] = sched[usi][day_swap][time_slot], sched[usi][day][time_slot]
 					}
 				}
 			}
-		}
+
+			return IterProceed
+		})
 	}
 }
 
