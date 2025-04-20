@@ -66,17 +66,49 @@ func Crossover(
 
 	offspring := make(Schedule.UniTimeTables, len(parent1))
 
+	// copy other department subjects to the offspring, it doesn't matter if we use parent 1 or 2
+	// both parents should have the same subjects allocated in other departments
+
+	copied_week_time_table := copy(offspring, parent1)
+
+	if copied_week_time_table != len(parent1) {
+		return nil, errors.New(
+			"unable to copy other department subjects to the offspring",
+		)
+	}
+
+	if len(department_to_encode) != 1 {
+		return nil, errors.New(
+			"multiple department to encode is not supported yet by the crossover function",
+		)
+	}
+
+	// we only clear the current department from the offspring where the subjects would be different
+
+	for department_id, is_to_encode := range department_to_encode {
+		if is_to_encode {
+			ApplyClearDepartmentSchedule(offspring, curriculums, department_id, selected_semester)
+		}
+	}
+
 	is_err_to_return := false
 	var return_err error
 
 	IterateSectionsWeekSchedule(nil, curriculums, selected_semester, nil, nil, func(indicies IterIndices, values IterValues) IterReturnType {
+
+		is_to_encode, has_key := department_to_encode[values.Curriculum.DepartmentID]
+
+		if !(is_to_encode && has_key) {
+			return IterProceed
+		}
+
 		parent_1_subjects := parent1[indicies.Usi].GetWeekSubjectsJSON()
 		parent_2_subjects := parent2[indicies.Usi].GetWeekSubjectsJSON()
 
 		if len(parent_1_subjects) != len(parent_2_subjects) {
 			is_err_to_return = true
 			return_err = fmt.Errorf(
-				"parent subjects must have the same length, parent 1 subjects: %d, parent 2 subjects: %d",
+				"error parent subjects have different subject time slot block counts, parent 1 subjects: %d, parent 2 subjects: %d, possible cause by wrong university schedule indexing order",
 				len(parent_1_subjects), len(parent_2_subjects),
 			)
 
@@ -212,10 +244,10 @@ func Crossover(
 		return IterProceed
 	})
 
-	log.Printf(
-		"Crossover: total encoding tries: %d, successful base parent encoded: %d, successful fallback parent encoded: %d, failed parents encoding: %d",
-		total_encoding_tries, successful_base_parent_encoded, successful_fallback_parent_encoded, failed_parents_encoding,
-	)
+	// log.Printf(
+	// 	"Crossover: total encoding tries: %d, successful base parent encoded: %d, successful fallback parent encoded: %d, failed parents encoding: %d",
+	// 	total_encoding_tries, successful_base_parent_encoded, successful_fallback_parent_encoded, failed_parents_encoding,
+	// )
 
 	if is_err_to_return {
 		return nil, return_err
