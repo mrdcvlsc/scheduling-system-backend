@@ -119,7 +119,7 @@ func EncodeIndividualGenome(
 
 				if !is_to_encode {
 					counted_sections++
-					return IterContinue
+					return IterProceed
 				}
 			}
 
