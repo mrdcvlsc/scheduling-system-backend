@@ -135,7 +135,7 @@ func ApplyRandomSubjectDaySwap(sched Schedule.UniTimeTables, resource_persistenc
 
 						rng_n := len(subjects_json)
 
-						if rng_n < 0 {
+						if rng_n <= 0 {
 							continue
 						}
 
@@ -239,7 +239,7 @@ func ApplyRandomSubjectTimeSlotNudge(sched Schedule.UniTimeTables, resource_pers
 
 						rng_n := len(subjects_json)
 
-						if rng_n < 0 {
+						if rng_n <= 0 {
 							continue
 						}
 
@@ -361,7 +361,7 @@ func ApplyRandomSubjectErasure(sched Schedule.UniTimeTables, resource_persistenc
 
 						rng_n := len(subjects_json) / 3
 
-						if rng_n < 0 {
+						if rng_n <= 0 {
 							continue
 						}
 
@@ -435,7 +435,7 @@ func ApplyRandomSubjectTimeSlotAndDayNudge(sched Schedule.UniTimeTables, resourc
 
 						rng_n := len(subjects_json)
 
-						if rng_n < 0 {
+						if rng_n <= 0 {
 							continue
 						}
 
