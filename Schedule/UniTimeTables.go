@@ -96,6 +96,8 @@ type roomCountAndCapacity struct {
 }
 
 // returns true if the length is 0 or if there are no subjects allocated in the time tables. false otherwise.
+//
+// can be used on incomplete university schedules (uni sched without other departments schedule).
 func (university_sched UniTimeTables) IsEmpty() bool {
 
 	if len(university_sched) == 0 {
