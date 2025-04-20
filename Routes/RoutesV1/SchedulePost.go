@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"reflect"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
@@ -100,6 +101,8 @@ func encode_schedule() {
 	var err_gen_encoding_resource error
 
 	for {
+		start := time.Now()
+
 		// get the first department in the queue that requested to generate a schedule for a specific semester
 
 		department_to_encode, semester_to_encode, err_pop_from_queue := RouteGlobals.PopDepartmentToEncodeFromSchedGenQueue()
@@ -374,7 +377,7 @@ func encode_schedule() {
 				RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
 				RouteGlobals.SchedGenResult{
 					Status:  RouteGlobals.SchedGenStatusSuccess,
-					Message: "schedule generation done",
+					Message: fmt.Sprintf("schedule generation done after %s", time.Since(start)),
 				},
 			)
 
