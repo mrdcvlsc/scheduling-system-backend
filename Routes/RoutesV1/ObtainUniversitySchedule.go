@@ -71,20 +71,30 @@ func ObtainUniversitySchedule(ctx *gin.Context, departments_to_validate map[uint
 		return university_schedules, true
 	}
 
-	for _, err_vertical_validation := range university_schedules.VerticalValidation(RouteGlobals.ResourcesPersistence) {
-		if err_vertical_validation != nil {
-			log.Println("ObtainUniversitySchedule: invalid schedule detected, vertical overlap")
-			ctx.String(http.StatusConflict, "server detected an invalid schedule with vertically overlapping data")
-			return nil, false
+	if errs := university_schedules.VerticalValidation(RouteGlobals.ResourcesPersistence); len(errs) > 0 {
+		log.Println("ObtainUniversitySchedule: invalid schedule detected, vertical overlap, caused by:")
+
+		for _, e := range errs {
+			fmt.Println(e.Error())
 		}
+
+		fmt.Print("\n\n")
+
+		ctx.String(http.StatusConflict, "server detected an invalid schedule with vertically overlapping data")
+		return nil, false
 	}
 
-	for _, err_horizontal_validation := range university_schedules.HorizontalValidation(RouteGlobals.ResourcesPersistence, departments_to_validate, semester) {
-		if err_horizontal_validation != nil {
-			log.Println("ObtainUniversitySchedule: invalid schedule detected, horizontal overlap")
-			ctx.String(http.StatusConflict, "server detected an invalid schedule with wrong horizontal data allocations")
-			return nil, false
+	if errs := university_schedules.HorizontalValidation(RouteGlobals.ResourcesPersistence, departments_to_validate, semester); len(errs) > 0 {
+		log.Println("ObtainUniversitySchedule: invalid schedule detected, horizontal overlap, caused by:")
+
+		for _, e := range errs {
+			fmt.Println(e.Error())
 		}
+
+		fmt.Print("\n\n")
+
+		ctx.String(http.StatusConflict, "server detected an invalid schedule with wrong horizontal data allocations")
+		return nil, false
 	}
 
 	log.Println("ObtainUniversitySchedule: schedule found")
