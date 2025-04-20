@@ -87,6 +87,12 @@ func PushNewDeptToDeptSchedGenQueue(department_id_and_semester DeptSchedGenKey) 
 		return false
 	}
 
+	for _, q := range departments_schedule_generation_queue {
+		if q == department_id_and_semester {
+			return false
+		}
+	}
+
 	departments_schedule_generation_queue = append(departments_schedule_generation_queue, department_id_and_semester)
 	return true
 }
