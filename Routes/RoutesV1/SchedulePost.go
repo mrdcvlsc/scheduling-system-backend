@@ -278,13 +278,13 @@ func encode_schedule() {
 
 			vertical_overlaps := false
 			for _, e := range new_encoded_university_schedule.VerticalValidation(RouteGlobals.ResourcesPersistence) {
+				log.Printf("encode_schedule [3.2]: error vertical overlaps \n\n%s\n\n", e.Error())
+
 				RouteGlobals.SetDeptSchedGenResult(
 					RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
 					RouteGlobals.SchedGenResult{
-						Status: RouteGlobals.SchedGenStatusFailed,
-						Message: fmt.Sprintf(
-							"error vertical overlaps detected: %s", e.Error(),
-						),
+						Status:  RouteGlobals.SchedGenStatusFailed,
+						Message: "error after vertical validation detected, there are overlapping possibly either instructors or rooms in the generated schedule",
 					},
 				)
 
@@ -306,10 +306,8 @@ func encode_schedule() {
 				RouteGlobals.SetDeptSchedGenResult(
 					RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
 					RouteGlobals.SchedGenResult{
-						Status: RouteGlobals.SchedGenStatusFailed,
-						Message: fmt.Sprintf(
-							"error horizontal overlaps detected: %s", e.Error(),
-						),
+						Status:  RouteGlobals.SchedGenStatusFailed,
+						Message: "error after horizontal validation detected, there are missing subjects or time slots to the final generated schedule",
 					},
 				)
 
@@ -340,7 +338,9 @@ func encode_schedule() {
 					RouteGlobals.SchedGenResult{
 						Status: RouteGlobals.SchedGenStatusInternalError,
 						Message: fmt.Sprintf(
-							"error saving schedule: %s", err_save_schedules.Error(),
+							"error saving schedule after %s, caused by : %s",
+							time.Since(start),
+							err_save_schedules.Error(),
 						),
 					},
 				)
@@ -361,7 +361,9 @@ func encode_schedule() {
 					RouteGlobals.SchedGenResult{
 						Status: RouteGlobals.SchedGenStatusInternalError,
 						Message: fmt.Sprintf(
-							"error caching schedule: %s", err_set_cache.Error(),
+							"error caching schedule after %s, caused by %s",
+							time.Since(start),
+							err_set_cache.Error(),
 						),
 					},
 				)
