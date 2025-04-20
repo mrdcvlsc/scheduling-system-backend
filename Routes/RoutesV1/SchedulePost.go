@@ -72,26 +72,28 @@ func encode_schedule() {
 	RouteGlobals.ReindexUniSchedMutex.Lock()
 	defer RouteGlobals.ReindexUniSchedMutex.Unlock()
 
-	log.Println("encode_schedule [0]: generating schedule...")
+	log.Println("encode_schedule: [function started]")
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
 	curriculums, err_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
 
 	if err_curriculums != nil {
-		log.Fatal("encode_schedule [1]:", err_curriculums)
+		log.Fatal("encode_schedule: read curriculum error : ", err_curriculums)
+		return
 	}
 
 	dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(RouteGlobals.ResourcesPersistence)
 
 	if err_dept_id_to_department != nil {
-		log.Fatal("encode_schedule [2]:", err_dept_id_to_department)
+		log.Fatal("encode_schedule: generate map to department id error : ", err_dept_id_to_department)
+		return
 	}
 
 	default_encoding_resource, err_default_encoding_resource := GeneticAlgorithm.ReadDefaultEncodingResource(RouteGlobals.ResourcesPersistence)
 
 	if err_default_encoding_resource != nil {
-		log.Fatal("encode_schedule [3]:", err_default_encoding_resource)
+		log.Print("encode_schedule: read default encoding resource error : ", err_default_encoding_resource)
 		return
 	}
 
@@ -100,6 +102,7 @@ func encode_schedule() {
 	var generated_encoding_resource *GeneticAlgorithm.EncodingResource
 	var err_gen_encoding_resource error
 
+queue_pop_loop:
 	for {
 		start := time.Now()
 
@@ -121,7 +124,7 @@ func encode_schedule() {
 			continue // a sanity check, don't generate schedules for department id that is less than 1
 		}
 
-		log.Println("encode_schedule [2.1]: pop latest task from queue")
+		log.Println("encode_schedule: pop latest task from scedule generation request queue")
 
 		RouteGlobals.SetDeptSchedGenResult(
 			RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
@@ -139,9 +142,21 @@ func encode_schedule() {
 			RouteGlobals.SetDeptSchedGenResult(
 				RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
 				RouteGlobals.SchedGenResult{
-					Status:  RouteGlobals.SchedGenStatusInternalError,
-					Message: err_obtain_uni_sched_no_ctx.Error(),
+					Status: RouteGlobals.SchedGenStatusInternalError,
+					Message: fmt.Sprintf(
+						"error base obtaining university schedule for %s %s, caused by : %s",
+						dept_id_to_department[department_id].Name,
+						Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
+						err_gen_encoding_resource.Error(),
+					),
 				},
+			)
+
+			log.Printf(
+				"encode_schedule: error obtaining base university schedule for %s %s, caused by : %s",
+				dept_id_to_department[department_id].Name,
+				Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
+				err_gen_encoding_resource.Error(),
 			)
 
 			continue
@@ -153,50 +168,64 @@ func encode_schedule() {
 
 		if err_gen_encoding_resource != nil {
 			log.Printf(
-				"encode_schedule [2.2.2]: error generating encoding resource for %s %s",
-				dept_id_to_department[department_id].Name, Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
+				"encode_schedule: error generating encoding resource for the base schedule of %s %s, caused by : %s",
+				dept_id_to_department[department_id].Name,
+				Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
+				err_gen_encoding_resource.Error(),
 			)
 
 			RouteGlobals.SetDeptSchedGenResult(
 				RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
 				RouteGlobals.SchedGenResult{
-					Status:  RouteGlobals.SchedGenStatusInternalError,
-					Message: err_gen_encoding_resource.Error(),
+					Status: RouteGlobals.SchedGenStatusInternalError,
+					Message: fmt.Sprintf(
+						"error generating encoding resource for the base schedule of %s %s, caused by : %s",
+						dept_id_to_department[department_id].Name,
+						Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
+						err_gen_encoding_resource.Error(),
+					),
 				},
 			)
 
 			continue
 		}
 
-		log.Println("encode_schedule [2.3]: generated new schedule encoding for the department specific semester")
+		log.Printf(
+			"encode_schedule: generating schedule for %s %s",
+			dept_id_to_department[department_id].Code,
+			Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
+		)
 
 		// encode a new schedule in the obtained university schedule for the specific department
 
-		max_retries := 50
-		var retry int
+		MAX_GENETIC_ALGORITHM_RETRY := 50
+		var retry int // incremented by the for loop
 
-		log.Println("encode_schedule [2.4]: trying to generate the schedule")
+		for retry = 0; retry < MAX_GENETIC_ALGORITHM_RETRY; retry++ {
 
-		is_retry_success := true
-
-		for retry = 0; retry < max_retries; retry++ {
-			log.Println("encode_schedule [2.2]: obtain schedule for the specified semester")
+			log.Printf(
+				"encode_schedule: running genetic algorithm for %s %s (try : %d)",
+				dept_id_to_department[department_id].Code,
+				Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
+				retry+1,
+			)
 
 			// generate the encoding resource for the obtained university schedule
 
 			// TODO: on genetic algorithm error - just use normal schedule generation result
 
-			new_encoded_university_schedule, new_encoding_resource, err_genetic_algorithm := GeneticAlgorithm.RunGeneticAlgorithm(
+			fittest_uni_sched, fittest_encoding_resource, err_genetic_algorithm := GeneticAlgorithm.RunGeneticAlgorithm(
 				university_schedule, curriculums, dept_id_to_department,
 				default_encoding_resource, generated_encoding_resource,
 				department_to_encode, semester_to_encode,
-				20, 10,
+				24, 12,
 				RouteGlobals.ResourcesPersistence,
 			)
 
 			if err_genetic_algorithm != nil {
-				if retry == max_retries-1 {
-					if new_encoded_university_schedule == nil {
+				if retry >= MAX_GENETIC_ALGORITHM_RETRY-1 {
+
+					if fittest_uni_sched == nil {
 						RouteGlobals.SetDeptSchedGenResult(
 							RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
 							RouteGlobals.SchedGenResult{
@@ -214,125 +243,202 @@ func encode_schedule() {
 						)
 					}
 
-					log.Print("encode_schedule [2.5]: max retires - unable to generate schedules")
-					is_retry_success = false
-					break
+					log.Printf(
+						"encode_schedule: [failed] genetic algorithm was unable to generate schedules for %s %s after %d tries, caused by %s",
+						dept_id_to_department[department_id].Code,
+						Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
+						retry+1, err_genetic_algorithm.Error(),
+					)
+
+					continue queue_pop_loop
 				}
+
+				log.Printf(
+					"encode_schedule: [retrying] genetic algorithm was unable to generate schedules for %s %s, retrying for %d times..., error caused by:\n\n%s",
+					dept_id_to_department[department_id].Code,
+					Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
+					retry+2, err_genetic_algorithm.Error(),
+				)
 
 				continue
 			}
 
-			log.Print("encode_schedule [2.6]: new encoded university schedules generated")
+			log.Printf(
+				"encode_schedule: genetic algorithm has generated schedules for %s %s after %d tries",
+				dept_id_to_department[department_id].Code,
+				Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
+				retry+1,
+			)
 
-			// perform checks and validation to the new encoded schedule for the specific department
+			// check if schedule is nil
 
-			if new_encoded_university_schedule == nil {
-				log.Print("encode_schedule [3]: unable to generate schedules")
+			if fittest_uni_sched == nil {
+				RouteGlobals.SetDeptSchedGenResult(
+					RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
+					RouteGlobals.SchedGenResult{
+						Status: RouteGlobals.SchedGenStatusFailed,
+						Message: fmt.Sprintf(
+							"genetic algorithm generated a 'nil' schedule for %s %s after %d tries",
+							dept_id_to_department[department_id].Code,
+							Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
+							retry+1,
+						),
+					},
+				)
+
+				if retry >= MAX_GENETIC_ALGORITHM_RETRY-1 {
+					log.Printf(
+						"encode_schedule: [failed] genetic algorithm generated a 'nil' schedule for %s %s after %d tries",
+						dept_id_to_department[department_id].Code,
+						Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
+						retry+1,
+					)
+
+					continue queue_pop_loop
+				}
+
+				log.Printf(
+					"encode_schedule: [retrying] genetic algorithm generated a 'nil' schedule for %s %s, retrying for %d times...",
+					dept_id_to_department[department_id].Code,
+					Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
+					retry+2,
+				)
+
+				continue
+			}
+
+			// check if schedule is empty
+
+			if GeneticAlgorithm.IsDepartmentScheduleEmpty(fittest_uni_sched, curriculums, semester_to_encode, department_to_encode) {
 
 				RouteGlobals.SetDeptSchedGenResult(
 					RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
 					RouteGlobals.SchedGenResult{
 						Status: RouteGlobals.SchedGenStatusFailed,
 						Message: fmt.Sprintf(
-							"unable to generate schedules for the department with id %d %s",
-							department_id, Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
+							"genetic algorithm generated a 'empty' schedule for %s %s after %d tries",
+							dept_id_to_department[department_id].Code,
+							Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
+							retry+1,
 						),
 					},
 				)
 
-				is_retry_success = false
-				break
+				if retry >= MAX_GENETIC_ALGORITHM_RETRY-1 {
+					log.Printf(
+						"encode_schedule: [failed] genetic algorithm generated a 'empty' schedule for %s %s after %d tries",
+						dept_id_to_department[department_id].Code,
+						Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
+						retry+1,
+					)
+
+					continue queue_pop_loop
+				}
+
+				log.Printf(
+					"encode_schedule: [retrying] genetic algorithm generated a 'empty' schedule for %s %s, retrying for %d times...",
+					dept_id_to_department[department_id].Code,
+					Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
+					retry+2,
+				)
+
+				continue
 			}
 
-			if new_encoded_university_schedule.IsEmpty() {
-				log.Print("final generated schedule is empty")
-			}
+			// some sanity checks and log checks
 
-			if reflect.DeepEqual(university_schedule, new_encoded_university_schedule) {
-				log.Print("encode_schedule [3.-1]: (equal) result no changes made after generating new schedule encoding")
+			if reflect.DeepEqual(university_schedule, fittest_uni_sched) {
+				log.Print("encode_schedule: (equal) genetic algorithm didn't change the original base schedules")
 			} else {
-				log.Print("encode_schedule [3.-1]: (not-equal) new changes are made after generating new schedule encoding")
+				log.Print("encode_schedule: (not-equal) genetic algorithm generated new schedules")
 			}
 
-			if GeneticAlgorithm.IsEqualEncodingResource(generated_encoding_resource, new_encoding_resource) {
-				log.Print("encode_schedule [3.-2]: (equal) result no changes made after generating new encoding resources")
+			if GeneticAlgorithm.IsEqualEncodingResource(generated_encoding_resource, fittest_encoding_resource) {
+				log.Print("encode_schedule: (equal) genetic algorithm didn't change the original base encoding resources")
 			} else {
-				log.Print("encode_schedule [3.-2]: (not-equal) new changes are made after generating new encoding resources")
+				log.Print("encode_schedule: (not-equal) genetic algorithm generated new encoding resources")
 			}
 
-			if new_encoding_resource == nil {
-				panic("this re-encoding resource is empty")
-			}
-
-			if len(new_encoding_resource.DeptIdToInstructors) <= 0 {
+			if len(fittest_encoding_resource.DeptIdToInstructors) <= 0 {
 				panic("this re-encoding resource has an empty DeptIdToInstructors")
 			}
 
-			if len(new_encoding_resource.DeptIdToRoomtypeToRooms) <= 0 {
+			if len(fittest_encoding_resource.DeptIdToRoomtypeToRooms) <= 0 {
 				panic("this re-encoding resource has an empty DeptIdToRoomtypeToRooms")
 			}
 
-			if len(new_encoding_resource.IsSchedIdxToSubIdToSkip) <= 0 {
+			if len(fittest_encoding_resource.IsSchedIdxToSubIdToSkip) <= 0 {
 				panic("this re-encoding resource has an empty IsSchedIdxToSubIdToSkip")
 			}
 
-			vertical_overlaps := false
-			for _, e := range new_encoded_university_schedule.VerticalValidation(RouteGlobals.ResourcesPersistence) {
-				log.Printf("encode_schedule [3.2]: error vertical overlaps \n\n%s\n\n", e.Error())
+			// check for overlapping instructors and rooms
 
-				RouteGlobals.SetDeptSchedGenResult(
-					RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
-					RouteGlobals.SchedGenResult{
-						Status:  RouteGlobals.SchedGenStatusFailed,
-						Message: "error after vertical validation detected, there are overlapping possibly either instructors or rooms in the generated schedule",
-					},
-				)
+			if err := fittest_uni_sched.VerticalValidation(RouteGlobals.ResourcesPersistence); len(err) > 0 {
+				if retry >= MAX_GENETIC_ALGORITHM_RETRY-1 {
+					RouteGlobals.SetDeptSchedGenResult(
+						RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
+						RouteGlobals.SchedGenResult{
+							Status:  RouteGlobals.SchedGenStatusFailed,
+							Message: "error in genetic algorithm final output schedule, there are overlapping possibly either instructors or rooms in the generated schedule",
+						},
+					)
 
-				vertical_overlaps = true
-				log.Print("encode_schedule [3.1]: error vertical overlaps")
-				break
-			}
+					log.Printf(
+						"encode_schedule: [failed] error genetic algorithm output schedule has vertical overlaps for %s %s after %d tries.\n\n%v\n\n",
+						dept_id_to_department[department_id].Code,
+						Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
+						retry+1, err,
+					)
 
-			if vertical_overlaps {
-				is_retry_success = false
-				break
-			}
-
-			horizontal_overlaps := false
-
-			errs_horizontal_overlaps := new_encoded_university_schedule.HorizontalValidation(RouteGlobals.ResourcesPersistence, department_to_encode, semester_to_encode)
-
-			for _, e := range new_encoded_university_schedule.HorizontalValidation(RouteGlobals.ResourcesPersistence, department_to_encode, semester_to_encode) {
-				RouteGlobals.SetDeptSchedGenResult(
-					RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
-					RouteGlobals.SchedGenResult{
-						Status:  RouteGlobals.SchedGenStatusFailed,
-						Message: "error after horizontal validation detected, there are missing subjects or time slots to the final generated schedule",
-					},
-				)
-
-				horizontal_overlaps = true
-				log.Printf("encode_schedule [3.2]: error horizontal overlaps \n\n%s\n\n", e.Error())
-
-				for _, err := range errs_horizontal_overlaps {
-					fmt.Println(err.Error())
+					continue queue_pop_loop
 				}
 
-				fmt.Print("\n\n")
+				log.Printf(
+					"encode_schedule: [retrying] error genetic algorithm output schedule has vertical overlaps for %s %s, retrying for %d times...\n\n%v\n\n",
+					dept_id_to_department[department_id].Code,
+					Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
+					retry+2, err,
+				)
 
-				break
+				continue
 			}
 
-			if horizontal_overlaps {
-				is_retry_success = false
-				break
+			// check for missing subjects or missing subject time slot allocations
+
+			if err := fittest_uni_sched.HorizontalValidation(RouteGlobals.ResourcesPersistence, department_to_encode, semester_to_encode); len(err) > 0 {
+				if retry >= MAX_GENETIC_ALGORITHM_RETRY-1 {
+
+					RouteGlobals.SetDeptSchedGenResult(
+						RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
+						RouteGlobals.SchedGenResult{
+							Status:  RouteGlobals.SchedGenStatusFailed,
+							Message: "error in genetic algorithm final output schedule, there are missing subjects or time slots to the final generated schedule",
+						},
+					)
+
+					log.Printf(
+						"encode_schedule: [failed] error genetic algorithm output schedule has 'horizontal' validation problems for %s %s after %d tries.\n\n%v\n\n",
+						dept_id_to_department[department_id].Code,
+						Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
+						retry+1, err,
+					)
+
+					continue queue_pop_loop
+				}
+
+				log.Printf(
+					"encode_schedule: [retrying] error genetic algorithm output schedule has 'horizontal' validation problems for %s %s, retrying for %d times...\n\n%v\n\n",
+					dept_id_to_department[department_id].Code,
+					Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
+					retry+2, err,
+				)
+
+				continue
 			}
 
-			err_save_schedules := RouteGlobals.SchedulePersistence.SaveService.SaveSchedules(new_encoded_university_schedule, semester_to_encode)
+			// save genetic algorithm's generated university schedule
 
-			if err_save_schedules != nil {
-				log.Print("encode_schedule [4]:", err_save_schedules.Error())
-
+			if err := RouteGlobals.SchedulePersistence.SaveService.SaveSchedules(fittest_uni_sched, semester_to_encode); err != nil {
 				RouteGlobals.SetDeptSchedGenResult(
 					RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
 					RouteGlobals.SchedGenResult{
@@ -340,22 +446,20 @@ func encode_schedule() {
 						Message: fmt.Sprintf(
 							"error saving schedule after %s, caused by : %s",
 							time.Since(start),
-							err_save_schedules.Error(),
+							err.Error(),
 						),
 					},
 				)
 
-				is_retry_success = false
-				break
+				log.Print("encode_schedule: [save-failed] error unable to save the genetic algorithm's generated schedule, caused by :", err.Error())
+				continue queue_pop_loop
 			}
 
-			log.Print("encode_schedule [4]: university schedule saved")
+			log.Print("encode_schedule: genetic algorithm's generated schedule saved successfully")
 
-			err_set_cache := RouteGlobals.SetCachedUniversitySchedule(semester_to_encode, new_encoded_university_schedule)
+			// cache genetic algorithm's generated university schedule
 
-			if err_set_cache != nil {
-				log.Print("encode_schedule [5]:", err_set_cache.Error())
-
+			if err := RouteGlobals.SetCachedUniversitySchedule(semester_to_encode, fittest_uni_sched); err != nil {
 				RouteGlobals.SetDeptSchedGenResult(
 					RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
 					RouteGlobals.SchedGenResult{
@@ -363,34 +467,38 @@ func encode_schedule() {
 						Message: fmt.Sprintf(
 							"error caching schedule after %s, caused by %s",
 							time.Since(start),
-							err_set_cache.Error(),
+							err.Error(),
 						),
 					},
 				)
+
+				log.Print("encode_schedule: [cache-failed] unable to change the genetic algorithm's generated schedule:", err.Error())
 			}
+
+			log.Print("encode_schedule: genetic algorithm's generated schedule cached successfully")
 
 			// specific department schedule generation done
 
 			break
 		}
 
-		if is_retry_success {
-			RouteGlobals.SetDeptSchedGenResult(
-				RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
-				RouteGlobals.SchedGenResult{
-					Status:  RouteGlobals.SchedGenStatusSuccess,
-					Message: fmt.Sprintf("schedule generation done after %s", time.Since(start)),
-				},
-			)
+		RouteGlobals.SetDeptSchedGenResult(
+			RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
+			RouteGlobals.SchedGenResult{
+				Status:  RouteGlobals.SchedGenStatusSuccess,
+				Message: fmt.Sprintf("schedule generation done after %s", time.Since(start)),
+			},
+		)
 
-			log.Println("encode_schedule [5.1]: schedule generation loop done : success")
-		} else {
-			log.Println("encode_schedule [5.1]: schedule generation loop done : failed")
-		}
-
+		log.Printf(
+			"encode_schedule: [success] genetic algorithm schedule generation success for %s %s after %d tries",
+			dept_id_to_department[department_id].Code,
+			Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
+			retry+1,
+		)
 	}
 
-	log.Println("encode_schedule [6]: all department schedule generation requests are done...")
+	log.Println("encode_schedule: [function ended]")
 }
 
 func has_department_to_encode(department_to_encode map[uint16]bool) bool {
