@@ -223,21 +223,38 @@ func RunGeneticAlgorithm(
 		for len(population) < population_size {
 
 			parent1_idx := rng.Intn(population_size_before_crossover)
-			parent2_idx := rng.Intn(population_size_before_crossover)
+			// parent2_idx := rng.Intn(population_size_before_crossover)
 
-			if parent1_idx == parent2_idx {
-				continue
-			}
+			// if parent1_idx == parent2_idx {
+			// 	continue
+			// }
 
 			parent1 := population[parent1_idx]
-			parent2 := population[parent2_idx]
+			// parent2 := population[parent2_idx]
 
-			offspring, err_crossover := Crossover(
-				parent1.UniSched, parent2.UniSched,
-				curriculums, selected_semester,
-				dept_id_to_department, department_to_encode,
-				resource_persistence,
+			// offspring, err_crossover := Crossover(
+			// 	parent1.UniSched, parent2.UniSched,
+			// 	curriculums, selected_semester,
+			// 	dept_id_to_department, department_to_encode,
+			// 	resource_persistence,
+			// )
+
+			gen_enc_resource, err_gen_enc_resource := GenerateEncodingResourceFromUniTimeTable(
+				parent1.UniSched, curriculums, selected_semester, resource_persistence,
 			)
+
+			if err_gen_enc_resource != nil {
+				panic("sucks to not be working")
+			}
+
+			gen_crosub_sched, gen_crosub_resource, err_crossover := EncodeIndividualGenome(
+				parent1.UniSched, curriculums, dept_id_to_department, gen_enc_resource, department_to_encode, selected_semester, 0,
+			)
+
+			offspring := &SchedAndResources{
+				UniSched:  gen_crosub_sched,
+				Resources: gen_crosub_resource,
+			}
 
 			if err_crossover != nil {
 				crossover_tries++
