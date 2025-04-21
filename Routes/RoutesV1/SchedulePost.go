@@ -554,18 +554,18 @@ queue_pop_loop:
 						"encode_schedule: [broke-others] genetic algorithm accidentally broke the schedules of %s %s",
 						dept_id_to_department[other_dept_id].Code, Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
 					)
-				}
 
-				RouteGlobals.SetDeptSchedGenResult(
-					RouteGlobals.DeptSchedGenKey{DepartmentID: other_dept_id, Semester: semester_to_encode},
-					RouteGlobals.SchedGenResult{
-						Status: RouteGlobals.SchedGenStatusInternalError,
-						Message: fmt.Sprintf(
-							"your schedule might be have been affected when %s finished generating schedules for %s",
-							dept_id_to_department[other_dept_id].Code, Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
-						),
-					},
-				)
+					RouteGlobals.SetDeptSchedGenResult(
+						RouteGlobals.DeptSchedGenKey{DepartmentID: other_dept_id, Semester: semester_to_encode},
+						RouteGlobals.SchedGenResult{
+							Status: RouteGlobals.SchedGenStatusInternalError,
+							Message: fmt.Sprintf(
+								"your schedule might have been affected when %s finished generating schedules for %s, please try to validate your schedule by pressing the orange 'VALIDATE SCHEDULES' button",
+								dept_id_to_department[other_dept_id].Code, Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
+							),
+						},
+					)
+				}
 			}
 
 			// specific department schedule generation done
