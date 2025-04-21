@@ -6,6 +6,9 @@ import (
 	"log"
 	"slices"
 	"sync"
+
+	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 )
 
 type SchedGenStatusType string
@@ -51,12 +54,25 @@ func GetDepartSchedGenResult(key DeptSchedGenKey) SchedGenResult {
 		department_id_to_sched_gen_last_result = make(map[DeptSchedGenKey]SchedGenResult)
 	}
 
+	dept_id_to_department, err := GeneticAlgorithm.GenerateMapDeptIdToDepartment(ResourcesPersistence)
+
 	last_sched_gen_result, has_key := department_id_to_sched_gen_last_result[key]
 
 	if !has_key {
+
+		msg := fmt.Sprintf("schedule is not generated yet for department with id %d semester %d", key.DepartmentID, key.Semester+1)
+
+		if err == nil {
+			msg = fmt.Sprintf(
+				"schedule is not generated yet for the %s %s",
+				dept_id_to_department[key.DepartmentID].Name,
+				Curriculum.SEMESTER_INDEX_NAME[key.Semester],
+			)
+		}
+
 		return SchedGenResult{
 			Status:  SchedGenStatusNotStarted,
-			Message: fmt.Sprintf("schedule is not generated yet for the department with id %d", key),
+			Message: msg,
 		}
 	}
 

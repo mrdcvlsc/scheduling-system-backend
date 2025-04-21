@@ -28,6 +28,13 @@ func RequestGenerateSchedule(ctx *gin.Context) {
 		return
 	}
 
+	dept_id_to_department, err_gen_dept_id_to_dept := GeneticAlgorithm.GenerateMapDeptIdToDepartment(RouteGlobals.ResourcesPersistence)
+
+	if err_gen_dept_id_to_dept != nil {
+		ctx.String(http.StatusInternalServerError, "we're unable to retrieve the departments right now")
+		return
+	}
+
 	department_id, is_valid_department_id := IsValidParameterDepartmentID(ctx)
 
 	if !is_valid_department_id {
@@ -41,7 +48,12 @@ func RequestGenerateSchedule(ctx *gin.Context) {
 		DepartmentID: uint16(department_id),
 		Semester:     semester,
 	}) {
-		response_msg += fmt.Sprintf("department with id %d was added to the schedule generation queue,", department_id)
+		response_msg += fmt.Sprintf(
+			"%s %s was added to the schedule generation queue,",
+			dept_id_to_department[uint16(department_id)].Name,
+			Curriculum.SEMESTER_INDEX_NAME[semester],
+		)
+
 		RouteGlobals.SetDeptSchedGenResult(
 			RouteGlobals.DeptSchedGenKey{DepartmentID: uint16(department_id), Semester: semester},
 			RouteGlobals.SchedGenResult{
@@ -50,7 +62,12 @@ func RequestGenerateSchedule(ctx *gin.Context) {
 			},
 		)
 	} else {
-		response_msg += fmt.Sprintf("the department with id %d is already in schedule generation queue,", department_id)
+		response_msg += fmt.Sprintf(
+			"the %s %s is already in schedule generation queue,",
+			dept_id_to_department[uint16(department_id)].Name,
+			Curriculum.SEMESTER_INDEX_NAME[semester],
+		)
+
 		response_status = http.StatusContinue
 	}
 
