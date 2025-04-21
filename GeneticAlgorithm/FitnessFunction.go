@@ -1,6 +1,7 @@
 package GeneticAlgorithm
 
 import (
+	"log"
 	"math"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
@@ -59,11 +60,11 @@ func MeasureWeekTimeTableBasicFitness(week_sched Schedule.WeekTimeTable) float64
 		if has_time_for_lunch {
 			week_sched_fitness += 7.0
 		} else {
-			week_sched_fitness -= 2.0
+			week_sched_fitness -= 4.0
 		}
 
 		if has_class_after_5pm {
-			week_sched_fitness -= 0.5
+			week_sched_fitness -= 2
 		}
 
 		if day_total_hours >= PREFERED_MAX_CLASS_HOUR_PER_DAY {
@@ -98,15 +99,16 @@ func MeasureCompleteUniSchedBasicFitness(complete_uni_sched Schedule.UniTimeTabl
 	IterateSectionsWeekSchedule(complete_uni_sched, all_curriculums, selected_semester, nil, nil, func(indicies IterIndices, values IterValues) IterReturnType {
 
 		if len(department_to_measure) > 0 {
-			is_to_measure, has_key := department_to_measure[values.Curriculum.DepartmentID]
 
-			if !(has_key && is_to_measure) {
+			if !department_to_measure[values.Curriculum.DepartmentID] {
 				return IterProceed
 			}
-		}
 
-		accumulated_fitness += MeasureWeekTimeTableBasicFitness(*values.WeekSched)
-		total_fitness_measurements++
+			accumulated_fitness += MeasureWeekTimeTableBasicFitness(*values.WeekSched)
+			total_fitness_measurements++
+		} else {
+			log.Print(">>>>>>>>>>>>>>>>>>> MeasureWeekTimeTableBasicFitness IS NOT MEASURING ANY DEPARTMENTS <<<<<<<<<<<<<<<<<<")
+		}
 
 		return IterProceed
 	})
