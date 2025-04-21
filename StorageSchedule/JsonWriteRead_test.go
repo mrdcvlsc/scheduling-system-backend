@@ -6,6 +6,7 @@ import (
 
 	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageSchedule"
@@ -41,6 +42,8 @@ func Test_JsonReadWriteUniversitySchedules1stSem(t *testing.T) {
 			t.Fatal(err_dept_id_to_department)
 		}
 
+		fmt.Printf("\ntotal departments detected : %d", len(dept_id_to_department))
+
 		////////////////////////////////////////////////////////////////////////////////////////
 
 		encoding_resource, err_read_default_encoding_resource := GeneticAlgorithm.ReadDefaultEncodingResource(&persistence)
@@ -48,6 +51,22 @@ func Test_JsonReadWriteUniversitySchedules1stSem(t *testing.T) {
 		if err_read_default_encoding_resource != nil {
 			t.Fatal(err_read_default_encoding_resource)
 		}
+
+		fmt.Print("\n\n")
+
+		for dept_id, instructors := range encoding_resource.DeptIdToInstructors {
+			fmt.Printf("the numbers of instructors in %s is %d\n", dept_id_to_department[dept_id].Code, len(instructors))
+		}
+
+		fmt.Print("\n\n")
+
+		for dept_id, room_types := range encoding_resource.DeptIdToRoomtypeToRooms {
+			for room_type, rooms := range room_types {
+				fmt.Printf("number of %s rooms in %s is %d", Rooms.ROOM_TYPE_NAMES[room_type], dept_id_to_department[dept_id].Code, len(rooms))
+			}
+		}
+
+		fmt.Print("\n\n")
 
 		////////////////////////////////////////////////////////////////////////////////////////
 
@@ -75,7 +94,7 @@ func Test_JsonReadWriteUniversitySchedules1stSem(t *testing.T) {
 		}
 
 		if len(populations_of_schedules) == 0 {
-			t.Fatal("No university schedules generated")
+			t.Fatalf("No university schedules generated after %d tries", tries)
 		}
 
 		first_university_schedule := populations_of_schedules[0]
