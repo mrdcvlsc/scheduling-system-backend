@@ -31,6 +31,8 @@ var SEMESTER_INDEX_NAME [6]string = [6]string{
 
 const SUPPORTED_SEMESTERS int = 2
 
+var SECTION [26]string = [26]string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"}
+
 func GetTotalNumberOfSections(curriculums []Curriculum, selected_semester int) int {
 	section_count := 0
 

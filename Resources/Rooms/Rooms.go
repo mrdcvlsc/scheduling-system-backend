@@ -25,6 +25,8 @@ const ROOM_TYPE_LEC uint16 = 0
 const ROOM_TYPE_LAB uint16 = 1
 const ROOM_TYPE_GYM uint16 = 2
 
+var ROOM_TYPE_NAMES [3]string = [3]string{"Lec", "Lab", "Gym"}
+
 // set the current number of classes or sections allocated in the room for a specific time slot.
 func (room *Room) SetTimeSlotClassCount(day, time_slot int, class_count uint8) {
 	idx_2D_to_1D := (day * Const.N_DAILY_TIME_SLOTS) + time_slot

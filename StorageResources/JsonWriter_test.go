@@ -331,7 +331,7 @@ func TestJsonFilePersistence_RoomCRU(t *testing.T) {
 	all_rooms1[2].Name = "ADVANCE 77"
 	all_rooms1[2].DepartmentID = 7
 	all_rooms1[2].Capacity = 7
-	all_rooms1[2].RoomType = 4
+	all_rooms1[2].RoomType = 1
 
 	err_update_room := TestPersistence.WriterService.UpdateRoom(all_rooms1[2])
 
@@ -345,7 +345,7 @@ func TestJsonFilePersistence_RoomCRU(t *testing.T) {
 		Name:         "NEW RM 360",
 		DepartmentID: 98,
 		Capacity:     34,
-		RoomType:     255,
+		RoomType:     0,
 	}
 
 	err_create_room := TestPersistence.WriterService.CreateRoom(new_room)
@@ -385,7 +385,7 @@ func TestJsonFilePersistence_RoomCRU(t *testing.T) {
 	if all_rooms2[2].Capacity != 7 {
 		t.Error("wrong `all_rooms2[2].Capacity`")
 	}
-	if all_rooms2[2].RoomType != 4 {
+	if all_rooms2[2].RoomType != 1 {
 		t.Error("wrong `all_rooms2[2].RoomType`")
 	}
 
@@ -402,7 +402,7 @@ func TestJsonFilePersistence_RoomCRU(t *testing.T) {
 	if created_new_room.Capacity != 34 {
 		t.Error("wrong `created_new_room.Capacity`")
 	}
-	if created_new_room.RoomType != 255 {
+	if created_new_room.RoomType != 0 {
 		t.Error("wrong `created_new_room.RoomType`")
 	}
 }

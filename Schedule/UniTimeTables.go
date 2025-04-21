@@ -96,6 +96,8 @@ type roomCountAndCapacity struct {
 }
 
 // returns true if the length is 0 or if there are no subjects allocated in the time tables. false otherwise.
+//
+// can be used on incomplete university schedules (uni sched without other departments schedule).
 func (university_sched UniTimeTables) IsEmpty() bool {
 
 	if len(university_sched) == 0 {
@@ -118,8 +120,11 @@ func (university_sched UniTimeTables) IsEmpty() bool {
 }
 
 // validate rooms and instructors time slot availability, this function detects overlapping instructor or room time slots.
-func (university_sched UniTimeTables) VerticalValidation(resource_persistence *StorageResources.Persistence) []error {
-
+func (university_sched UniTimeTables) VerticalRangedValidation(
+	resource_persistence *StorageResources.Persistence,
+	day_start, day_size,
+	time_slot_start, time_slot_size int,
+) []error {
 	errs_slice := make([]error, 0, 16)
 
 	rooms, err_read_all_rooms := resource_persistence.ReaderService.ReadAllRooms()
@@ -139,8 +144,8 @@ func (university_sched UniTimeTables) VerticalValidation(resource_persistence *S
 	//                             VERTICAL CHECKS
 	/////////////////////////////////////////////////////////////////////////////////
 
-	for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
-		for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
+	for day := day_start; day < (day_start + day_size); day++ {
+		for time_slot := time_slot_start; time_slot < (time_slot_start + time_slot_size); time_slot++ {
 
 			instructor_counter := make(map[uint16][]uint16)
 
@@ -260,6 +265,15 @@ func (university_sched UniTimeTables) VerticalValidation(resource_persistence *S
 	return errs_slice
 }
 
+// validate rooms and instructors time slot availability, this function detects overlapping instructor or room time slots.
+func (university_sched UniTimeTables) VerticalValidation(resource_persistence *StorageResources.Persistence) []error {
+	return university_sched.VerticalRangedValidation(
+		resource_persistence,
+		0, Const.N_WEEKLY_SCHOOL_DAYS,
+		0, Const.N_DAILY_TIME_SLOTS,
+	)
+}
+
 /*
 validate assigned subjects to every section schedules in the whole university.
 
@@ -340,12 +354,14 @@ func (university_sched UniTimeTables) HorizontalValidation(
 
 					if len(semester.Subjects) != len(subject_id_to_time_slot_count) {
 						errs_slice = append(errs_slice, fmt.Errorf(
-							"detected missing subject(s) [%d/%d] in %s %s %s section[%d], university schedule_idx = %d",
-							len(subject_id_to_time_slot_count), len(semester.Subjects),
-							curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, schedule_idx,
+							"detected %d missing subject(s) in %s, %s, %s, section %s (usi:%d)",
+							len(semester.Subjects)-len(subject_id_to_time_slot_count),
+							curriculum.CurriculumCode,
+							semester.Name,
+							year_level.Name,
+							Curriculum.SECTION[section_idx],
+							schedule_idx,
 						))
-
-						return errs_slice
 					}
 
 					for _, subject := range semester.Subjects {
@@ -353,20 +369,23 @@ func (university_sched UniTimeTables) HorizontalValidation(
 
 						if !has_subject_id {
 							errs_slice = append(errs_slice, fmt.Errorf(
-								"detected missing subject %s in %s %s %s section[%d], university schedule_idx = %d",
-								subject.Code, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, schedule_idx,
+								"the subject %s was not assigned to %s, %s, %s, section %s (usi:%d)",
+								subject.Code, curriculum.CurriculumCode, year_level.Name, semester.Name, Curriculum.SECTION[section_idx], schedule_idx,
 							))
-						}
-
-						if ((subject.LecHours + subject.LabHours) * Const.N_HOUR_TIME_SLOTS) != uint8(subject_id_to_time_slot_count[subject.ID]) {
+						} else if ((subject.LecHours + subject.LabHours) * Const.N_HOUR_TIME_SLOTS) > uint8(subject_id_to_time_slot_count[subject.ID]) {
 							errs_slice = append(errs_slice, fmt.Errorf(
-								"detected wrong subject [id : %d / %s] time slot allocation count (persistence : %d != %d : schedule) in %s %s %s section[%d], university schedule_idx[%d]",
-								subject.ID, subject.Code,
+								"the subject %s has missing time slot allocations, expecting %d, but only found %d in %s, %s, %s, section %s (usi:%d)",
+								subject.Code,
 								((subject.LecHours+subject.LabHours)*Const.N_HOUR_TIME_SLOTS), uint8(subject_id_to_time_slot_count[subject.ID]),
-								curriculum.CurriculumCode, semester.Name,
-								year_level.Name, section_idx, schedule_idx,
+								curriculum.CurriculumCode, year_level.Name, semester.Name, Curriculum.SECTION[section_idx], schedule_idx,
 							))
-							return errs_slice
+						} else if ((subject.LecHours + subject.LabHours) * Const.N_HOUR_TIME_SLOTS) < uint8(subject_id_to_time_slot_count[subject.ID]) {
+							errs_slice = append(errs_slice, fmt.Errorf(
+								"the subject %s has extra time slot allocations, expecting only %d, but found %d in %s, %s, %s, section %s (usi:%d)",
+								subject.Code,
+								((subject.LecHours+subject.LabHours)*Const.N_HOUR_TIME_SLOTS), uint8(subject_id_to_time_slot_count[subject.ID]),
+								curriculum.CurriculumCode, year_level.Name, semester.Name, Curriculum.SECTION[section_idx], schedule_idx,
+							))
 						}
 					}
 

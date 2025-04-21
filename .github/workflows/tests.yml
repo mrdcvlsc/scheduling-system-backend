@@ -40,8 +40,14 @@ jobs:
       - name: View Temporary Data Tree
         run: tree scheduling-system-temporary-data
 
+      - name: I
+        if: runner.os == 'Linux'
+        run: cat scheduling-system-temporary-data/instructors.json | sed -E 's/("FirstName":[[:space:]]*)"[^"]*"/\1"****"/g;s/("MiddleInitial":[[:space:]]*)"[^"]*"/\1"****"/g;s/("LastName":[[:space:]]*)"[^"]*"/\1"****"/g' scheduling-system-temporary-data/instructors.json
+
       - name: Run Tests
-        run: make test
+        run: make gh_test
+        env:
+          GITHUB_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
 
       - name: Run Benchmarks
         run: make bench
@@ -49,10 +55,19 @@ jobs:
       - name: Run Build
         run: make build
 
+      - name: Change Node Fetch Wait Value
+        run: sed -i 's/ 16)); / 4)); /' Tests/schedule-serialization.js
+
+      - name: Check Node Fetch Wait Value
+        run: grep -nr "1000 \* 60 \*" ./Tests
+
       - name: Run Server And Node Fetch Test
-        run: ./app & sleep 1 && node Tests/schedule-serialization.js
+        run: |
+            ./app & sleep 1 && node Tests/schedule-serialization.js
+            make devr && ./app & sleep 1 && node Tests/schedule-serialization.js
         env:
           PORT: 3000
           GIN_MODE: debug
           PROTOCOL: tcp
           NODE_VERSION: lts
+          GITHUB_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}

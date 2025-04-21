@@ -192,30 +192,67 @@ export async function fetchAllDepartments(base_url = '') {
   return response.json();
 }
 
-async function test(base_url = '') {
+export async function getValidateSchedules(semesterIndex, departmentID, base_url = '') {
+  console.log('call: getValidateSchedules')
+  const api_request = `${base_url}/v2/validate_schedules?semester=${semesterIndex}&department_id=${departmentID}`
+
+  const response = await fetch(api_request, {
+    method: 'GET',
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  switch (response.status) {
+    case 404: {
+      return await response.json()
+    }
+    case 409: {
+      return await response.json()
+    }
+    default: {
+      if (!response.ok) {
+        throw new Error(`${response.status} : ${await response.text()}`);
+      }
+    }
+  }
+
+  return await response.text()
+}
+
+async function test(base_url = '', semester) {
   try {
     console.log('--------------------fetch departments---------------------------\n')
-    
+
     const departments = await fetchAllDepartments(base_url)
-    
+
     console.log('--------------------generate_schedule---------------------------\n')
 
     for (const department of departments) {
       if (department.DepartmentID > 0) {
-        await generate_schedule(0, department.DepartmentID, base_url)
+        await generate_schedule(semester, department.DepartmentID, base_url)
       }
     }
 
-    await new Promise(resolve => setTimeout(resolve, 10000));
+    await new Promise(resolve => setTimeout(resolve, 1000 * 60 * 16)); // don't edit this line, this wait time is replaced during ci test
+
+    console.log('-----------validate each departments one-by-one-----------------\n')
+
+    for (const department of departments) {
+      const result = await getValidateSchedules(semester, department.DepartmentID, base_url)
+
+      console.log(`single validation ${department.DepartmentID} error :`)
+      console.log(result)
+    }
 
     console.log('--------------------fetch_serialized_schedule---------------------------\n')
-    let [raw_data, _] = await fetch_serialized_schedule(0, base_url);
+    let [raw_data, _] = await fetch_serialized_schedule(semester, base_url);
     console.log('--------------------deserialize_schedule---------------------------\n')
     let deserialized = await deserialize_schedule(raw_data, base_url);
     console.log('--------------------serialize_schedule---------------------------\n')
     let serialized = await serialize_schedule(deserialized, base_url);
     console.log('--------------------send_serialized_schedule---------------------------\n')
-    await send_serialized_schedule(0, serialized, base_url)
+    await send_serialized_schedule(semester, serialized, base_url)
     console.log('--------------------die---------------------------\n')
 
     await fetch(`${base_url}/die`, {
@@ -250,4 +287,15 @@ async function test(base_url = '') {
   }
 }
 
-test(domain)
+async function run_tests() {
+  console.log('===================================== TEST 1 =====================================')
+  await test(domain, 0)
+  console.log('===================================== TEST 2 =====================================')
+  await test(domain, 1)
+
+  console.log('===================================== TEST 3 =====================================')
+  test(domain, 1)
+  await test(domain, 0)
+}
+
+run_tests()

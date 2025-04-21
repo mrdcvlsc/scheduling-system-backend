@@ -60,6 +60,51 @@ testv:
 testvs:
 	go clean -testcache && go test -run TestNewPopulation ./GeneticAlgorithm -v -timeout 0
 
+gh_test:
+	go clean -testcache
+	go test ./... -p 1 -timeout 0
+
+	$(MAKE) devr
+	go clean -testcache && go test -run Test ./GeneticAlgorithm -timeout 0
+	$(MAKE) devr
+	go clean -testcache && go test -run Test ./Resources/Curriculum -timeout 0
+	$(MAKE) devr
+	go clean -testcache && go test -run Test ./Resources/Instructors -timeout 0
+	$(MAKE) devr
+	go clean -testcache && go test -run Test ./Resources/Rooms -timeout 0
+	$(MAKE) devr
+	go clean -testcache && go test -run Test ./Schedule -timeout 0
+	$(MAKE) devr
+	go clean -testcache && go test -run Test ./StorageResources -timeout 0
+	$(MAKE) devr
+	go clean -testcache && go test -run Test ./StorageSchedule -timeout 0
+	$(MAKE) devr
+	go clean -testcache && go test -run Test ./Tests/schedule_datastructure_basic -timeout 0
+	$(MAKE) devr
+	go clean -testcache && go test -run Test ./Utils -timeout 0
+	$(MAKE) devr
+
+gh_test_local:
+	$(MAKE) devr_local
+	go clean -testcache && go test -run Test ./GeneticAlgorithm -timeout 0
+	$(MAKE) devr_local
+	go clean -testcache && go test -run Test ./Resources/Curriculum -timeout 0
+	$(MAKE) devr_local
+	go clean -testcache && go test -run Test ./Resources/Instructors -timeout 0
+	$(MAKE) devr_local
+	go clean -testcache && go test -run Test ./Resources/Rooms -timeout 0
+	$(MAKE) devr_local
+	go clean -testcache && go test -run Test ./Schedule -timeout 0
+	$(MAKE) devr_local
+	go clean -testcache && go test -run Test ./StorageResources -timeout 0
+	$(MAKE) devr_local
+	go clean -testcache && go test -run Test ./StorageSchedule -timeout 0
+	$(MAKE) devr_local
+	go clean -testcache && go test -run Test ./Tests/schedule_datastructure_basic -timeout 0
+	$(MAKE) devr_local
+	go clean -testcache && go test -run Test ./Utils -timeout 0
+	$(MAKE) devr_local
+
 bench:
 	# we need to escape the dollar sign for the command: go test -run=^$ -bench=. ./...
 	go test -run=^$$ -bench=. ./... -benchmem
