@@ -3,8 +3,6 @@ package GeneticAlgorithm
 import (
 	"errors"
 	"fmt"
-	"log"
-	"os"
 	"sort"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
@@ -27,36 +25,6 @@ func Crossover(
 			"parents must have the same length, parent 1 length: %d, parent 2 length: %d",
 			len(parent1), len(parent2),
 		)
-	}
-
-	if os.Getenv("GIN_MODE") != "release" {
-		err_p1_repaired_hv := parent1.HorizontalValidation(
-			resource_persistence,
-			department_to_encode,
-			selected_semester,
-		)
-
-		if len(err_p1_repaired_hv) > 0 {
-			for _, err := range err_p1_repaired_hv {
-				log.Printf("Horizontal validation error P1: %s", err.Error())
-			}
-
-			panic("P1 : opps there is a horizontal validation error, which should not happen!")
-		}
-
-		err_p2_repaired_hv := parent2.HorizontalValidation(
-			resource_persistence,
-			department_to_encode,
-			selected_semester,
-		)
-
-		if len(err_p2_repaired_hv) > 0 {
-			for _, err := range err_p2_repaired_hv {
-				log.Printf("Horizontal validation error P2: %s", err.Error())
-			}
-
-			panic("P2 : opps there is a horizontal validation error, which should not happen!")
-		}
 	}
 
 	total_encoding_tries := 0
@@ -131,7 +99,8 @@ func Crossover(
 			return parent_2_subjects[i].SubjectID < parent_2_subjects[j].SubjectID
 		})
 
-		// sanity check
+		// cheap sanity check - keep this
+
 		for i := 0; i < max(len(parent_1_subjects), len(parent_2_subjects)); i++ {
 			is_equal_subject_id := parent_1_subjects[i].SubjectID == parent_2_subjects[i].SubjectID
 			is_equal_time_slot_size := parent_1_subjects[i].TimeSlotSize == parent_2_subjects[i].TimeSlotSize
@@ -272,28 +241,6 @@ func Crossover(
 
 		if err_repair_encoding != nil {
 			return nil, err_repair_encoding
-		}
-
-		if os.Getenv("GIN_MODE") != "release" {
-			err_repaired_vv := repaired_sched.VerticalValidation(resource_persistence)
-
-			if len(err_repaired_vv) > 0 {
-				panic("why the fudge there is a vertical error here?")
-			}
-
-			err_repaired_hv := repaired_sched.HorizontalValidation(
-				resource_persistence,
-				department_to_encode,
-				selected_semester,
-			)
-
-			if len(err_repaired_hv) > 0 {
-				for _, err := range err_repaired_hv {
-					log.Printf("Horizontal validation error: %s", err.Error())
-				}
-
-				panic("END: opps there is a horizontal validation, which should not happen!")
-			}
 		}
 
 		return &SchedAndResources{
