@@ -53,7 +53,7 @@ jobs:
 
       - name: Run Server And Node Fetch Test
         run: |
-            sed -i 's/resolve, 1000 * 60 * 16/resolve, 1000 * 60 * 4/' src/schedule/class_schedule.jsx
+            sed -i 's/resolve, 1000 * 60 * 16/resolve, 1000 * 60 * 4/' Tests/schedule-serialization.js
             ./app & sleep 1 && node Tests/schedule-serialization.js
             make devr && ./app & sleep 1 && node Tests/schedule-serialization.js
         env:
