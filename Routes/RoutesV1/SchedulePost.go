@@ -221,7 +221,7 @@ queue_pop_loop:
 
 			log.Printf(
 				"encode_schedule: [other-sched-initial] %s %s no errors: %t",
-				dept_id_to_department[department_id].Code,
+				dept_id_to_department[other_dept_id].Code,
 				Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
 				is_other_dept_valid_initial[other_dept_id],
 			)
@@ -534,7 +534,7 @@ queue_pop_loop:
 
 				log.Printf(
 					"encode_schedule: [other-sched-final] %s %s no errors: %t",
-					dept_id_to_department[department_id].Code,
+					dept_id_to_department[other_dept_id].Code,
 					Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
 					is_other_dept_valid_final[other_dept_id],
 				)
