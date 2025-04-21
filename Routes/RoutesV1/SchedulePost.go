@@ -201,13 +201,11 @@ queue_pop_loop:
 		// record other department's horizontal validation result to compare
 		// later after generating schedule for the current department
 
-		other_department_to_validate_initial_result := make(map[uint16]bool)
+		is_other_dept_valid_initial := make(map[uint16]bool)
 
 		for other_dept_id := range dept_id_to_department {
 
-			is_to_ignore, is_in_to_encode := department_to_encode[other_dept_id]
-
-			if is_to_ignore && is_in_to_encode {
+			if department_to_encode[other_dept_id] {
 				continue
 			}
 
@@ -219,7 +217,14 @@ queue_pop_loop:
 				other_dept_to_validate, semester_to_encode,
 			)
 
-			other_department_to_validate_initial_result[other_dept_id] = len(errs_hv) > 0
+			is_other_dept_valid_initial[other_dept_id] = len(errs_hv) == 0
+
+			log.Printf(
+				"encode_schedule: [other-sched-initial] %s %s no errors: %t",
+				dept_id_to_department[department_id].Code,
+				Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
+				is_other_dept_valid_initial[other_dept_id],
+			)
 		}
 
 		// encode a new schedule in the obtained university schedule for the specific department
@@ -509,7 +514,7 @@ queue_pop_loop:
 
 			// check if other department schedules are broken during the process
 
-			other_department_to_validate_final_result := make(map[uint16]bool)
+			is_other_dept_valid_final := make(map[uint16]bool)
 
 			for other_dept_id := range dept_id_to_department {
 
@@ -525,7 +530,14 @@ queue_pop_loop:
 					other_dept_to_validate, semester_to_encode,
 				)
 
-				other_department_to_validate_final_result[other_dept_id] = len(errs_hv) > 0
+				is_other_dept_valid_final[other_dept_id] = len(errs_hv) == 0
+
+				log.Printf(
+					"encode_schedule: [other-sched-final] %s %s no errors: %t",
+					dept_id_to_department[department_id].Code,
+					Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
+					is_other_dept_valid_final[other_dept_id],
+				)
 			}
 
 			for other_dept_id := range dept_id_to_department {
@@ -534,8 +546,8 @@ queue_pop_loop:
 					continue
 				}
 
-				is_initial_valid := other_department_to_validate_initial_result[other_dept_id]
-				is_final_valid := other_department_to_validate_final_result[other_dept_id]
+				is_initial_valid := is_other_dept_valid_initial[other_dept_id]
+				is_final_valid := is_other_dept_valid_final[other_dept_id]
 
 				if is_initial_valid && !is_final_valid {
 					log.Printf(
@@ -572,10 +584,10 @@ queue_pop_loop:
 		)
 
 		log.Printf(
-			"encode_schedule: [success] genetic algorithm schedule generation success for %s %s after %d tries",
+			"encode_schedule: [success] genetic algorithm schedule generation success for %s %s after %d tries, %s",
 			dept_id_to_department[department_id].Code,
 			Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
-			retry+1,
+			retry+1, time.Since(start),
 		)
 	}
 
