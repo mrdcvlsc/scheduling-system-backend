@@ -240,6 +240,8 @@ async function test(base_url = '') {
 
     for (const department of departments) {
       const result = await getValidateSchedules(0, department.DepartmentID, base_url)
+
+      console.log(`single validation ${department.DepartmentID} error :`)
       console.log(result)
     }
 
