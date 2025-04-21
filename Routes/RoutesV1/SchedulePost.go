@@ -15,6 +15,8 @@ import (
 )
 
 const DEFAULT_INITIAL_REQUEST_COUNT uint = 30
+const POPULATION_SIZE = 24
+const TOTAL_GENERATION = 12
 
 /*
 POST:
@@ -267,11 +269,8 @@ queue_pop_loop:
 				university_schedule, curriculums, dept_id_to_department,
 				default_encoding_resource, generated_encoding_resource,
 				department_to_encode, semester_to_encode,
-				24, 12,
-				RouteGlobals.ResourcesPersistence, func(generation int, generation_fittest_sched Schedule.UniTimeTables) {
-					if generation%2 == 0 {
-						return
-					}
+				POPULATION_SIZE, TOTAL_GENERATION,
+				RouteGlobals.ResourcesPersistence, func(generation int, generation_fittest_sched Schedule.UniTimeTables, fitness float64) {
 
 					// save genetic algorithm's generated in-between university schedule
 
@@ -289,6 +288,38 @@ queue_pop_loop:
 						)
 
 						log.Print("encode_schedule: [in-between-save-failed] error unable to save the genetic algorithm's generated schedule, caused by :", err.Error())
+						return
+					} else {
+						RouteGlobals.SetDeptSchedGenResult(
+							RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
+							RouteGlobals.SchedGenResult{
+								Status: RouteGlobals.SchedGenStatusInProgress,
+								Message: fmt.Sprintf(
+									"running genetic algorithm, at generation %d, with population size %d, fittest schedule at %f",
+									generation, POPULATION_SIZE, fitness,
+								),
+							},
+						)
+
+						// cache genetic algorithm's generated university schedule
+
+						if err := RouteGlobals.SetCachedUniversitySchedule(semester_to_encode, generation_fittest_sched); err != nil {
+							RouteGlobals.SetDeptSchedGenResult(
+								RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
+								RouteGlobals.SchedGenResult{
+									Status: RouteGlobals.SchedGenStatusInternalError,
+									Message: fmt.Sprintf(
+										"error caching schedule after %s, caused by %s",
+										time.Since(start),
+										err.Error(),
+									),
+								},
+							)
+
+							log.Print("encode_schedule: [cache-failed] unable to change the genetic algorithm's generated schedule:", err.Error())
+						}
+
+						log.Print("encode_schedule: genetic algorithm's generated schedule cached successfully")
 					}
 				},
 			)
