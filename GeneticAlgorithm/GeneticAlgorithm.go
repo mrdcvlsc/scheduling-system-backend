@@ -12,7 +12,6 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Departments"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
-	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
 const MAX_GENESIS_INDIVIDUAL_GENERATION_TRIALS int = 64
@@ -34,6 +33,7 @@ func RunGeneticAlgorithm(
 	department_to_encode map[uint16]bool,
 	selected_semester, population_size, generations int,
 	resource_persistence *StorageResources.Persistence,
+	cb_fn_generation func(generation int, generation_fittest_sched Schedule.UniTimeTables, fitness float64),
 ) (Schedule.UniTimeTables, *EncodingResource, error) {
 
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
@@ -168,12 +168,6 @@ func RunGeneticAlgorithm(
 		population := make([]SchedAndResources, 0, population_size+1)
 
 		////////////////////////////////////////////////////////////////////////////////////////
-		//	   take the best individual from the previous generation or genesis population
-		////////////////////////////////////////////////////////////////////////////////////////
-
-		population = append(population, genesis_population[0])
-
-		////////////////////////////////////////////////////////////////////////////////////////
 		//				                TOURNAMENT SELECTION
 		////////////////////////////////////////////////////////////////////////////////////////
 
@@ -181,36 +175,37 @@ func RunGeneticAlgorithm(
 
 		start = time.Now()
 
-		non_elite_population := genesis_population[1:]
-
-		rng.Shuffle(len(non_elite_population), func(i, j int) {
-			non_elite_population[i], non_elite_population[j] = non_elite_population[j], non_elite_population[i]
+		rng.Shuffle(len(genesis_population), func(i, j int) {
+			genesis_population[i], genesis_population[j] = genesis_population[j], genesis_population[i]
 		})
 
-		for i := 0; i < len(non_elite_population)-2; i += 2 {
-			A := MeasureCompleteUniSchedBasicFitness(non_elite_population[i].UniSched, curriculums, department_to_encode, selected_semester)
-			B := MeasureCompleteUniSchedBasicFitness(non_elite_population[i+1].UniSched, curriculums, department_to_encode, selected_semester)
+		for i := 0; i < len(genesis_population); i += 2 {
+			A := MeasureCompleteUniSchedBasicFitness(genesis_population[i].UniSched, curriculums, department_to_encode, selected_semester)
+			B := MeasureCompleteUniSchedBasicFitness(genesis_population[i+1].UniSched, curriculums, department_to_encode, selected_semester)
 
 			if A > B {
-				population = append(population, non_elite_population[i])
+				population = append(population, genesis_population[i])
 			} else {
-				population = append(population, non_elite_population[i+1])
+				population = append(population, genesis_population[i+1])
 			}
+		}
+
+		if len(genesis_population)%2 == 1 {
+			population = append(population, genesis_population[len(genesis_population)-1])
 		}
 
 		remaining_missing_population := population_size - len(population)
 
-		log.Printf("remaining missing population after tournament selection : %d", remaining_missing_population)
-
-		fmt.Printf("ga: [tournament selection] - took %s\n", time.Since(start))
+		fmt.Printf(
+			"ga: [tournament selection] - took %s, remaining missing population after tournament selection %d\n",
+			time.Since(start), remaining_missing_population,
+		)
 
 		////////////////////////////////////////////////////////////////////////////////////////
 		//				                     CROSSOVER
 		////////////////////////////////////////////////////////////////////////////////////////
 
 		start = time.Now()
-
-		log.Printf("populate the population with new offspring from parents")
 
 		crossover_tries := 0
 
@@ -269,7 +264,12 @@ func RunGeneticAlgorithm(
 			population = append(population, *offspring)
 		}
 
-		fmt.Printf("ga: [crossover] - took %s\n", time.Since(start))
+		remaining_missing_population = population_size - len(population)
+
+		fmt.Printf(
+			"ga: [crossover] - took %s, remaining missing population after tournament selection %d\n",
+			time.Since(start), remaining_missing_population,
+		)
 
 		////////////////////////////////////////////////////////////////////////////////////////
 		//				                   RANDOM MUTATIONS
@@ -277,67 +277,17 @@ func RunGeneticAlgorithm(
 
 		start = time.Now()
 
-		log.Print("applying random mutation to the population")
-
 		for i := 1; i < len(population); i++ {
 
 			// apply random mutations to some of the CURRENT individuals in the population
 
 			ApplyRandomSubjectErasure(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
-
-			// TODO: when code-base become stable remove vertical validation panic 1
-
-			err_vv1 := population[i].UniSched.VerticalValidation(resource_persistence)
-
-			if len(err_vv1) > 0 {
-				panic("vertical validation error 1 : after subject erasure")
-			}
-
 			ApplyRandomDaySwapTimeSlots(population[i].UniSched, curriculums, department_id, selected_semester, resource_persistence)
-
-			// TODO: when code-base become stable remove vertical validation panic 2
-
-			err_vv2 := population[i].UniSched.VerticalValidation(resource_persistence)
-
-			if len(err_vv2) > 0 {
-				for _, err := range err_vv2 {
-					fmt.Printf("vertical validation error : %s\n", err.Error())
-				}
-
-				panic("vertical validation error 3 : after day swap time slots")
-			}
-
 			ApplyRandomSubjectDaySwap(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
-
-			// TODO: when code-base become stable remove vertical validation panic 3
-
-			err_vv3 := population[i].UniSched.VerticalValidation(resource_persistence)
-
-			if len(err_vv3) > 0 {
-				panic("vertical validation error 4 : after day swap")
-			}
-
 			ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
-
-			// TODO: when code-base become stable remove vertical validation panic 4
-
-			err_vv4 := population[i].UniSched.VerticalValidation(resource_persistence)
-
-			if len(err_vv4) > 0 {
-				panic("vertical validation error 5 : after time slot nudge")
-			}
-
 			ApplyRandomSubjectTimeSlotAndDayNudge(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
 
-			// TODO: when code-base become stable remove vertical validation panic 5
-
-			err_vv5 := population[i].UniSched.VerticalValidation(resource_persistence)
-
-			if len(err_vv5) > 0 {
-				panic("vertical validation error 5 : after time slot nudge")
-			}
-
-			// re-encode to repair/fix missing geneome/individual schedule
+			// repair broken genome after mutations
 
 			re_encode_tries := 0
 
@@ -391,50 +341,7 @@ func RunGeneticAlgorithm(
 					re_encode_tries = 0
 				}
 
-				////////////////////////////////////////////////////////////////////////////////////////
-				//				          RANDOM MUTATIONS - SANITY CHECK FOR DEBUGGING
-				////////////////////////////////////////////////////////////////////////////////////////
-
-				if repaired_uni_sched.IsEmpty() {
-					panic(">>> re-encoded individual best individual is empty")
-				}
-
-				if len(repaired_uni_sched.VerticalValidation(resource_persistence)) > 0 {
-					panic(">>> re-encoded individual individual has vertical validation error")
-				}
-
-				err_hr := repaired_uni_sched.HorizontalValidation(resource_persistence, department_to_encode, selected_semester)
-
-				if len(err_hr) > 0 {
-					fmt.Println(">>> department to encode:")
-					Utils.PrettyPrint(department_to_encode)
-
-					for _, err := range err_hr {
-						fmt.Printf("horizontal validation error : %s\n", err.Error())
-					}
-
-					panic(">>> re-encoded individual has horizontal validation error")
-				}
-
-				if repaired_encoding_resource == nil {
-					panic("this re-encoding resource is empty")
-				}
-
-				if len(repaired_encoding_resource.DeptIdToInstructors) <= 0 {
-					panic("this re-encoding resource has an empty DeptIdToInstructors")
-				}
-
-				if len(repaired_encoding_resource.DeptIdToRoomtypeToRooms) <= 0 {
-					panic("this re-encoding resource has an empty DeptIdToRoomtypeToRooms")
-				}
-
-				if len(repaired_encoding_resource.IsSchedIdxToSubIdToSkip) <= 0 {
-					panic("this re-encoding resource has an empty IsSchedIdxToSubIdToSkip")
-				}
-
-				////////////////////////////////////////////////////////////////////////////////////////
-				//				                   RANDOM MUTATIONS
-				////////////////////////////////////////////////////////////////////////////////////////
+				// apply repairs to the individual
 
 				population[i].UniSched = repaired_uni_sched
 				population[i].Resources = repaired_encoding_resource
@@ -459,14 +366,18 @@ func RunGeneticAlgorithm(
 
 		// add back to the genesis population
 
-		log.Print("adding back to the genesis population")
+		genesis_population = population
 
-		genesis_population = make([]SchedAndResources, 0, population_size+1)
-		genesis_population = append(genesis_population, population...)
+		fittest_individual_fitness := MeasureCompleteUniSchedBasicFitness(genesis_population[0].UniSched, curriculums, department_to_encode, selected_semester)
 
-		log.Printf("best individual fitness : %f", MeasureCompleteUniSchedBasicFitness(genesis_population[0].UniSched, curriculums, department_to_encode, selected_semester))
+		fmt.Printf(
+			"ga: [population to transfer to next generation] - took %s, best individual fitness : %f\n",
+			time.Since(start), fittest_individual_fitness,
+		)
 
-		fmt.Printf("ga: [population to transfer to next generation] - took %s\n", time.Since(start))
+		if cb_fn_generation != nil {
+			cb_fn_generation(g, genesis_population[0].UniSched, fittest_individual_fitness)
+		}
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
