@@ -12,6 +12,7 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Departments"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
+	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
 const MAX_GENESIS_INDIVIDUAL_GENERATION_TRIALS int = 64
@@ -274,175 +275,175 @@ func RunGeneticAlgorithm(
 		//				                   RANDOM MUTATIONS
 		////////////////////////////////////////////////////////////////////////////////////////
 
-		// start = time.Now()
+		start = time.Now()
 
-		// log.Print("applying random mutation to the population")
+		log.Print("applying random mutation to the population")
 
-		// for i := 1; i < len(population); i++ {
+		for i := 1; i < len(population); i++ {
 
-		// 	// apply random mutations to some of the CURRENT individuals in the population
+			// apply random mutations to some of the CURRENT individuals in the population
 
-		// 	ApplyRandomSubjectErasure(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
+			ApplyRandomSubjectErasure(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
 
-		// 	// TODO: when code-base become stable remove vertical validation panic 1
+			// TODO: when code-base become stable remove vertical validation panic 1
 
-		// 	err_vv1 := population[i].UniSched.VerticalValidation(resource_persistence)
+			err_vv1 := population[i].UniSched.VerticalValidation(resource_persistence)
 
-		// 	if len(err_vv1) > 0 {
-		// 		panic("vertical validation error 1 : after subject erasure")
-		// 	}
+			if len(err_vv1) > 0 {
+				panic("vertical validation error 1 : after subject erasure")
+			}
 
-		// 	ApplyRandomDaySwapTimeSlots(population[i].UniSched, curriculums, department_id, selected_semester, resource_persistence)
+			ApplyRandomDaySwapTimeSlots(population[i].UniSched, curriculums, department_id, selected_semester, resource_persistence)
 
-		// 	// TODO: when code-base become stable remove vertical validation panic 2
+			// TODO: when code-base become stable remove vertical validation panic 2
 
-		// 	err_vv2 := population[i].UniSched.VerticalValidation(resource_persistence)
+			err_vv2 := population[i].UniSched.VerticalValidation(resource_persistence)
 
-		// 	if len(err_vv2) > 0 {
-		// 		for _, err := range err_vv2 {
-		// 			fmt.Printf("vertical validation error : %s\n", err.Error())
-		// 		}
+			if len(err_vv2) > 0 {
+				for _, err := range err_vv2 {
+					fmt.Printf("vertical validation error : %s\n", err.Error())
+				}
 
-		// 		panic("vertical validation error 3 : after day swap time slots")
-		// 	}
+				panic("vertical validation error 3 : after day swap time slots")
+			}
 
-		// 	ApplyRandomSubjectDaySwap(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
+			ApplyRandomSubjectDaySwap(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
 
-		// 	// TODO: when code-base become stable remove vertical validation panic 3
+			// TODO: when code-base become stable remove vertical validation panic 3
 
-		// 	err_vv3 := population[i].UniSched.VerticalValidation(resource_persistence)
+			err_vv3 := population[i].UniSched.VerticalValidation(resource_persistence)
 
-		// 	if len(err_vv3) > 0 {
-		// 		panic("vertical validation error 4 : after day swap")
-		// 	}
+			if len(err_vv3) > 0 {
+				panic("vertical validation error 4 : after day swap")
+			}
 
-		// 	ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
+			ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
 
-		// 	// TODO: when code-base become stable remove vertical validation panic 4
+			// TODO: when code-base become stable remove vertical validation panic 4
 
-		// 	err_vv4 := population[i].UniSched.VerticalValidation(resource_persistence)
+			err_vv4 := population[i].UniSched.VerticalValidation(resource_persistence)
 
-		// 	if len(err_vv4) > 0 {
-		// 		panic("vertical validation error 5 : after time slot nudge")
-		// 	}
+			if len(err_vv4) > 0 {
+				panic("vertical validation error 5 : after time slot nudge")
+			}
 
-		// 	ApplyRandomSubjectTimeSlotAndDayNudge(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
+			ApplyRandomSubjectTimeSlotAndDayNudge(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
 
-		// 	// TODO: when code-base become stable remove vertical validation panic 5
+			// TODO: when code-base become stable remove vertical validation panic 5
 
-		// 	err_vv5 := population[i].UniSched.VerticalValidation(resource_persistence)
+			err_vv5 := population[i].UniSched.VerticalValidation(resource_persistence)
 
-		// 	if len(err_vv5) > 0 {
-		// 		panic("vertical validation error 5 : after time slot nudge")
-		// 	}
+			if len(err_vv5) > 0 {
+				panic("vertical validation error 5 : after time slot nudge")
+			}
 
-		// 	// re-encode to repair/fix missing geneome/individual schedule
+			// re-encode to repair/fix missing geneome/individual schedule
 
-		// 	re_encode_tries := 0
+			re_encode_tries := 0
 
-		// 	for re_encode_tries < MAX_RE_ENCODE_REPAIR_TRIALS {
+			for re_encode_tries < MAX_RE_ENCODE_REPAIR_TRIALS {
 
-		// 		generated_encoding_resource, err_generate_encoding_resource := GenerateEncodingResourceFromUniTimeTable(
-		// 			population[i].UniSched, curriculums, selected_semester, resource_persistence,
-		// 		)
+				generated_encoding_resource, err_generate_encoding_resource := GenerateEncodingResourceFromUniTimeTable(
+					population[i].UniSched, curriculums, selected_semester, resource_persistence,
+				)
 
-		// 		if err_generate_encoding_resource != nil {
-		// 			log.Printf(
-		// 				"GA-ERROR [Random Mutation]: unable to generate encoding resource from an individual on generation %d, casued by %s",
-		// 				g, err_generate_encoding_resource.Error(),
-		// 			)
+				if err_generate_encoding_resource != nil {
+					log.Printf(
+						"GA-ERROR [Random Mutation]: unable to generate encoding resource from an individual on generation %d, casued by %s",
+						g, err_generate_encoding_resource.Error(),
+					)
 
-		// 			return nil, nil, fmt.Errorf(
-		// 				"GA-ERROR [Random Mutation]: unable to generate encoding resource from an individual on generation %d, casued by %s",
-		// 				g, err_generate_encoding_resource.Error(),
-		// 			)
-		// 		}
+					return nil, nil, fmt.Errorf(
+						"GA-ERROR [Random Mutation]: unable to generate encoding resource from an individual on generation %d, casued by %s",
+						g, err_generate_encoding_resource.Error(),
+					)
+				}
 
-		// 		repaired_uni_sched, repaired_encoding_resource, err_repair_schedule := EncodeIndividualGenome(
-		// 			population[i].UniSched, curriculums, dept_id_to_department,
-		// 			generated_encoding_resource, department_to_encode,
-		// 			selected_semester, 0,
-		// 		)
+				repaired_uni_sched, repaired_encoding_resource, err_repair_schedule := EncodeIndividualGenome(
+					population[i].UniSched, curriculums, dept_id_to_department,
+					generated_encoding_resource, department_to_encode,
+					selected_semester, 0,
+				)
 
-		// 		if err_repair_schedule != nil {
-		// 			re_encode_tries++
+				if err_repair_schedule != nil {
+					re_encode_tries++
 
-		// 			if re_encode_tries >= MAX_RE_ENCODE_REPAIR_TRIALS {
-		// 				log.Printf(
-		// 					"GA-ERROR [Random Mutation]: unable to repair an individual on generation %d after %d tries : caused by error %s",
-		// 					g, MAX_RE_ENCODE_REPAIR_TRIALS, err_repair_schedule.Error(),
-		// 				)
+					if re_encode_tries >= MAX_RE_ENCODE_REPAIR_TRIALS {
+						log.Printf(
+							"GA-ERROR [Random Mutation]: unable to repair an individual on generation %d after %d tries : caused by error %s",
+							g, MAX_RE_ENCODE_REPAIR_TRIALS, err_repair_schedule.Error(),
+						)
 
-		// 				return nil, nil, fmt.Errorf(
-		// 					"GA-ERROR [Random Mutation]: unable to repair an individual on generation %d after %d tries : caused by error %s",
-		// 					g, MAX_RE_ENCODE_REPAIR_TRIALS, err_repair_schedule.Error(),
-		// 				)
-		// 			} else {
-		// 				ApplyRandomSubjectErasure(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
-		// 				ApplyRandomDaySwapTimeSlots(population[i].UniSched, curriculums, department_id, selected_semester, resource_persistence)
-		// 				ApplyRandomSubjectDaySwap(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
-		// 				ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
-		// 				ApplyRandomSubjectTimeSlotAndDayNudge(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
-		// 			}
+						return nil, nil, fmt.Errorf(
+							"GA-ERROR [Random Mutation]: unable to repair an individual on generation %d after %d tries : caused by error %s",
+							g, MAX_RE_ENCODE_REPAIR_TRIALS, err_repair_schedule.Error(),
+						)
+					} else {
+						ApplyRandomSubjectErasure(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
+						ApplyRandomDaySwapTimeSlots(population[i].UniSched, curriculums, department_id, selected_semester, resource_persistence)
+						ApplyRandomSubjectDaySwap(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
+						ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
+						ApplyRandomSubjectTimeSlotAndDayNudge(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
+					}
 
-		// 			continue
-		// 		} else {
-		// 			re_encode_tries = 0
-		// 		}
+					continue
+				} else {
+					re_encode_tries = 0
+				}
 
-		// 		////////////////////////////////////////////////////////////////////////////////////////
-		// 		//				          RANDOM MUTATIONS - SANITY CHECK FOR DEBUGGING
-		// 		////////////////////////////////////////////////////////////////////////////////////////
+				////////////////////////////////////////////////////////////////////////////////////////
+				//				          RANDOM MUTATIONS - SANITY CHECK FOR DEBUGGING
+				////////////////////////////////////////////////////////////////////////////////////////
 
-		// 		if repaired_uni_sched.IsEmpty() {
-		// 			panic(">>> re-encoded individual best individual is empty")
-		// 		}
+				if repaired_uni_sched.IsEmpty() {
+					panic(">>> re-encoded individual best individual is empty")
+				}
 
-		// 		if len(repaired_uni_sched.VerticalValidation(resource_persistence)) > 0 {
-		// 			panic(">>> re-encoded individual individual has vertical validation error")
-		// 		}
+				if len(repaired_uni_sched.VerticalValidation(resource_persistence)) > 0 {
+					panic(">>> re-encoded individual individual has vertical validation error")
+				}
 
-		// 		err_hr := repaired_uni_sched.HorizontalValidation(resource_persistence, department_to_encode, selected_semester)
+				err_hr := repaired_uni_sched.HorizontalValidation(resource_persistence, department_to_encode, selected_semester)
 
-		// 		if len(err_hr) > 0 {
-		// 			fmt.Println(">>> department to encode:")
-		// 			Utils.PrettyPrint(department_to_encode)
+				if len(err_hr) > 0 {
+					fmt.Println(">>> department to encode:")
+					Utils.PrettyPrint(department_to_encode)
 
-		// 			for _, err := range err_hr {
-		// 				fmt.Printf("horizontal validation error : %s\n", err.Error())
-		// 			}
+					for _, err := range err_hr {
+						fmt.Printf("horizontal validation error : %s\n", err.Error())
+					}
 
-		// 			panic(">>> re-encoded individual has horizontal validation error")
-		// 		}
+					panic(">>> re-encoded individual has horizontal validation error")
+				}
 
-		// 		if repaired_encoding_resource == nil {
-		// 			panic("this re-encoding resource is empty")
-		// 		}
+				if repaired_encoding_resource == nil {
+					panic("this re-encoding resource is empty")
+				}
 
-		// 		if len(repaired_encoding_resource.DeptIdToInstructors) <= 0 {
-		// 			panic("this re-encoding resource has an empty DeptIdToInstructors")
-		// 		}
+				if len(repaired_encoding_resource.DeptIdToInstructors) <= 0 {
+					panic("this re-encoding resource has an empty DeptIdToInstructors")
+				}
 
-		// 		if len(repaired_encoding_resource.DeptIdToRoomtypeToRooms) <= 0 {
-		// 			panic("this re-encoding resource has an empty DeptIdToRoomtypeToRooms")
-		// 		}
+				if len(repaired_encoding_resource.DeptIdToRoomtypeToRooms) <= 0 {
+					panic("this re-encoding resource has an empty DeptIdToRoomtypeToRooms")
+				}
 
-		// 		if len(repaired_encoding_resource.IsSchedIdxToSubIdToSkip) <= 0 {
-		// 			panic("this re-encoding resource has an empty IsSchedIdxToSubIdToSkip")
-		// 		}
+				if len(repaired_encoding_resource.IsSchedIdxToSubIdToSkip) <= 0 {
+					panic("this re-encoding resource has an empty IsSchedIdxToSubIdToSkip")
+				}
 
-		// 		////////////////////////////////////////////////////////////////////////////////////////
-		// 		//				                   RANDOM MUTATIONS
-		// 		////////////////////////////////////////////////////////////////////////////////////////
+				////////////////////////////////////////////////////////////////////////////////////////
+				//				                   RANDOM MUTATIONS
+				////////////////////////////////////////////////////////////////////////////////////////
 
-		// 		population[i].UniSched = repaired_uni_sched
-		// 		population[i].Resources = repaired_encoding_resource
+				population[i].UniSched = repaired_uni_sched
+				population[i].Resources = repaired_encoding_resource
 
-		// 		break
-		// 	}
-		// }
+				break
+			}
+		}
 
-		// fmt.Printf("ga: [random mutation] - took %s\n", time.Since(start))
+		fmt.Printf("ga: [random mutation] - took %s\n", time.Since(start))
 
 		////////////////////////////////////////////////////////////////////////////////////////
 		//				PREPARE PREPARE FINAL POPULATION FOR THE NEXT GENERATION
