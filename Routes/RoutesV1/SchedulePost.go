@@ -90,12 +90,12 @@ func encode_schedule() {
 		return
 	}
 
-	// default_encoding_resource, err_default_encoding_resource := GeneticAlgorithm.ReadDefaultEncodingResource(RouteGlobals.ResourcesPersistence)
+	default_encoding_resource, err_default_encoding_resource := GeneticAlgorithm.ReadDefaultEncodingResource(RouteGlobals.ResourcesPersistence)
 
-	// if err_default_encoding_resource != nil {
-	// 	log.Print("encode_schedule: read default encoding resource error : ", err_default_encoding_resource)
-	// 	return
-	// }
+	if err_default_encoding_resource != nil {
+		log.Print("encode_schedule: read default encoding resource error : ", err_default_encoding_resource)
+		return
+	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
@@ -214,11 +214,12 @@ queue_pop_loop:
 
 			// TODO: on genetic algorithm error - just use normal schedule generation result
 
-			fittest_uni_sched, fittest_encoding_resource, err_genetic_algorithm := GeneticAlgorithm.EncodeIndividualGenome(
-				university_schedule,
-				curriculums, dept_id_to_department,
-				generated_encoding_resource, department_to_encode,
-				semester_to_encode, 0,
+			fittest_uni_sched, fittest_encoding_resource, err_genetic_algorithm := GeneticAlgorithm.RunGeneticAlgorithm(
+				university_schedule, curriculums, dept_id_to_department,
+				default_encoding_resource, generated_encoding_resource,
+				department_to_encode, semester_to_encode,
+				24, 12,
+				RouteGlobals.ResourcesPersistence,
 			)
 
 			if err_genetic_algorithm != nil {
