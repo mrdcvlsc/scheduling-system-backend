@@ -42,7 +42,7 @@ func Test_JsonReadWriteUniversitySchedules1stSem(t *testing.T) {
 			t.Fatal(err_dept_id_to_department)
 		}
 
-		fmt.Printf("\ntotal departments detected : %d", len(dept_id_to_department))
+		fmt.Printf("\ntotal 1st semester departments detected : %d\n", len(dept_id_to_department))
 
 		////////////////////////////////////////////////////////////////////////////////////////
 
@@ -226,12 +226,32 @@ func Test_JsonReadWriteUniversitySchedules2ndSem(t *testing.T) {
 			t.Fatal(err_dept_id_to_department)
 		}
 
+		fmt.Printf("\ntotal 2ND semester departments detected : %d\n", len(dept_id_to_department))
+
 		////////////////////////////////////////////////////////////////////////////////////////
 
 		encoding_resource, err_read_default_encoding_resource := GeneticAlgorithm.ReadDefaultEncodingResource(&persistence)
 
 		if err_read_default_encoding_resource != nil {
 			t.Fatal(err_read_default_encoding_resource)
+		}
+
+		fmt.Print("\n\n")
+
+		for dept_id, instructors := range encoding_resource.DeptIdToInstructors {
+			fmt.Printf("the numbers of instructors in (id:%d) %s is %d\n", dept_id, dept_id_to_department[dept_id].Code, len(instructors))
+		}
+
+		fmt.Print("\n\n")
+
+		for dept_id, room_types := range encoding_resource.DeptIdToRoomtypeToRooms {
+			for room_type, rooms := range room_types {
+				if (int(room_type) >= len(Rooms.ROOM_TYPE_NAMES)) || (int(room_type) < 0) {
+					t.Fatalf("for some unkown reason, test detected an invalid room type : %d\n", room_type)
+				} else {
+					fmt.Printf("number of %s rooms in %s is %d\n", Rooms.ROOM_TYPE_NAMES[room_type], dept_id_to_department[dept_id].Code, len(rooms))
+				}
+			}
 		}
 
 		////////////////////////////////////////////////////////////////////////////////////////
