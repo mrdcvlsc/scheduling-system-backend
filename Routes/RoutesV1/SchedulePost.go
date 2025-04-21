@@ -11,6 +11,7 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
+	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 )
 
 const DEFAULT_INITIAL_REQUEST_COUNT uint = 30
@@ -267,7 +268,29 @@ queue_pop_loop:
 				default_encoding_resource, generated_encoding_resource,
 				department_to_encode, semester_to_encode,
 				24, 12,
-				RouteGlobals.ResourcesPersistence,
+				RouteGlobals.ResourcesPersistence, func(generation int, generation_fittest_sched Schedule.UniTimeTables) {
+					if generation%2 == 0 {
+						return
+					}
+
+					// save genetic algorithm's generated in-between university schedule
+
+					if err := RouteGlobals.SchedulePersistence.SaveService.SaveSchedules(generation_fittest_sched, semester_to_encode); err != nil {
+						RouteGlobals.SetDeptSchedGenResult(
+							RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
+							RouteGlobals.SchedGenResult{
+								Status: RouteGlobals.SchedGenStatusInternalError,
+								Message: fmt.Sprintf(
+									"error saving schedule in between generation after %s, caused by : %s",
+									time.Since(start),
+									err.Error(),
+								),
+							},
+						)
+
+						log.Print("encode_schedule: [in-between-save-failed] error unable to save the genetic algorithm's generated schedule, caused by :", err.Error())
+					}
+				},
 			)
 
 			if err_genetic_algorithm != nil {

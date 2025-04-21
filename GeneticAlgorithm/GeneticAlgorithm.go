@@ -34,6 +34,7 @@ func RunGeneticAlgorithm(
 	department_to_encode map[uint16]bool,
 	selected_semester, population_size, generations int,
 	resource_persistence *StorageResources.Persistence,
+	cb_fn_generation func(generation int, generation_fittest_sched Schedule.UniTimeTables),
 ) (Schedule.UniTimeTables, *EncodingResource, error) {
 
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
@@ -156,6 +157,10 @@ func RunGeneticAlgorithm(
 	// NOTE: "base schedule" are the current initial or most fit individual in a generation
 	// this should never be replaced or modify by the algorithm, the "base schedule"
 	// will only change if a new fitter inidividual emerges as a new "base schedule".
+
+	if cb_fn_generation != nil {
+		cb_fn_generation(0, genesis_population[0].UniSched)
+	}
 
 	for g := range generations {
 
@@ -467,6 +472,10 @@ func RunGeneticAlgorithm(
 		log.Printf("best individual fitness : %f", MeasureCompleteUniSchedBasicFitness(genesis_population[0].UniSched, curriculums, department_to_encode, selected_semester))
 
 		fmt.Printf("ga: [population to transfer to next generation] - took %s\n", time.Since(start))
+
+		if cb_fn_generation != nil {
+			cb_fn_generation(g, genesis_population[0].UniSched)
+		}
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
