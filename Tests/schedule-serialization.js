@@ -234,7 +234,7 @@ async function test(base_url = '') {
       }
     }
 
-    await new Promise(resolve => setTimeout(resolve, 1000 * 60 * 16));
+    await new Promise(resolve => setTimeout(resolve, 1000 * 60 * 16)); // don't edit this line, this wait time is replaced during ci test
 
     console.log('-----------validate each departments one-by-one-----------------\n')
 
