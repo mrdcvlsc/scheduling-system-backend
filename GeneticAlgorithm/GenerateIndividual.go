@@ -55,6 +55,7 @@ func EncodeIndividualGenome(
 	selected_semester, force_distribution_type int,
 ) (Schedule.UniTimeTables, *EncodingResource, error) {
 
+	defer debug_log(rc_encoding_resource, ro_dept_id_to_department)
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -662,4 +663,22 @@ func NewEmptyIndividual(
 	})
 
 	return individual_university_schedules
+}
+
+func debug_log(encoding_resource *EncodingResource, dept_id_to_department map[uint16]Departments.Department) {
+	fmt.Print("\n\ndebug_log:\n")
+
+	for dept_id, instructors := range encoding_resource.DeptIdToInstructors {
+		fmt.Printf("the numbers of instructors in %s is %d\n", dept_id_to_department[dept_id].Code, len(instructors))
+	}
+
+	fmt.Print("\n\n")
+
+	for dept_id, room_types := range encoding_resource.DeptIdToRoomtypeToRooms {
+		for room_type, rooms := range room_types {
+			fmt.Printf("number of %s rooms in %s is %d", Rooms.ROOM_TYPE_NAMES[room_type], dept_id_to_department[dept_id].Code, len(rooms))
+		}
+	}
+
+	fmt.Print("\n\n")
 }
