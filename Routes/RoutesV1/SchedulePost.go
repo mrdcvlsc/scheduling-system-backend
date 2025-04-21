@@ -114,6 +114,8 @@ queue_pop_loop:
 			break // no more department and semester in the schedule generation queue to be encoded in the schedules
 		}
 
+		// get department id
+
 		department_id := uint16(0)
 
 		for k := range department_to_encode {
@@ -195,6 +197,30 @@ queue_pop_loop:
 			dept_id_to_department[department_id].Code,
 			Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
 		)
+
+		// record other department's horizontal validation result to compare
+		// later after generating schedule for the current department
+
+		other_department_to_validate_initial_result := make(map[uint16]bool)
+
+		for other_dept_id := range dept_id_to_department {
+
+			is_to_ignore, is_in_to_encode := department_to_encode[other_dept_id]
+
+			if is_to_ignore && is_in_to_encode {
+				continue
+			}
+
+			other_dept_to_validate := make(map[uint16]bool)
+			other_dept_to_validate[other_dept_id] = true
+
+			errs_hv := university_schedule.HorizontalValidation(
+				RouteGlobals.ResourcesPersistence,
+				other_dept_to_validate, semester_to_encode,
+			)
+
+			other_department_to_validate_initial_result[other_dept_id] = len(errs_hv) > 0
+		}
 
 		// encode a new schedule in the obtained university schedule for the specific department
 
@@ -486,6 +512,8 @@ queue_pop_loop:
 			break
 		}
 
+		// set result of schedule generation for the current department to success
+
 		RouteGlobals.SetDeptSchedGenResult(
 			RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
 			RouteGlobals.SchedGenResult{
@@ -500,6 +528,55 @@ queue_pop_loop:
 			Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
 			retry+1,
 		)
+
+		// check if other department schedules are broken during the process
+
+		other_department_to_validate_final_result := make(map[uint16]bool)
+
+		for other_dept_id := range dept_id_to_department {
+
+			if department_to_encode[other_dept_id] {
+				continue
+			}
+
+			other_dept_to_validate := make(map[uint16]bool)
+			other_dept_to_validate[other_dept_id] = true
+
+			errs_hv := university_schedule.HorizontalValidation(
+				RouteGlobals.ResourcesPersistence,
+				other_dept_to_validate, semester_to_encode,
+			)
+
+			other_department_to_validate_final_result[other_dept_id] = len(errs_hv) > 0
+		}
+
+		for other_dept_id := range dept_id_to_department {
+
+			if department_to_encode[other_dept_id] {
+				continue
+			}
+
+			is_initial_valid := other_department_to_validate_initial_result[other_dept_id]
+			is_final_valid := other_department_to_validate_final_result[other_dept_id]
+
+			if is_initial_valid && !is_final_valid {
+				log.Printf(
+					"encode_schedule: [broke-others] genetic algorithm accidentally broke the schedules of %s %s",
+					dept_id_to_department[other_dept_id].Code, Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
+				)
+			}
+
+			RouteGlobals.SetDeptSchedGenResult(
+				RouteGlobals.DeptSchedGenKey{DepartmentID: other_dept_id, Semester: semester_to_encode},
+				RouteGlobals.SchedGenResult{
+					Status: RouteGlobals.SchedGenStatusInternalError,
+					Message: fmt.Sprintf(
+						"your schedule might be have been affected when %s finished generating schedules for %s",
+						dept_id_to_department[other_dept_id].Code, Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
+					),
+				},
+			)
+		}
 	}
 
 	log.Println("encode_schedule: [function ended]")
