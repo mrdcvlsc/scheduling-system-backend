@@ -63,7 +63,7 @@ func Test_JsonReadWriteUniversitySchedules1stSem(t *testing.T) {
 		for dept_id, room_types := range encoding_resource.DeptIdToRoomtypeToRooms {
 			for room_type, rooms := range room_types {
 				if (int(room_type) >= len(Rooms.ROOM_TYPE_NAMES)) || (int(room_type) < 0) {
-					t.Fatalf("for some unkown reason, test detected an invalid room type : %d", room_type)
+					t.Fatalf("for some unkown reason, test detected an invalid room type : %d\n", room_type)
 				} else {
 					fmt.Printf("number of %s rooms in %s is %d\n", Rooms.ROOM_TYPE_NAMES[room_type], dept_id_to_department[dept_id].Code, len(rooms))
 				}
