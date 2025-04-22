@@ -3,13 +3,19 @@ package GeneticAlgorithm
 import (
 	"errors"
 	"fmt"
+	"log"
+	"math/rand"
+	"os"
 	"sort"
+	"time"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Departments"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 )
+
+const CROSSOVER_DOMINANT_GENE int = 75 // % - percentage to be likely that the dominant parent's gene will be use during crossover
 
 func Crossover(
 	parent1, parent2 Schedule.UniTimeTables,
@@ -19,6 +25,7 @@ func Crossover(
 	resource_persistence *StorageResources.Persistence,
 
 ) (*SchedAndResources, error) {
+	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 
 	if len(parent1) != len(parent2) {
 		return nil, fmt.Errorf(
@@ -148,16 +155,37 @@ func Crossover(
 			total_encoding_tries++
 
 			//////////////////////////////////////////////////////////////////////////////////////////////
-			//                             ENCODE THE BASE PARENT SUBJECTS
+			//                             SELECT PARENT GENE TO INHERIT
 			//////////////////////////////////////////////////////////////////////////////////////////////
 
 			var base_parent_subjects []Schedule.TimeSlotSubjectJSON
+			var fallback_parent_subjects []Schedule.TimeSlotSubjectJSON
 
-			if i%2 == 0 {
-				base_parent_subjects = parent_1_subjects
+			var dominant_parent_subjects []Schedule.TimeSlotSubjectJSON
+			var recessive_parent_subjects []Schedule.TimeSlotSubjectJSON
+
+			parent1_week_sched_fitness := MeasureWeekTimeTableBasicFitness(parent1[indicies.Usi])
+			parent2_week_sched_fitness := MeasureWeekTimeTableBasicFitness(parent2[indicies.Usi])
+
+			if parent1_week_sched_fitness > parent2_week_sched_fitness {
+				dominant_parent_subjects = parent_1_subjects
+				recessive_parent_subjects = parent_2_subjects
 			} else {
-				base_parent_subjects = parent_2_subjects
+				dominant_parent_subjects = parent_2_subjects
+				recessive_parent_subjects = parent_1_subjects
 			}
+
+			if rng.Int31n(100) <= int32(CROSSOVER_DOMINANT_GENE) {
+				base_parent_subjects = dominant_parent_subjects
+				fallback_parent_subjects = recessive_parent_subjects
+			} else {
+				base_parent_subjects = recessive_parent_subjects
+				fallback_parent_subjects = dominant_parent_subjects
+			}
+
+			//////////////////////////////////////////////////////////////////////////////////////////////
+			//                             ENCODE THE BASE PARENT SUBJECTS
+			//////////////////////////////////////////////////////////////////////////////////////////////
 
 			base_parent_result := inherit_trait_from_a_parent(
 				i, indicies.Usi,
@@ -179,16 +207,6 @@ func Crossover(
 			//////////////////////////////////////////////////////////////////////////////////////////////
 			//                            ENCODE THE FALLBACK PARENT SUBJECTS
 			//////////////////////////////////////////////////////////////////////////////////////////////
-
-			// if the base parent failed to encode, we will try to encode the other parent
-
-			var fallback_parent_subjects []Schedule.TimeSlotSubjectJSON
-
-			if i%2 == 0 {
-				fallback_parent_subjects = parent_2_subjects
-			} else {
-				fallback_parent_subjects = parent_1_subjects
-			}
 
 			fallback_parent_result := inherit_trait_from_a_parent(
 				i, indicies.Usi,
@@ -213,10 +231,12 @@ func Crossover(
 		return IterProceed
 	})
 
-	// log.Printf(
-	// 	"Crossover: total encoding tries: %d, successful base parent encoded: %d, successful fallback parent encoded: %d, failed parents encoding: %d",
-	// 	total_encoding_tries, successful_base_parent_encoded, successful_fallback_parent_encoded, failed_parents_encoding,
-	// )
+	if os.Getenv("LOG_MODE") != "verbose" {
+		log.Printf(
+			"Crossover: total encoding tries: %d, successful base parent encoded: %d, successful fallback parent encoded: %d, failed parents encoding: %d",
+			total_encoding_tries, successful_base_parent_encoded, successful_fallback_parent_encoded, failed_parents_encoding,
+		)
+	}
 
 	if is_err_to_return {
 		return nil, return_err
