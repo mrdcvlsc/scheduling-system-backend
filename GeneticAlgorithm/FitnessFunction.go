@@ -27,6 +27,7 @@ func reciprocal_distance(actual_hours, target_hours float64) float64 {
 
 func MeasureWeekTimeTableBasicFitness(week_sched Schedule.WeekTimeTable) float64 {
 	week_sched_fitness := 0.0
+	days_with_class := 0.0
 
 	for day := range Const.N_WEEKLY_SCHOOL_DAYS {
 
@@ -50,11 +51,13 @@ func MeasureWeekTimeTableBasicFitness(week_sched Schedule.WeekTimeTable) float64
 
 		if day_total_hours == 0 {
 			continue
+		} else {
+			days_with_class += 1.0
 		}
 
 		// days that don't have break time during lunch hours are punished, and rewarded if there are
 		if has_time_for_lunch {
-			week_sched_fitness += 12.0
+			week_sched_fitness += 8.0
 		} else {
 			week_sched_fitness -= 12.0
 		}
@@ -75,14 +78,17 @@ func MeasureWeekTimeTableBasicFitness(week_sched Schedule.WeekTimeTable) float64
 
 		// long class hours during saturday are punished, short hours are rewarded
 		if (day_total_hours > (PREFERRED_MAX_CLASS_HOUR_PER_DAY / 2)) && (day == (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
-			week_sched_fitness -= 2.0
+			week_sched_fitness -= 5.0
 		} else {
-			week_sched_fitness += 2.0
+			week_sched_fitness += 5.0
 		}
-
 	}
 
-	return week_sched_fitness
+	if days_with_class == 0.0 {
+		return -24.0
+	}
+
+	return week_sched_fitness / days_with_class
 }
 
 // A basic fitness function
