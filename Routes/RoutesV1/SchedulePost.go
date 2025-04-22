@@ -265,6 +265,8 @@ queue_pop_loop:
 
 			// TODO: on genetic algorithm error - just use normal schedule generation result
 
+			previous_fitness := 0.0
+
 			fittest_uni_sched, fittest_encoding_resource, err_genetic_algorithm := GeneticAlgorithm.RunGeneticAlgorithm(
 				university_schedule, curriculums, dept_id_to_department,
 				default_encoding_resource, generated_encoding_resource,
@@ -272,7 +274,22 @@ queue_pop_loop:
 				POPULATION_SIZE, TOTAL_GENERATION,
 				RouteGlobals.ResourcesPersistence, func(generation int, generation_fittest_sched Schedule.UniTimeTables, fitness float64) {
 
-					// save genetic algorithm's generated in-between university schedule
+					RouteGlobals.SetDeptSchedGenResult(
+						RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
+						RouteGlobals.SchedGenResult{
+							Status: RouteGlobals.SchedGenStatusInProgress,
+							Message: fmt.Sprintf(
+								"running genetic algorithm, at generation %d, with population size %d, fittest schedule at %f",
+								generation, POPULATION_SIZE, fitness,
+							),
+						},
+					)
+
+					// save genetic algorithm's generated in-between university schedule when there's new highest fit schedule
+
+					if fitness <= previous_fitness {
+						return
+					}
 
 					if err := RouteGlobals.SchedulePersistence.SaveService.SaveSchedules(generation_fittest_sched, semester_to_encode); err != nil {
 						RouteGlobals.SetDeptSchedGenResult(
@@ -290,16 +307,6 @@ queue_pop_loop:
 						log.Print("encode_schedule: [in-between-save-failed] error unable to save the genetic algorithm's generated schedule, caused by :", err.Error())
 						return
 					} else {
-						RouteGlobals.SetDeptSchedGenResult(
-							RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
-							RouteGlobals.SchedGenResult{
-								Status: RouteGlobals.SchedGenStatusInProgress,
-								Message: fmt.Sprintf(
-									"running genetic algorithm, at generation %d, with population size %d, fittest schedule at %f",
-									generation, POPULATION_SIZE, fitness,
-								),
-							},
-						)
 
 						// cache genetic algorithm's generated university schedule
 
@@ -309,7 +316,7 @@ queue_pop_loop:
 								RouteGlobals.SchedGenResult{
 									Status: RouteGlobals.SchedGenStatusInternalError,
 									Message: fmt.Sprintf(
-										"error caching schedule after %s, caused by %s",
+										"error caching schedule after %s, schedule was saved but might not reflect right away. caused by %s",
 										time.Since(start),
 										err.Error(),
 									),
