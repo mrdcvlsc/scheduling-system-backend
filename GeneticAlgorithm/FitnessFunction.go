@@ -78,9 +78,9 @@ func MeasureWeekTimeTableBasicFitness(week_sched Schedule.WeekTimeTable) float64
 
 		// long class hours during saturday are punished, short hours are rewarded
 		if (day_total_hours > (PREFERRED_MAX_CLASS_HOUR_PER_DAY / 2)) && (day == (Const.N_WEEKLY_SCHOOL_DAYS - 1)) {
-			week_sched_fitness -= 5.0
+			week_sched_fitness -= 1.0
 		} else {
-			week_sched_fitness += 5.0
+			week_sched_fitness += 1.0
 		}
 	}
 
