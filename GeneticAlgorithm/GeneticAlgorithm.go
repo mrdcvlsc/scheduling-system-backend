@@ -175,8 +175,8 @@ func RunGeneticAlgorithm(
 
 		start = time.Now()
 
-		rng.Shuffle(len(genesis_population), func(i, j int) {
-			genesis_population[i], genesis_population[j] = genesis_population[j], genesis_population[i]
+		rng.Shuffle(len(genesis_population[1:]), func(i, j int) {
+			genesis_population[1:][i], genesis_population[1:][j] = genesis_population[1:][j], genesis_population[1:][i]
 		})
 
 		for i := 0; i < len(genesis_population); i += 2 {
