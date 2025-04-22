@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"os"
 	"sort"
 	"time"
 
@@ -281,7 +282,7 @@ func RunGeneticAlgorithm(
 
 			// apply random mutations to some of the CURRENT individuals in the population
 
-			ApplyRandomSubjectErasure(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
+			// ApplyRandomSubjectErasure(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
 			ApplyRandomDaySwapTimeSlots(population[i].UniSched, curriculums, department_id, selected_semester, resource_persistence)
 			ApplyRandomSubjectDaySwap(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
 			ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
@@ -329,7 +330,7 @@ func RunGeneticAlgorithm(
 							g, MAX_RE_ENCODE_REPAIR_TRIALS, err_repair_schedule.Error(),
 						)
 					} else {
-						ApplyRandomSubjectErasure(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
+						// ApplyRandomSubjectErasure(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
 						ApplyRandomDaySwapTimeSlots(population[i].UniSched, curriculums, department_id, selected_semester, resource_persistence)
 						ApplyRandomSubjectDaySwap(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
 						ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
@@ -377,6 +378,14 @@ func RunGeneticAlgorithm(
 
 		if cb_fn_generation != nil {
 			cb_fn_generation(g, genesis_population[0].UniSched, fittest_individual_fitness)
+		}
+
+		if os.Getenv("LOG_MODE") != "verbose" {
+			for i, uni_gen_sched := range genesis_population {
+				fmt.Printf("generation %d, individual %d -> fitness : %f\n", g, i+1, MeasureCompleteUniSchedBasicFitness(
+					uni_gen_sched.UniSched, curriculums, department_to_encode, selected_semester,
+				))
+			}
 		}
 	}
 

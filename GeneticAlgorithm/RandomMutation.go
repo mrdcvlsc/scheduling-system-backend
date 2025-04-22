@@ -305,6 +305,7 @@ func ApplyRandomSubjectTimeSlotNudge(sched Schedule.UniTimeTables, resource_pers
 	}
 }
 
+// TODO: debug there is an error here (currently this mutation function is not being used)
 func ApplyRandomSubjectErasure(sched Schedule.UniTimeTables, resource_persistence *StorageResources.Persistence, all_curriculums []Curriculum.Curriculum, department_id uint16, selected_semester int) {
 
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
