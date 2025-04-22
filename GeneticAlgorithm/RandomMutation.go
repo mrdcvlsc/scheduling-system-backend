@@ -348,14 +348,13 @@ func ApplyRandomSubjectErasure(sched Schedule.UniTimeTables, resource_persistenc
 			})
 
 			for shuffled_idx := range subject_count_to_try_erase {
-
-				if rng.Int31n(100) >= int32(SUBJECT_ERASURE_PROBABILITY) {
-					continue
-				}
-
 				for _, subj_json := range subjects_json {
 					if subj_json.SubjectID == subjects_json[shuffled_idx].SubjectID {
 						total_tried_subject_erased++
+
+						if rng.Int31n(100) >= int32(SUBJECT_ERASURE_PROBABILITY) {
+							continue
+						}
 
 						for i := range subj_json.TimeSlotSize {
 							clear_slot := sched[usi][subj_json.Day].GetTimeSlot(subj_json.StartingTimeSlot + i)
@@ -492,4 +491,11 @@ func ApplyRandomSubjectTimeSlotAndDayNudge(sched Schedule.UniTimeTables, resourc
 
 		return IterProceed
 	})
+
+	if os.Getenv("LOG_MODE") != "verbose" {
+		log.Printf(
+			"Random Mutation : from %d lec and lab subjects, there are %d/%d successful subjects nudge on different time slot\n",
+			total_lec_and_lab_subjects, successful_subject_nudge, total_tried_nudge,
+		)
+	}
 }
