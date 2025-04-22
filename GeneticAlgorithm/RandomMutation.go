@@ -1,7 +1,9 @@
 package GeneticAlgorithm
 
 import (
+	"log"
 	"math/rand"
+	"os"
 	"time"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
@@ -21,6 +23,7 @@ const SUBJECT_ERASURE_PROBABILITY int = 7                  // %
 
 func ApplyClearDepartmentSchedule(sched Schedule.UniTimeTables, all_curriculums []Curriculum.Curriculum, department_id uint16, selected_semester int) {
 	IterateSectionsWeekSchedule(sched, all_curriculums, selected_semester, nil, nil, func(indecies IterIndices, values IterValues) IterReturnType {
+
 		if values.Curriculum.DepartmentID == department_id {
 			values.Sched[indecies.Usi] = Schedule.WeekTimeTable{}
 		}
@@ -50,6 +53,13 @@ func ApplyRandomDaySwapTimeSlots(
 
 		IterateSectionsWeekSchedule(sched, all_curriculums, selected_semester, nil, nil, func(indecies IterIndices, values IterValues) IterReturnType {
 			if values.Curriculum.DepartmentID == department_id {
+
+				mfit := MeasureWeekTimeTableBasicFitness(*values.WeekSched)
+
+				if mfit > 10 {
+					return IterProceed
+				}
+
 				usi := indecies.Usi
 
 				for time_slot := range Const.N_DAILY_TIME_SLOTS {
@@ -73,26 +83,6 @@ func ApplyRandomDaySwapTimeSlots(
 	}
 }
 
-func ApplyRandomSectionWeekClear(sched Schedule.UniTimeTables, all_curriculums []Curriculum.Curriculum, department_id uint16, selected_semester int) {
-	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
-
-	IterateSectionsWeekSchedule(sched, all_curriculums, selected_semester, nil, nil, func(indicies IterIndices, values IterValues) IterReturnType {
-		curriculum := values.Curriculum
-
-		usi := indicies.Usi
-
-		if curriculum.DepartmentID == department_id {
-			if rng.Int31n(100) >= int32(SECTION_WEEK_CLEAR_PERCENT_PROBABILITY) {
-				return IterProceed
-			}
-
-			sched[usi] = Schedule.WeekTimeTable{}
-		}
-
-		return IterProceed
-	})
-}
-
 func ApplyRandomSubjectDaySwap(sched Schedule.UniTimeTables, resource_persistence *StorageResources.Persistence, all_curriculums []Curriculum.Curriculum, department_id uint16, selected_semester int) {
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 
@@ -101,11 +91,19 @@ func ApplyRandomSubjectDaySwap(sched Schedule.UniTimeTables, resource_persistenc
 	total_lec_and_lab_subjects := 0
 
 	IterateSectionsWeekSchedule(sched, all_curriculums, selected_semester, nil, nil, func(indicies IterIndices, values IterValues) IterReturnType {
+
 		curriculum := values.Curriculum
 
 		usi := indicies.Usi
 
 		if curriculum.DepartmentID == department_id {
+
+			mfit := MeasureWeekTimeTableBasicFitness(*values.WeekSched)
+
+			if mfit > 10 {
+				return IterProceed
+			}
+
 			subjects_json := sched[usi].GetWeekSubjectsJSON()
 
 			if len(subjects_json) == 0 {
@@ -180,7 +178,9 @@ func ApplyRandomSubjectDaySwap(sched Schedule.UniTimeTables, resource_persistenc
 		return IterProceed
 	})
 
-	// log.Printf("Random Mutation : from %d lec and lab subjects, there are %d/%d successful day swaps\n", total_lec_and_lab_subjects, successful_subject_day_swaps, total_tried_day_swaps)
+	if os.Getenv("LOG_MODE") != "verbose" {
+		log.Printf("Random Mutation : from %d lec and lab subjects, there are %d/%d successful day swaps\n", total_lec_and_lab_subjects, successful_subject_day_swaps, total_tried_day_swaps)
+	}
 }
 
 func ApplyRandomSubjectTimeSlotNudge(sched Schedule.UniTimeTables, resource_persistence *StorageResources.Persistence, all_curriculums []Curriculum.Curriculum, department_id uint16, selected_semester int) {
@@ -191,11 +191,19 @@ func ApplyRandomSubjectTimeSlotNudge(sched Schedule.UniTimeTables, resource_pers
 	total_lec_and_lab_subjects := 0
 
 	IterateSectionsWeekSchedule(sched, all_curriculums, selected_semester, nil, nil, func(indicies IterIndices, values IterValues) IterReturnType {
+
 		curriculum := values.Curriculum
 
 		usi := indicies.Usi
 
 		if curriculum.DepartmentID == department_id {
+
+			mfit := MeasureWeekTimeTableBasicFitness(*values.WeekSched)
+
+			if mfit > 10 {
+				return IterProceed
+			}
+
 			subjects_json := sched[usi].GetWeekSubjectsJSON()
 			total_lec_and_lab_subjects += len(subjects_json)
 
@@ -289,7 +297,12 @@ func ApplyRandomSubjectTimeSlotNudge(sched Schedule.UniTimeTables, resource_pers
 		return IterProceed
 	})
 
-	// log.Printf("Random Mutation : from %d lec and lab subjects, there are %d/%d successful subjects nudge on different time slot\n", total_lec_and_lab_subjects, successful_subject_time_slot_nudge, total_tried_time_slot_nudge)
+	if os.Getenv("LOG_MODE") != "verbose" {
+		log.Printf(
+			"Random Mutation : from %d lec and lab subjects, there are %d/%d successful subjects nudge on different time slot\n",
+			total_lec_and_lab_subjects, successful_subject_time_slot_nudge, total_tried_time_slot_nudge,
+		)
+	}
 }
 
 func ApplyRandomSubjectErasure(sched Schedule.UniTimeTables, resource_persistence *StorageResources.Persistence, all_curriculums []Curriculum.Curriculum, department_id uint16, selected_semester int) {
@@ -301,24 +314,32 @@ func ApplyRandomSubjectErasure(sched Schedule.UniTimeTables, resource_persistenc
 	total_lec_and_lab_subjects := 0
 
 	IterateSectionsWeekSchedule(sched, all_curriculums, selected_semester, nil, nil, func(indicies IterIndices, values IterValues) IterReturnType {
+
 		curriculum := values.Curriculum
 
 		usi := indicies.Usi
 
 		if curriculum.DepartmentID == department_id {
+
+			mfit := MeasureWeekTimeTableBasicFitness(*values.WeekSched)
+
+			if mfit > 10 {
+				return IterProceed
+			}
+
 			subjects_json := sched[usi].GetWeekSubjectsJSON()
 
 			if len(subjects_json)/2 == 0 {
 				return IterProceed
 			}
 
-			rng_n := len(subjects_json) / 3
+			rng_n := len(subjects_json)
 
 			if rng_n <= 0 {
 				return IterProceed
 			}
 
-			subject_count_to_try_erase := rng.Intn(rng_n) + 1 // ~33.33% of the subjects to try to erase
+			subject_count_to_try_erase := rng.Intn(rng_n) + 1
 
 			total_lec_and_lab_subjects += len(subjects_json)
 
@@ -350,7 +371,11 @@ func ApplyRandomSubjectErasure(sched Schedule.UniTimeTables, resource_persistenc
 		return IterProceed
 	})
 
-	// log.Printf("Random Mutation : from %d lec and lab subjects, there are %d/%d successful subjects cleared\n", total_lec_and_lab_subjects, successful_subject_erased, total_tried_subject_erased)
+	if os.Getenv("LOG_MODE") != "verbose" {
+		log.Printf("Random Mutation : from %d lec and lab subjects, there are %d/%d successful subjects cleared\n",
+			total_lec_and_lab_subjects, successful_subject_erased, total_tried_subject_erased,
+		)
+	}
 }
 
 func ApplyRandomSubjectTimeSlotAndDayNudge(sched Schedule.UniTimeTables, resource_persistence *StorageResources.Persistence, all_curriculums []Curriculum.Curriculum, department_id uint16, selected_semester int) {
@@ -361,11 +386,19 @@ func ApplyRandomSubjectTimeSlotAndDayNudge(sched Schedule.UniTimeTables, resourc
 	total_lec_and_lab_subjects := 0
 
 	IterateSectionsWeekSchedule(sched, all_curriculums, selected_semester, nil, nil, func(indicies IterIndices, values IterValues) IterReturnType {
+
 		curriculum := values.Curriculum
 
 		usi := indicies.Usi
 
 		if curriculum.DepartmentID == department_id {
+
+			mfit := MeasureWeekTimeTableBasicFitness(*values.WeekSched)
+
+			if mfit > 10 {
+				return IterProceed
+			}
+
 			subjects_json := sched[usi].GetWeekSubjectsJSON()
 			total_lec_and_lab_subjects += len(subjects_json)
 
@@ -459,6 +492,4 @@ func ApplyRandomSubjectTimeSlotAndDayNudge(sched Schedule.UniTimeTables, resourc
 
 		return IterProceed
 	})
-
-	// log.Printf("Random Mutation : from %d lec and lab subjects, there are %d/%d successful subjects nudge on different time slot\n", total_lec_and_lab_subjects, successful_subject_time_slot_nudge, total_tried_time_slot_nudge)
 }
