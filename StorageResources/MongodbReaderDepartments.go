@@ -43,7 +43,7 @@ func (s *MongodbReader) ReadAllDepartments() ([]Departments.Department, error) {
 
 		if err != nil {
 			log.Println("ReadAllDepartments: cursor.Next() error:")
-			panic(err)
+			return nil, err
 		}
 
 		departments = append(departments, *department)

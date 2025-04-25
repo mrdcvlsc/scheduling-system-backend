@@ -43,7 +43,7 @@ func (s *MongodbReader) ReadAllRooms() ([]Rooms.Room, error) {
 
 		if err != nil {
 			log.Println("ReadAllRooms: cursor.Next() error:")
-			panic(err)
+			return nil, err
 		}
 
 		rooms = append(rooms, *room)

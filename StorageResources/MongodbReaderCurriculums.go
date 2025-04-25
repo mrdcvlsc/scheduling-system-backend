@@ -42,8 +42,8 @@ func (s *MongodbReader) ReadAllCurriculum() ([]Curriculum.Curriculum, error) {
 		err := cursor.Decode(curriculum)
 
 		if err != nil {
-			log.Println("ReadAllCurriculums: cursor.Next() error:")
-			panic(err)
+			log.Println("ReadAllCurriculums: cursor.Next() error:", err)
+			return nil, err
 		}
 
 		curriculums = append(curriculums, *curriculum)
@@ -68,7 +68,7 @@ func (s *MongodbReader) ReadCurriculum(curriculum_id uint16) (*Curriculum.Curric
 	err := curriculum_collection.FindOne(context.TODO(), filter, opts).Decode(curriculum)
 
 	if err != nil {
-		log.Print(err)
+		log.Println("ReadCurriculum: ", err)
 		return nil, err
 	}
 

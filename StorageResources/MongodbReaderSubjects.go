@@ -43,7 +43,7 @@ func (s *MongodbReader) ReadAllSubjects() ([]Curriculum.Subject, error) {
 
 		if err != nil {
 			log.Println("ReadAllSubjects: cursor.Next() error:")
-			panic(err)
+			return nil, err
 		}
 
 		subjects = append(subjects, *subject)

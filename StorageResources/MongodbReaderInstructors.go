@@ -15,6 +15,7 @@ func (s *MongodbReader) ReadAllInstructors() ([]Instructors.Instructor, error) {
 	instructors_with_time_string, err := s.ReadAllInstructorsWithTimeString()
 
 	if err != nil {
+		log.Print("ReadAllInstructors error:", err)
 		return nil, err
 	}
 
@@ -101,6 +102,7 @@ func (s *MongodbReader) ReadDepartmentInstructors(department_id int) ([]Instruct
 }
 
 func (s *MongodbReader) ReadAllInstructorsWithTimeString() ([]Instructors.InstructorWithTimeString, error) {
+
 	if s.Mongo.Instructors == nil {
 		s.Mongo.Instructors = s.Mongo.Client.Database("gass").Collection("instructors")
 	}
