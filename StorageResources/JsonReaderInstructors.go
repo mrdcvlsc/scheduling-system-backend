@@ -100,3 +100,20 @@ func json_read_all_instructors_with_time_string() ([]Instructors.InstructorWithT
 
 	return instructors, nil
 }
+
+// return a nil instructor if instructor does not exist
+func (s *JsonReader) ReadInstructor(instructor_id uint16) (*Instructors.Instructor, error) {
+	instructors, err := s.ReadAllInstructors()
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, instructor := range instructors {
+		if instructor.InstructorID == instructor_id {
+			return &instructor, nil
+		}
+	}
+
+	return nil, nil
+}

@@ -41,3 +41,20 @@ func json_read_all_curriculums() ([]Curriculum.Curriculum, error) {
 
 	return curriculums, nil
 }
+
+// return a nil curriculum if curriculum does not exist
+func (s *JsonReader) ReadCurriculum(curriculum_id uint16) (*Curriculum.Curriculum, error) {
+	curriculums, err := json_read_all_curriculums()
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, curriculum := range curriculums {
+		if curriculum.CurriculumID == curriculum_id {
+			return &curriculum, nil
+		}
+	}
+
+	return nil, nil
+}
