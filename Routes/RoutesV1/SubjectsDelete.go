@@ -52,6 +52,8 @@ func DeleteSubject(ctx *gin.Context) {
 		}
 	}
 
+	// TODO: delete assigned subjects in curriculums
+
 	err := RouteGlobals.ResourcesPersistence.WriterService.DeleteSubject(uint16(subject_id))
 
 	if err != nil {

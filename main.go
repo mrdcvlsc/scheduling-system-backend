@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"runtime"
@@ -32,6 +33,8 @@ func main() {
 		//                         MongoDB Persistence
 		//////////////////////////////////////////////////////////////////////////
 
+		log.Println("using mongodb database")
+
 		mongo_client := StorageResources.NewMongodbClient()
 		defer StorageResources.CloseMongodbClient(mongo_client)
 
@@ -41,9 +44,29 @@ func main() {
 					Client: mongo_client,
 				},
 			},
+			WriterService: &StorageResources.MongodbWriter{
+				Mongo: &StorageResources.MongoDB{
+					Client: mongo_client,
+				},
+			},
+		}
+
+		RouteGlobals.SchedulePersistence = &StorageSchedule.Persistence{
+			LoadService: &StorageSchedule.MongodbReader{
+				Mongo: &StorageSchedule.MongoDB{
+					Client: mongo_client,
+				},
+			},
+			SaveService: &StorageSchedule.MongodbWriter{
+				Mongo: &StorageSchedule.MongoDB{
+					Client: mongo_client,
+				},
+			},
 		}
 
 	default:
+
+		log.Println("using filesystem json file to save data")
 
 		//////////////////////////////////////////////////////////////////////////
 		//                          JSON Persistence

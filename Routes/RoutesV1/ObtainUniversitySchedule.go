@@ -46,22 +46,16 @@ func ObtainUniversitySchedule(ctx *gin.Context, departments_to_validate map[uint
 		read_university_schedules, err_load_schedules := RouteGlobals.SchedulePersistence.LoadService.LoadSchedules(semester)
 
 		if err_load_schedules != nil {
-			log.Println("ObtainUniversitySchedule:", err_load_schedules)
+			log.Println("ObtainUniversitySchedule: error:", err_load_schedules)
+			log.Printf("ObtainUniversitySchedule: schedule for semester index %d is not created yet, creating an empty schedule instead", semester)
 
-			if errors.Is(err_load_schedules, os.ErrNotExist) {
-				log.Printf("ObtainUniversitySchedule: schedule for semester index %d is not created yet, creating an empty schedule instead", semester)
+			curriculums, err_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
 
-				curriculums, err_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
-
-				if err_curriculums != nil {
-					log.Fatal("ObtainUniversitySchedule:", err_curriculums)
-				}
-
-				university_schedules = GeneticAlgorithm.NewEmptyIndividual(curriculums, semester)
-			} else {
-				ctx.String(http.StatusInternalServerError, "we failed to read that schedule")
-				return nil, false
+			if err_curriculums != nil {
+				log.Fatal("ObtainUniversitySchedule:", err_curriculums)
 			}
+
+			university_schedules = GeneticAlgorithm.NewEmptyIndividual(curriculums, semester)
 		} else {
 			university_schedules = read_university_schedules
 		}
@@ -120,7 +114,7 @@ func ObtainUniversityScheduleNoHorizontalValidation(ctx *gin.Context, semester i
 	cached_university_schedule, has_cache, err_get_cache := RouteGlobals.GetCachedUniversitySchedule(semester)
 
 	if err_get_cache != nil {
-		log.Println("ObtainUniversityScheduleNoHorizontalValidation:", err_get_cache.Error())
+		log.Println("ObtainUniversityScheduleNoHorizontalValidation (get-cache-error):", err_get_cache.Error())
 		ctx.String(http.StatusBadRequest, err_get_cache.Error())
 		return nil, false
 	}
@@ -133,9 +127,9 @@ func ObtainUniversityScheduleNoHorizontalValidation(ctx *gin.Context, semester i
 		read_university_schedules, err_load_schedules := RouteGlobals.SchedulePersistence.LoadService.LoadSchedules(semester)
 
 		if err_load_schedules != nil {
-			log.Println("ObtainUniversityScheduleNoHorizontalValidation:", err_load_schedules)
+			log.Println("ObtainUniversityScheduleNoHorizontalValidation (load-schedule-error):", err_load_schedules.Error())
 
-			if errors.Is(err_load_schedules, os.ErrNotExist) {
+			if errors.Is(err_load_schedules, os.ErrNotExist) || err_load_schedules.Error() == "mongo: no documents in result" {
 				log.Printf("ObtainUniversityScheduleNoHorizontalValidation: schedule for semester index %d is not created yet, creating an empty schedule instead", semester)
 
 				curriculums, err_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
