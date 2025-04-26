@@ -11,6 +11,7 @@ import (
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Departments"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 )
@@ -22,8 +23,8 @@ func Crossover(
 	curriculums []Curriculum.Curriculum, selected_semester int,
 	dept_id_to_department map[uint16]Departments.Department,
 	department_to_encode map[uint16]bool,
+	instructor_id_to_instructor map[uint16]*Instructors.Instructor,
 	resource_persistence *StorageResources.Persistence,
-
 ) (*SchedAndResources, error) {
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 
@@ -192,6 +193,7 @@ func Crossover(
 				offspring,
 				base_parent_subjects,
 				resource_persistence,
+				instructor_id_to_instructor,
 			)
 
 			if base_parent_result.success {
@@ -213,6 +215,7 @@ func Crossover(
 				offspring,
 				fallback_parent_subjects,
 				resource_persistence,
+				instructor_id_to_instructor,
 			)
 
 			if fallback_parent_result.has_extended_subject {
@@ -285,6 +288,7 @@ func inherit_trait_from_a_parent(
 	offspring Schedule.UniTimeTables,
 	json_subjects []Schedule.TimeSlotSubjectJSON,
 	resource_persistence *StorageResources.Persistence,
+	instructor_id_to_instructor map[uint16]*Instructors.Instructor,
 ) inherit_trait_result {
 	subject := &json_subjects[i]
 
@@ -300,7 +304,10 @@ func inherit_trait_from_a_parent(
 	is_second_target_time_slot_free := true
 
 	for j := 0; j < subject.TimeSlotSize; j++ {
-		if offspring[usi][subject.Day][subject.StartingTimeSlot+j].GetSubjectID() != 0 {
+		is_time_slot_available := offspring[usi][subject.Day][subject.StartingTimeSlot+j].GetSubjectID() == 0
+		is_instructor_available := instructor_id_to_instructor[subject.InstructorID].Time.GetAvailability(subject.Day, subject.StartingTimeSlot+j)
+
+		if !is_time_slot_available || !is_instructor_available {
 			is_first_target_time_slot_free = false
 			break
 		}
@@ -318,7 +325,10 @@ func inherit_trait_from_a_parent(
 		subj_extend := &json_subjects[i+1]
 
 		for j := 0; j < subj_extend.TimeSlotSize; j++ {
-			if offspring[usi][subj_extend.Day][subj_extend.StartingTimeSlot+j].GetSubjectID() != 0 {
+			is_time_slot_available := offspring[usi][subj_extend.Day][subj_extend.StartingTimeSlot+j].GetSubjectID() == 0
+			is_instructor_available := instructor_id_to_instructor[subj_extend.InstructorID].Time.GetAvailability(subj_extend.Day, subj_extend.StartingTimeSlot+j)
+
+			if !is_time_slot_available || !is_instructor_available {
 				is_second_target_time_slot_free = false
 				break
 			}
