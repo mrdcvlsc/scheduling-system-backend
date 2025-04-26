@@ -41,6 +41,9 @@ func ApplyRandomDaySwapTimeSlots(
 ) {
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 
+	day_swap_attempts := 0
+	day_swap_success := 0
+
 	for day := range Const.N_WEEKLY_SCHOOL_DAYS {
 
 		if rng.Int31n(100) >= int32(DAY_SWAP_PERCENT_PROBABILITY) {
@@ -62,6 +65,8 @@ func ApplyRandomDaySwapTimeSlots(
 					return IterProceed
 				}
 
+				day_swap_attempts++
+
 				usi := indecies.Usi
 
 				is_instructor_available_day := true
@@ -70,14 +75,18 @@ func ApplyRandomDaySwapTimeSlots(
 				for time_slot := range Const.N_DAILY_TIME_SLOTS {
 					sched[usi][day][time_slot], sched[usi][day_swap][time_slot] = sched[usi][day_swap][time_slot], sched[usi][day][time_slot]
 
-					instructor_id_day := sched[usi][day][time_slot].GetInstructorID()
-					if !instructor_id_to_instructor[instructor_id_day].Time.GetAvailability(day, time_slot) {
-						is_instructor_available_day = false
+					instructor_id_a := sched[usi][day][time_slot].GetInstructorID()
+					if instructor_id_a != 0 {
+						if !instructor_id_to_instructor[instructor_id_a].Time.GetAvailability(day, time_slot) {
+							is_instructor_available_day = false
+						}
 					}
 
-					instructor_id_day_swap := sched[usi][day_swap][time_slot].GetInstructorID()
-					if !instructor_id_to_instructor[instructor_id_day_swap].Time.GetAvailability(day_swap, time_slot) {
-						is_instructor_available_day_swap = false
+					instructor_id_b := sched[usi][day_swap][time_slot].GetInstructorID()
+					if instructor_id_b != 0 {
+						if !instructor_id_to_instructor[instructor_id_b].Time.GetAvailability(day_swap, time_slot) {
+							is_instructor_available_day_swap = false
+						}
 					}
 				}
 
@@ -90,11 +99,21 @@ func ApplyRandomDaySwapTimeSlots(
 					for time_slot := range Const.N_DAILY_TIME_SLOTS {
 						sched[usi][day][time_slot], sched[usi][day_swap][time_slot] = sched[usi][day_swap][time_slot], sched[usi][day][time_slot]
 					}
+				} else {
+					day_swap_success++
 				}
 			}
 
 			return IterProceed
 		})
+	}
+
+	if os.Getenv("LOG_MODE") != "verbose" {
+		log.Printf(
+			"Random Mutation : [section-swap-days] %d attempts and, %d successful day swaps. (%d/%d)\n",
+			day_swap_attempts, day_swap_success,
+			day_swap_attempts, day_swap_success,
+		)
 	}
 }
 
@@ -203,7 +222,7 @@ func ApplyRandomSubjectDaySwap(
 	})
 
 	if os.Getenv("LOG_MODE") != "verbose" {
-		log.Printf("Random Mutation : from %d lec and lab subjects, there are %d/%d successful day swaps\n", total_lec_and_lab_subjects, successful_subject_day_swaps, total_tried_day_swaps)
+		log.Printf("Random Mutation : [subject-day-swaps], from %d lec & lab subjects, there are %d/%d successful day swaps\n", total_lec_and_lab_subjects, successful_subject_day_swaps, total_tried_day_swaps)
 	}
 }
 
@@ -334,7 +353,7 @@ func ApplyRandomSubjectTimeSlotNudge(
 
 	if os.Getenv("LOG_MODE") != "verbose" {
 		log.Printf(
-			"Random Mutation : from %d lec and lab subjects, there are %d/%d successful subjects nudge on different time slot\n",
+			"Random Mutation : [time-slot-nudge] from %d lec and lab subjects, there are %d/%d successful subjects nudge on different time slot\n",
 			total_lec_and_lab_subjects, successful_subject_time_slot_nudge, total_tried_time_slot_nudge,
 		)
 	}
@@ -412,7 +431,7 @@ func ApplyRandomSubjectErasure(
 	})
 
 	if os.Getenv("LOG_MODE") != "verbose" {
-		log.Printf("Random Mutation : from %d lec and lab subjects, there are %d/%d successful subjects cleared\n",
+		log.Printf("Random Mutation : [subject-clear] from %d lec and lab subjects, there are %d/%d successful subjects cleared\n",
 			total_lec_and_lab_subjects, successful_subject_erased, total_tried_subject_erased,
 		)
 	}
@@ -546,7 +565,7 @@ func ApplyRandomSubjectTimeSlotAndDayNudge(
 
 	if os.Getenv("LOG_MODE") != "verbose" {
 		log.Printf(
-			"Random Mutation : from %d lec and lab subjects, there are %d/%d successful subjects nudge on different time slot\n",
+			"Random Mutation : [day-time-slot-nudge] from %d lec and lab subjects, there are %d/%d successful subjects nudge on different day & time slot\n",
 			total_lec_and_lab_subjects, successful_subject_nudge, total_tried_nudge,
 		)
 	}
