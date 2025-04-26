@@ -368,3 +368,19 @@ func EstimateResourceAvailability(persistence *StorageResources.Persistence, sel
 
 	return err_list
 }
+
+func GenerateMapInstructorIdToInstructor(persistence *StorageResources.Persistence) (map[uint16]*Instructors.Instructor, error) {
+	instructor_id_to_instructor := make(map[uint16]*Instructors.Instructor)
+
+	instructors, err := persistence.ReaderService.ReadAllInstructors()
+
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range instructors {
+		instructor_id_to_instructor[instructors[i].InstructorID] = &instructors[i]
+	}
+
+	return instructor_id_to_instructor, nil
+}
