@@ -49,6 +49,12 @@ func RunGeneticAlgorithm(
 		department_id = k
 	}
 
+	default_instructor_id_to_instructor, err_generate_instructor_id_to_instructor := GenerateMapInstructorIdToInstructor(resource_persistence)
+
+	if err_generate_instructor_id_to_instructor != nil {
+		return nil, nil, fmt.Errorf("unable to generate instructor id to instructor map, cause by error: %s", err_generate_instructor_id_to_instructor.Error())
+	}
+
 	log.Printf("||||||||||||||||||||||||||||||| Performing GA with %s ||||||||||||||||||||||||||||||| ", dept_id_to_department[department_id].Name)
 
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -232,6 +238,7 @@ func RunGeneticAlgorithm(
 				parent1.UniSched, parent2.UniSched,
 				curriculums, selected_semester,
 				dept_id_to_department, department_to_encode,
+				default_instructor_id_to_instructor,
 				resource_persistence,
 			)
 
@@ -283,10 +290,10 @@ func RunGeneticAlgorithm(
 			// apply random mutations to some of the CURRENT individuals in the population
 
 			// ApplyRandomSubjectErasure(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
-			ApplyRandomDaySwapTimeSlots(population[i].UniSched, curriculums, department_id, selected_semester, resource_persistence)
-			ApplyRandomSubjectDaySwap(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
-			ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
-			ApplyRandomSubjectTimeSlotAndDayNudge(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
+			ApplyRandomDaySwapTimeSlots(population[i].UniSched, curriculums, department_id, selected_semester, resource_persistence, default_instructor_id_to_instructor)
+			ApplyRandomSubjectDaySwap(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
+			ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
+			ApplyRandomSubjectTimeSlotAndDayNudge(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
 
 			// repair broken genome after mutations
 
@@ -331,10 +338,10 @@ func RunGeneticAlgorithm(
 						)
 					} else {
 						// ApplyRandomSubjectErasure(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
-						ApplyRandomDaySwapTimeSlots(population[i].UniSched, curriculums, department_id, selected_semester, resource_persistence)
-						ApplyRandomSubjectDaySwap(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
-						ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
-						ApplyRandomSubjectTimeSlotAndDayNudge(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
+						ApplyRandomDaySwapTimeSlots(population[i].UniSched, curriculums, department_id, selected_semester, resource_persistence, default_instructor_id_to_instructor)
+						ApplyRandomSubjectDaySwap(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
+						ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
+						ApplyRandomSubjectTimeSlotAndDayNudge(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
 					}
 
 					continue
