@@ -355,7 +355,7 @@ func EncodeIndividualGenome(
 									return_encoding_resource = nil
 									return_error = fmt.Errorf(
 										"not enough specialized_instructors (%d) in %s for %s, %s, %s, section %s, after generating schedules for the previous %d other sections",
-										instructor_idx, ro_dept_id_to_department[curriculum.DepartmentID].Name,
+										len(specialized_instructors), ro_dept_id_to_department[curriculum.DepartmentID].Name,
 										curriculum.CurriculumCode, semester.Name, year_level.Name, Curriculum.SECTION[section_idx], usi,
 									)
 
@@ -402,7 +402,7 @@ func EncodeIndividualGenome(
 									return_encoding_resource = nil
 									return_error = fmt.Errorf(
 										"not enough instructors (%d) in %s for %s, %s, %s, section %s, after generating schedules for the previous %d other sections",
-										instructor_idx, ro_dept_id_to_department[curriculum.DepartmentID].Name,
+										len(instructors), ro_dept_id_to_department[curriculum.DepartmentID].Name,
 										curriculum.CurriculumCode, semester.Name, year_level.Name, Curriculum.SECTION[section_idx], usi,
 									)
 
@@ -499,8 +499,8 @@ func EncodeIndividualGenome(
 							return_uni_time_table = university_schedules
 							return_encoding_resource = nil
 							return_error = fmt.Errorf(
-								"not enough rooms (%d)-(type:%d) in %s for %s, %s, %s, section %s, after generating schedules for the previous %d other sections",
-								len(room_type_to_rooms[room_type]), room_type, ro_dept_id_to_department[curriculum.DepartmentID].Name,
+								"not enough %s rooms (%d) in %s for %s, %s, %s, section %s, after generating schedules for the previous %d other sections",
+								Rooms.ROOM_TYPE_NAMES[room_type], len(room_type_to_rooms[room_type]), ro_dept_id_to_department[curriculum.DepartmentID].Name,
 								curriculum.CurriculumCode, semester.Name, year_level.Name, Curriculum.SECTION[section_idx], usi,
 							)
 
