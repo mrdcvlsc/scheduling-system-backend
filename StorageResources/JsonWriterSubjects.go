@@ -17,6 +17,9 @@ func (s *JsonWriter) CreateSubject(new_subject Curriculum.Subject) error {
 		return errors.New("cannot create a new subject with a non zero subject ID because that would overwrite a subject item")
 	}
 
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
 	all_subject, err_read := json_read_all_subjects()
 
 	if err_read != nil {

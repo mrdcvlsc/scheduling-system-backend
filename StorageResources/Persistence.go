@@ -10,11 +10,20 @@ import (
 type readerRepository interface {
 	// the order of curriculums returned by this method is always sorted by curriculum ID.
 	ReadAllCurriculum() ([]Curriculum.Curriculum, error)
+	ReadCurriculum(curriculum_id uint16) (*Curriculum.Curriculum, error)
+
 	ReadAllSubjects() ([]Curriculum.Subject, error)
+	ReadSubject(subject_id uint16) (*Curriculum.Subject, error)
+
 	ReadAllDepartments() ([]Departments.Department, error)
+	ReadDepartment(department_id uint16) (*Departments.Department, error)
+
 	ReadAllInstructors() ([]Instructors.Instructor, error)
+	ReadInstructor(instructor_id uint16) (*Instructors.Instructor, error)
 	ReadDepartmentInstructors(department_id int) ([]Instructors.Instructor, error)
+
 	ReadAllRooms() ([]Rooms.Room, error)
+	ReadRoom(room_id uint16) (*Rooms.Room, error)
 }
 
 type writerRepository interface {

@@ -18,6 +18,9 @@ func (s *JsonWriter) CreateCurriculum(new_curriculum Curriculum.Curriculum) erro
 		return errors.New("error CreateCurriculum(): cannot create a new curriculum with a non-zero CurriculumID")
 	}
 
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
 	all_curriculums, err_read := json_read_all_curriculums()
 
 	if err_read != nil {

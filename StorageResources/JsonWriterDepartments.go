@@ -17,6 +17,9 @@ func (s *JsonWriter) CreateDepartment(new_department Departments.Department) err
 		return errors.New("cannot create a newdepartment with a non zero department ID because that would overwrite a department")
 	}
 
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
 	all_departments, err_read := json_read_all_departments()
 
 	if err_read != nil {

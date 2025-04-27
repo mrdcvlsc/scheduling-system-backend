@@ -43,3 +43,20 @@ func json_read_all_subjects() ([]Curriculum.Subject, error) {
 
 	return subjects, nil
 }
+
+// return a nil subject if subject does not exist
+func (s *JsonReader) ReadSubject(subject_id uint16) (*Curriculum.Subject, error) {
+	subjects, err := json_read_all_subjects()
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, subject := range subjects {
+		if subject.ID == subject_id {
+			return &subject, nil
+		}
+	}
+
+	return nil, nil
+}

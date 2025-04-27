@@ -17,6 +17,9 @@ func (s *JsonWriter) CreateRoom(new_room Rooms.Room) error {
 		return errors.New("cannot create a new room with a non zero room ID because that would overwrite a room item")
 	}
 
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
 	all_rooms, err_read := json_read_all_rooms()
 
 	if err_read != nil {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
@@ -36,8 +37,12 @@ func ApplyRandomDaySwapTimeSlots(
 	sched Schedule.UniTimeTables, all_curriculums []Curriculum.Curriculum,
 	department_id uint16, selected_semester int,
 	resource_persistence *StorageResources.Persistence,
+	instructor_id_to_instructor map[uint16]*Instructors.Instructor,
 ) {
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
+
+	day_swap_attempts := 0
+	day_swap_success := 0
 
 	for day := range Const.N_WEEKLY_SCHOOL_DAYS {
 
@@ -60,10 +65,29 @@ func ApplyRandomDaySwapTimeSlots(
 					return IterProceed
 				}
 
+				day_swap_attempts++
+
 				usi := indecies.Usi
+
+				is_instructor_available_day := true
+				is_instructor_available_day_swap := true
 
 				for time_slot := range Const.N_DAILY_TIME_SLOTS {
 					sched[usi][day][time_slot], sched[usi][day_swap][time_slot] = sched[usi][day_swap][time_slot], sched[usi][day][time_slot]
+
+					instructor_id_a := sched[usi][day][time_slot].GetInstructorID()
+					if instructor_id_a != 0 {
+						if !instructor_id_to_instructor[instructor_id_a].Time.GetAvailability(day, time_slot) {
+							is_instructor_available_day = false
+						}
+					}
+
+					instructor_id_b := sched[usi][day_swap][time_slot].GetInstructorID()
+					if instructor_id_b != 0 {
+						if !instructor_id_to_instructor[instructor_id_b].Time.GetAvailability(day_swap, time_slot) {
+							is_instructor_available_day_swap = false
+						}
+					}
 				}
 
 				err_day_a := sched.VerticalRangedValidation(resource_persistence, day, 1, 0, Const.N_DAILY_TIME_SLOTS)
@@ -71,19 +95,35 @@ func ApplyRandomDaySwapTimeSlots(
 
 				// if there are vertical errors, undo the mutation
 
-				if len(err_day_a) != 0 || len(err_day_b) != 0 {
+				if !((len(err_day_a) == 0) && (len(err_day_b) == 0) && is_instructor_available_day && is_instructor_available_day_swap) {
 					for time_slot := range Const.N_DAILY_TIME_SLOTS {
 						sched[usi][day][time_slot], sched[usi][day_swap][time_slot] = sched[usi][day_swap][time_slot], sched[usi][day][time_slot]
 					}
+				} else {
+					day_swap_success++
 				}
 			}
 
 			return IterProceed
 		})
 	}
+
+	if os.Getenv("LOG_MODE") != "verbose" {
+		log.Printf(
+			"Random Mutation : [section-swap-days] %d attempts and, %d successful day swaps. (%d/%d)\n",
+			day_swap_attempts, day_swap_success,
+			day_swap_attempts, day_swap_success,
+		)
+	}
 }
 
-func ApplyRandomSubjectDaySwap(sched Schedule.UniTimeTables, resource_persistence *StorageResources.Persistence, all_curriculums []Curriculum.Curriculum, department_id uint16, selected_semester int) {
+func ApplyRandomSubjectDaySwap(
+	sched Schedule.UniTimeTables,
+	resource_persistence *StorageResources.Persistence,
+	all_curriculums []Curriculum.Curriculum,
+	department_id uint16, selected_semester int,
+	instructor_id_to_instructor map[uint16]*Instructors.Instructor,
+) {
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 
 	successful_subject_day_swaps := 0
@@ -138,7 +178,10 @@ func ApplyRandomSubjectDaySwap(sched Schedule.UniTimeTables, resource_persistenc
 				for i := range rand_subject.TimeSlotSize {
 					swap_slot := sched[usi][day_swap].GetTimeSlot(rand_subject.StartingTimeSlot + i)
 
-					if swap_slot.GetSubjectID() != 0 {
+					is_time_slot_available := swap_slot.GetSubjectID() == 0
+					is_instructor_available := instructor_id_to_instructor[rand_subject.InstructorID].Time.GetAvailability(day_swap, rand_subject.StartingTimeSlot+i)
+
+					if !(is_time_slot_available && is_instructor_available) {
 						is_free_time_slot = false
 						break
 					}
@@ -179,11 +222,17 @@ func ApplyRandomSubjectDaySwap(sched Schedule.UniTimeTables, resource_persistenc
 	})
 
 	if os.Getenv("LOG_MODE") != "verbose" {
-		log.Printf("Random Mutation : from %d lec and lab subjects, there are %d/%d successful day swaps\n", total_lec_and_lab_subjects, successful_subject_day_swaps, total_tried_day_swaps)
+		log.Printf("Random Mutation : [subject-day-swaps], from %d lec & lab subjects, there are %d/%d successful day swaps\n", total_lec_and_lab_subjects, successful_subject_day_swaps, total_tried_day_swaps)
 	}
 }
 
-func ApplyRandomSubjectTimeSlotNudge(sched Schedule.UniTimeTables, resource_persistence *StorageResources.Persistence, all_curriculums []Curriculum.Curriculum, department_id uint16, selected_semester int) {
+func ApplyRandomSubjectTimeSlotNudge(
+	sched Schedule.UniTimeTables,
+	resource_persistence *StorageResources.Persistence,
+	all_curriculums []Curriculum.Curriculum,
+	department_id uint16, selected_semester int,
+	instructor_id_to_instructor map[uint16]*Instructors.Instructor,
+) {
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 
 	successful_subject_time_slot_nudge := 0
@@ -251,9 +300,14 @@ func ApplyRandomSubjectTimeSlotNudge(sched Schedule.UniTimeTables, resource_pers
 					nudge_slot := sched[usi][rnd_subject.Day].GetTimeSlot(rnd_subject.StartingTimeSlot + nudge_value + i)
 
 					is_empty_slot := nudge_slot.GetSubjectID() == 0
-					is_same_subject_and_room := (nudge_slot.GetSubjectID() == rnd_subject.SubjectID) && (nudge_slot.GetInstructorID() == rnd_subject.InstructorID) && (nudge_slot.GetRoomID() == rnd_subject.RoomID)
 
-					if !(is_empty_slot || is_same_subject_and_room) {
+					is_same_subject_and_room := (nudge_slot.GetSubjectID() == rnd_subject.SubjectID) &&
+						(nudge_slot.GetInstructorID() == rnd_subject.InstructorID) &&
+						(nudge_slot.GetRoomID() == rnd_subject.RoomID)
+
+					is_instructor_available := instructor_id_to_instructor[rnd_subject.InstructorID].Time.GetAvailability(rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value+i)
+
+					if !((is_empty_slot || is_same_subject_and_room) && is_instructor_available) {
 						is_free_time_slot = false
 						break
 					}
@@ -299,14 +353,19 @@ func ApplyRandomSubjectTimeSlotNudge(sched Schedule.UniTimeTables, resource_pers
 
 	if os.Getenv("LOG_MODE") != "verbose" {
 		log.Printf(
-			"Random Mutation : from %d lec and lab subjects, there are %d/%d successful subjects nudge on different time slot\n",
+			"Random Mutation : [time-slot-nudge] from %d lec and lab subjects, there are %d/%d successful subjects nudge on different time slot\n",
 			total_lec_and_lab_subjects, successful_subject_time_slot_nudge, total_tried_time_slot_nudge,
 		)
 	}
 }
 
 // TODO: debug there is an error here (currently this mutation function is not being used)
-func ApplyRandomSubjectErasure(sched Schedule.UniTimeTables, resource_persistence *StorageResources.Persistence, all_curriculums []Curriculum.Curriculum, department_id uint16, selected_semester int) {
+func ApplyRandomSubjectErasure(
+	sched Schedule.UniTimeTables,
+	resource_persistence *StorageResources.Persistence,
+	all_curriculums []Curriculum.Curriculum,
+	department_id uint16, selected_semester int,
+) {
 
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 
@@ -372,13 +431,19 @@ func ApplyRandomSubjectErasure(sched Schedule.UniTimeTables, resource_persistenc
 	})
 
 	if os.Getenv("LOG_MODE") != "verbose" {
-		log.Printf("Random Mutation : from %d lec and lab subjects, there are %d/%d successful subjects cleared\n",
+		log.Printf("Random Mutation : [subject-clear] from %d lec and lab subjects, there are %d/%d successful subjects cleared\n",
 			total_lec_and_lab_subjects, successful_subject_erased, total_tried_subject_erased,
 		)
 	}
 }
 
-func ApplyRandomSubjectTimeSlotAndDayNudge(sched Schedule.UniTimeTables, resource_persistence *StorageResources.Persistence, all_curriculums []Curriculum.Curriculum, department_id uint16, selected_semester int) {
+func ApplyRandomSubjectTimeSlotAndDayNudge(
+	sched Schedule.UniTimeTables,
+	resource_persistence *StorageResources.Persistence,
+	all_curriculums []Curriculum.Curriculum,
+	department_id uint16, selected_semester int,
+	instructor_id_to_instructor map[uint16]*Instructors.Instructor,
+) {
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 
 	successful_subject_nudge := 0
@@ -447,9 +512,14 @@ func ApplyRandomSubjectTimeSlotAndDayNudge(sched Schedule.UniTimeTables, resourc
 					nudge_slot := sched[usi][day_swap].GetTimeSlot(rnd_subject.StartingTimeSlot + nudge_value + i)
 
 					is_empty_slot := nudge_slot.GetSubjectID() == 0
-					is_same_subject_and_room := (nudge_slot.GetSubjectID() == rnd_subject.SubjectID) && (nudge_slot.GetInstructorID() == rnd_subject.InstructorID) && (nudge_slot.GetRoomID() == rnd_subject.RoomID)
 
-					if !(is_empty_slot || is_same_subject_and_room) {
+					is_same_subject_and_room := (nudge_slot.GetSubjectID() == rnd_subject.SubjectID) &&
+						(nudge_slot.GetInstructorID() == rnd_subject.InstructorID) &&
+						(nudge_slot.GetRoomID() == rnd_subject.RoomID)
+
+					is_instructor_available := instructor_id_to_instructor[rnd_subject.InstructorID].Time.GetAvailability(day_swap, rnd_subject.StartingTimeSlot+nudge_value+i)
+
+					if !((is_empty_slot || is_same_subject_and_room) && is_instructor_available) {
 						is_free_time_slot = false
 						break
 					}
@@ -495,7 +565,7 @@ func ApplyRandomSubjectTimeSlotAndDayNudge(sched Schedule.UniTimeTables, resourc
 
 	if os.Getenv("LOG_MODE") != "verbose" {
 		log.Printf(
-			"Random Mutation : from %d lec and lab subjects, there are %d/%d successful subjects nudge on different time slot\n",
+			"Random Mutation : [day-time-slot-nudge] from %d lec and lab subjects, there are %d/%d successful subjects nudge on different day & time slot\n",
 			total_lec_and_lab_subjects, successful_subject_nudge, total_tried_nudge,
 		)
 	}

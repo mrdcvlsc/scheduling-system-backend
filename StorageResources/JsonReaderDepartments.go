@@ -41,3 +41,20 @@ func json_read_all_departments() ([]Departments.Department, error) {
 
 	return departments, nil
 }
+
+// return a nil department if department does not exist
+func (s *JsonReader) ReadDepartment(department_id uint16) (*Departments.Department, error) {
+	departments, err := json_read_all_departments()
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, department := range departments {
+		if department.DepartmentID == department_id {
+			return &department, nil
+		}
+	}
+
+	return nil, nil
+}

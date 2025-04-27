@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
@@ -127,21 +128,12 @@ func GetInstructorResource(ctx *gin.Context) {
 		return
 	}
 
-	all_instructors, err_read_all_instructors := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllInstructors()
+	selected_instructor_base, err_read_instructor := RouteGlobals.ResourcesPersistence.ReaderService.ReadInstructor(uint16(instructor_id))
 
-	if err_read_all_instructors != nil {
-		log.Println(err_read_all_instructors)
+	if err_read_instructor != nil {
+		log.Printf("error in GetInstructorResource > ReadInstructor: %s", err_read_instructor.Error())
 		ctx.String(http.StatusInternalServerError, "we are unable to retrieve the instructors right now")
 		return
-	}
-
-	var selected_instructor_base *Instructors.Instructor
-
-	for _, instructor := range all_instructors {
-		if instructor.InstructorID == uint16(instructor_id) {
-			selected_instructor_base = &instructor
-			break
-		}
 	}
 
 	if selected_instructor_base == nil {
@@ -239,77 +231,58 @@ func get_instructor_time_allocation(base_instructor Instructors.Instructor, univ
 
 	////////////////
 
-	counted_sections := 0
-
 	sub_assign_info := make([]InstructorSubjectAssignmentInfo, 0)
 
-	for _, curriculum := range all_curriculums {
-		for year_level_idx, year_level := range curriculum.YearLevels {
+	GeneticAlgorithm.IterateSectionsWeekSchedule(university_schedules, all_curriculums, selected_semester, nil, nil, func(indicies GeneticAlgorithm.IterIndices, values GeneticAlgorithm.IterValues) GeneticAlgorithm.IterReturnType {
 
-			if !year_level.IsActive {
-				continue // skip inactive year levels
-			}
+		for day := range Const.N_WEEKLY_SCHOOL_DAYS {
+			for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
 
-			for semester_idx, semester := range year_level.Semesters {
+				subject_id := university_schedules[indicies.Usi][day].GetTimeSlot(time_slot).GetSubjectID()
+				instructor_id := university_schedules[indicies.Usi][day].GetTimeSlot(time_slot).GetInstructorID()
 
-				if selected_semester != semester_idx {
-					continue // skip not selected semesters
+				if subject_id != 0 && instructor_id == base_instructor.InstructorID {
+					if base_instructor.InstructorID == 0 {
+						log.Panic("there should be an instructor allocation here, why there is none?")
+					}
+
+					base_instructor.Time.SetAvailability(false, day, time_slot)
+
+					room_id := university_schedules[indicies.Usi][day].GetTimeSlot(time_slot).GetRoomID()
+
+					new_sub_assignment := InstructorSubjectAssignmentInfo{
+						SubjectCode:      sub_id_to_subject_code[subject_id],
+						CourseSection:    fmt.Sprintf("%s-%d%s", values.Curriculum.CurriculumCode, indicies.YearLevel+1, Curriculum.SECTION[indicies.Section]),
+						RoomName:         room_id_to_room_name[room_id],
+						DayIdx:           uint8(day),
+						TimeSlotIdx:      uint8(time_slot),
+						SubjectTimeSlots: 1,
+					}
+
+					for forward_time_slot := time_slot + 1; forward_time_slot < Const.N_DAILY_TIME_SLOTS; forward_time_slot++ {
+						forward_slot := university_schedules[indicies.Usi][day].GetTimeSlot(forward_time_slot)
+
+						if forward_slot.GetSubjectID() == subject_id && forward_slot.GetInstructorID() == instructor_id && forward_slot.GetRoomID() == room_id {
+							new_sub_assignment.SubjectTimeSlots++
+							base_instructor.Time.SetAvailability(false, day, forward_time_slot)
+						} else {
+							time_slot = forward_time_slot - 1
+							break
+						}
+
+						if forward_time_slot == (Const.N_DAILY_TIME_SLOTS - 1) {
+							time_slot = 9999
+							break
+						}
+					}
+
+					sub_assign_info = append(sub_assign_info, new_sub_assignment)
 				}
+			} // ------------- end of time_slot loop -------------
+		} // ------------- end of day loop -------------
 
-				for section_idx := range semester.Sections {
-
-					for day := range Const.N_WEEKLY_SCHOOL_DAYS {
-
-						for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
-
-							subject_id := university_schedules[counted_sections][day].GetTimeSlot(time_slot).GetSubjectID()
-							instructor_id := university_schedules[counted_sections][day].GetTimeSlot(time_slot).GetInstructorID()
-
-							if subject_id != 0 && instructor_id == base_instructor.InstructorID {
-								if base_instructor.InstructorID == 0 {
-									log.Panic("there should be an instructor allocation here, why there is none?")
-								}
-
-								base_instructor.Time.SetAvailability(false, day, time_slot)
-
-								room_id := university_schedules[counted_sections][day].GetTimeSlot(time_slot).GetRoomID()
-
-								new_sub_assignment := InstructorSubjectAssignmentInfo{
-									SubjectCode:      sub_id_to_subject_code[subject_id],
-									CourseSection:    fmt.Sprintf("%s-%d%s", curriculum.CurriculumCode, year_level_idx+1, Curriculum.SECTION[section_idx]),
-									RoomName:         room_id_to_room_name[room_id],
-									DayIdx:           uint8(day),
-									TimeSlotIdx:      uint8(time_slot),
-									SubjectTimeSlots: 1,
-								}
-
-								for forward_time_slot := time_slot + 1; forward_time_slot < Const.N_DAILY_TIME_SLOTS; forward_time_slot++ {
-									forward_slot := university_schedules[counted_sections][day].GetTimeSlot(forward_time_slot)
-
-									if forward_slot.GetSubjectID() == subject_id && forward_slot.GetInstructorID() == instructor_id && forward_slot.GetRoomID() == room_id {
-										new_sub_assignment.SubjectTimeSlots++
-										base_instructor.Time.SetAvailability(false, day, forward_time_slot)
-									} else {
-										time_slot = forward_time_slot - 1
-										break
-									}
-
-									if forward_time_slot == (Const.N_DAILY_TIME_SLOTS - 1) {
-										time_slot = 9999
-										break
-									}
-								}
-
-								sub_assign_info = append(sub_assign_info, new_sub_assignment)
-							}
-						} // ------------- end of time_slot loop -------------
-					} // ------------- end of day loop -------------
-
-					counted_sections++
-				} // ------------- end of section_idx loop -------------
-			} // ------------- end of semester_idx loop -------------
-		} // ------------- end of year_level loop -------------
-	} // ------------- end of curriculum loop -------------
+		return GeneticAlgorithm.IterProceed
+	})
 
 	return base_instructor.Time, sub_assign_info, nil
 }

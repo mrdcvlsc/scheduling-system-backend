@@ -210,8 +210,8 @@ func EncodeIndividualGenome(
 						return_uni_time_table = nil
 						return_encoding_resource = nil
 						return_error = fmt.Errorf(
-							"the specialized instructor(s) added in %s %s %s section[%d] subject %s are not found in the department instructors and general instructors",
-							curriculum.CurriculumCode, year_level.Name, semester.Name, section_idx, subject.Code,
+							"the specialized instructor(s) added in %s, %s, %s, section %s, subject %s, are not found in the department instructors and general instructors list",
+							curriculum.CurriculumCode, year_level.Name, semester.Name, Curriculum.SECTION[section_idx], subject.Code,
 						)
 
 						return IterBreakCurriculumLoop
@@ -303,8 +303,9 @@ func EncodeIndividualGenome(
 							return_uni_time_table = university_schedules
 							return_encoding_resource = nil
 							return_error = fmt.Errorf(
-								"no time slot found for %s in %s for %s %s %s section[%d] after generating schedules for %d other sections",
-								subject.Code, ro_dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, usi,
+								"no time slot found for %s in %s for %s, %s, %s, section %s, after generating schedules for the previous %d other sections",
+								subject.Code, ro_dept_id_to_department[curriculum.DepartmentID].Name,
+								curriculum.CurriculumCode, semester.Name, year_level.Name, Curriculum.SECTION[section_idx], usi,
 							)
 
 							return IterBreakCurriculumLoop
@@ -353,8 +354,9 @@ func EncodeIndividualGenome(
 									return_uni_time_table = university_schedules
 									return_encoding_resource = nil
 									return_error = fmt.Errorf(
-										"not enough specialized_instructors (%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
-										instructor_idx, ro_dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, usi,
+										"not enough specialized_instructors (%d) in %s for %s, %s, %s, section %s, after generating schedules for the previous %d other sections",
+										len(specialized_instructors), ro_dept_id_to_department[curriculum.DepartmentID].Name,
+										curriculum.CurriculumCode, semester.Name, year_level.Name, Curriculum.SECTION[section_idx], usi,
 									)
 
 									return IterBreakCurriculumLoop
@@ -399,8 +401,9 @@ func EncodeIndividualGenome(
 									return_uni_time_table = university_schedules
 									return_encoding_resource = nil
 									return_error = fmt.Errorf(
-										"not enough instructors (%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
-										instructor_idx, ro_dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, usi,
+										"not enough instructors (%d) in %s for %s, %s, %s, section %s, after generating schedules for the previous %d other sections",
+										len(instructors), ro_dept_id_to_department[curriculum.DepartmentID].Name,
+										curriculum.CurriculumCode, semester.Name, year_level.Name, Curriculum.SECTION[section_idx], usi,
 									)
 
 									return IterBreakCurriculumLoop
@@ -496,8 +499,9 @@ func EncodeIndividualGenome(
 							return_uni_time_table = university_schedules
 							return_encoding_resource = nil
 							return_error = fmt.Errorf(
-								"not enough rooms (%d)-(type:%d) in %s for %s %s %s section[%d] after generating schedules for %d other sections",
-								len(room_type_to_rooms[room_type]), room_type, ro_dept_id_to_department[curriculum.DepartmentID].Name, curriculum.CurriculumCode, semester.Name, year_level.Name, section_idx, usi,
+								"not enough %s rooms (%d) in %s for %s, %s, %s, section %s, after generating schedules for the previous %d other sections",
+								Rooms.ROOM_TYPE_NAMES[room_type], len(room_type_to_rooms[room_type]), ro_dept_id_to_department[curriculum.DepartmentID].Name,
+								curriculum.CurriculumCode, semester.Name, year_level.Name, Curriculum.SECTION[section_idx], usi,
 							)
 
 							return IterBreakCurriculumLoop
@@ -619,7 +623,7 @@ func EncodeIndividualGenome(
 				return_uni_time_table = university_schedules
 				return_encoding_resource = nil
 				return_error = fmt.Errorf(
-					"there are some subjects in %s %s %s %s that was not assigned for some reason s(%d/%d), i(%d), r(%d), IvsR(%d/%d)",
+					"there are some subjects in %s, %s, %s, %s, that was not assigned for some reason s(%d/%d), i(%d), r(%d), IvsR(%d/%d)",
 					ro_dept_id_to_department[curriculum.DepartmentID].Code,
 					curriculum.CurriculumCode,
 					year_level.Name,
