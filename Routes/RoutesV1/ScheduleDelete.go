@@ -29,6 +29,12 @@ func DeleteClearClassSchedule(ctx *gin.Context) {
 		return
 	}
 
+	if RouteGlobals.IsGeneratingSchedule.Load() {
+		log.Print("DeleteClearClassSchedule: [busy] you or other department(s) are still generating a schedule, please wait until the process is finished")
+		ctx.String(http.StatusForbidden, "we're unable to clear the class schedule right now, you or other department(s) are still generating a schedule, please wait a little while until those process are done")
+		return
+	}
+
 	// parse department_id parameter
 
 	// TODO: use department_id for authentication later on.
@@ -95,6 +101,12 @@ func DeleteClearDepartmentSchedule(ctx *gin.Context) {
 	semester, is_valid_semester_param := IsValidParameterSemesterIndex(ctx)
 
 	if !is_valid_semester_param {
+		return
+	}
+
+	if RouteGlobals.IsGeneratingSchedule.Load() {
+		log.Print("DeleteClearDepartmentSchedule: [busy] you or other department(s) are still generating a schedule, please wait until the process is finished")
+		ctx.String(http.StatusForbidden, "we're unable to clear the department schedules right now, you or other department(s) are still generating a schedule, please wait a little while until those process are done")
 		return
 	}
 

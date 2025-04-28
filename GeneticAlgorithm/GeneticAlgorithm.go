@@ -24,8 +24,6 @@ type SchedAndResources struct {
 	Resources *EncodingResource
 }
 
-// TODO: implement the whole genetic algorithm function
-
 func RunGeneticAlgorithm(
 	base_uni_sched Schedule.UniTimeTables,
 	curriculums []Curriculum.Curriculum,

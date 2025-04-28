@@ -263,8 +263,6 @@ queue_pop_loop:
 
 			// generate the encoding resource for the obtained university schedule
 
-			// TODO: on genetic algorithm error - just use normal schedule generation result
-
 			previous_fitness := 0.0
 
 			fittest_uni_sched, fittest_encoding_resource, err_genetic_algorithm := GeneticAlgorithm.RunGeneticAlgorithm(

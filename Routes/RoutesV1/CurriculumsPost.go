@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
@@ -21,6 +22,12 @@ func PostCurriculum(ctx *gin.Context) {
 
 	if err := ctx.BindJSON(&add_curriculum); err != nil {
 		ctx.String(http.StatusBadRequest, "we are unable to properly read the curriculum to be added")
+		return
+	}
+
+	if RouteGlobals.IsGeneratingSchedule.Load() {
+		log.Print("PostCurriculum: [busy] you or other department(s) are still generating a schedule, please wait until the process is finished")
+		ctx.String(http.StatusForbidden, "we're unable to add a curriculum right now, you or other department(s) are still generating a schedule, please wait a little while until those process are done")
 		return
 	}
 
@@ -58,39 +65,31 @@ func PostCurriculum(ctx *gin.Context) {
 
 		// determine insert university schedule index for the new curriculum
 
-		schedule_idx := 0
 		insert_idx := -1
 		insert_length := 0
 
-		for _, curriculum := range all_curriculums {
-			for _, year_level := range curriculum.YearLevels {
+		GeneticAlgorithm.IterateSectionsWeekSchedule(university_schedule, all_curriculums, selected_semester, nil, nil,
+			func(indicies GeneticAlgorithm.IterIndices, values GeneticAlgorithm.IterValues) GeneticAlgorithm.IterReturnType {
 
-				if !year_level.IsActive {
-					continue
-				}
+				is_equal_code := Utils.IsEqualStrCaseInsensitiveIgnoreWhiteSpace(values.Curriculum.CurriculumCode, add_curriculum.CurriculumCode)
+				is_equal_name := Utils.IsEqualStrCaseInsensitiveIgnoreWhiteSpace(values.Curriculum.CurriculumName, add_curriculum.CurriculumName)
 
-				for semester_idx, semester := range year_level.Semesters {
-					if semester_idx != selected_semester {
-						continue
+				if is_equal_code && is_equal_name {
+					if insert_idx == -1 {
+						insert_idx = indicies.Usi
 					}
 
-					for section_idx := 0; section_idx < semester.Sections; section_idx++ {
-
-						is_equal_code := Utils.IsEqualStrCaseInsensitiveIgnoreWhiteSpace(curriculum.CurriculumCode, add_curriculum.CurriculumCode)
-						is_equal_name := Utils.IsEqualStrCaseInsensitiveIgnoreWhiteSpace(curriculum.CurriculumName, add_curriculum.CurriculumName)
-
-						if is_equal_code && is_equal_name {
-							if insert_idx == -1 {
-								insert_idx = schedule_idx
-							}
-
-							insert_length++
-						}
-
-						schedule_idx++
-					}
+					insert_length++
 				}
-			}
+
+				return GeneticAlgorithm.IterProceed
+			},
+		)
+
+		if insert_length <= 0 {
+			log.Print("PostCurriculum: adding a curriculum without any sections are not allowed")
+			ctx.String(http.StatusBadRequest, "adding a curriculum without any sections are not allowed, a curriculum should have at least 1 section")
+			return
 		}
 
 		if insert_idx < 0 {

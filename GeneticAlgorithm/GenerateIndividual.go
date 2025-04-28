@@ -651,9 +651,6 @@ func EncodeIndividualGenome(
 	return university_schedules, encoding_resource, nil
 }
 
-// TODO: when generating solutions while the genetic algorithm is running, we should also generate an index file to be use for querying
-// each sections in the generated university schedules, make the generated schedule and index global for access.
-
 func NewEmptyIndividual(
 	curriculums []Curriculum.Curriculum,
 	selected_semester int,

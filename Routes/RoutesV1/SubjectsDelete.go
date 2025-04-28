@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 )
@@ -22,32 +22,22 @@ func DeleteSubject(ctx *gin.Context) {
 		return
 	}
 
-	{ // check if subject is assign in the first semester subjects
-		university_schedules, _ := ObtainUniversityScheduleNoContext(nil, GeneticAlgorithm.TERM_1ST_SEMESTER)
+	for semester := range Curriculum.SUPPORTED_SEMESTERS {
+		university_schedules, _ := ObtainUniversityScheduleNoContext(nil, semester)
 
-		err_set_cache := RouteGlobals.SetCachedUniversitySchedule(GeneticAlgorithm.TERM_1ST_SEMESTER, university_schedules)
-
-		if err_set_cache != nil {
-			log.Println(err_set_cache.Error())
-		}
-
-		if is_subject_assigned(university_schedules, uint16(subject_id)) {
-			ctx.String(http.StatusConflict, "can not delete a subject assigned to a schedule  in 1st semester, clear the schedules first")
-			return
-		}
-	}
-
-	{ // check if subject is assign in the second semester subjects
-		university_schedules, _ := ObtainUniversityScheduleNoContext(nil, GeneticAlgorithm.TERM_2ND_SEMESTER)
-
-		err_set_cache := RouteGlobals.SetCachedUniversitySchedule(GeneticAlgorithm.TERM_2ND_SEMESTER, university_schedules)
+		err_set_cache := RouteGlobals.SetCachedUniversitySchedule(semester, university_schedules)
 
 		if err_set_cache != nil {
 			log.Println(err_set_cache.Error())
 		}
 
 		if is_subject_assigned(university_schedules, uint16(subject_id)) {
-			ctx.String(http.StatusConflict, "can not delete a subject assigned to a schedule in 2nd semester, clear the schedules first")
+			ctx.String(
+				http.StatusConflict,
+				"can not delete a subject assigned to a schedule in %s, your department or other departments are still using this subject, clear the schedules first",
+				Curriculum.SEMESTER_INDEX_NAME[semester],
+			)
+
 			return
 		}
 	}
