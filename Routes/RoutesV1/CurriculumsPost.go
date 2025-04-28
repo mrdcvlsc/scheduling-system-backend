@@ -86,6 +86,12 @@ func PostCurriculum(ctx *gin.Context) {
 			},
 		)
 
+		if insert_length <= 0 {
+			log.Print("PostCurriculum: adding a curriculum without any sections are not allowed")
+			ctx.String(http.StatusBadRequest, "adding a curriculum without any sections are not allowed, a curriculum should have at least 1 section")
+			return
+		}
+
 		if insert_idx < 0 {
 			log.Print("PostCurriculum: unable to find the university schedule insert index for the new curriculum")
 			ctx.String(http.StatusInternalServerError, "we are unable to rebuld the university schedule index")
