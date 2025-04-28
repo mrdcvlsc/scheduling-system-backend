@@ -303,6 +303,8 @@ func inherit_trait_from_a_parent(
 	is_first_target_time_slot_free := true
 	is_second_target_time_slot_free := true
 
+	// TODO: optimization - I think there's no need to set/unset here, we can optimize by direct checking from instructor and room encoding resource availability
+
 	for j := 0; j < subject.TimeSlotSize; j++ {
 		is_time_slot_available := offspring[usi][subject.Day][subject.StartingTimeSlot+j].GetSubjectID() == 0
 		is_instructor_available := instructor_id_to_instructor[subject.InstructorID].Time.GetAvailability(subject.Day, subject.StartingTimeSlot+j)
@@ -347,6 +349,8 @@ func inherit_trait_from_a_parent(
 	var err_vv_extend []error
 
 	if is_first_target_time_slot_free {
+
+		// TODO: optimization - remove after implementing direct check using instructor and room availability
 		err_vv = offspring.VerticalRangedValidation(
 			resource_persistence,
 			subject.Day, 1,
@@ -357,6 +361,7 @@ func inherit_trait_from_a_parent(
 	if has_extended_subject && is_second_target_time_slot_free {
 		subj_extend := &json_subjects[i+1]
 
+		// TODO: optimization - remove after implementing direct check using instructor and room availability
 		err_vv_extend = offspring.VerticalRangedValidation(
 			resource_persistence,
 			subj_extend.Day, 1,
