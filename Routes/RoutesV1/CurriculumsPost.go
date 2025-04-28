@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
@@ -64,40 +65,26 @@ func PostCurriculum(ctx *gin.Context) {
 
 		// determine insert university schedule index for the new curriculum
 
-		schedule_idx := 0
 		insert_idx := -1
 		insert_length := 0
 
-		for _, curriculum := range all_curriculums {
-			for _, year_level := range curriculum.YearLevels {
+		GeneticAlgorithm.IterateSectionsWeekSchedule(university_schedule, all_curriculums, selected_semester, nil, nil,
+			func(indicies GeneticAlgorithm.IterIndices, values GeneticAlgorithm.IterValues) GeneticAlgorithm.IterReturnType {
 
-				if !year_level.IsActive {
-					continue
-				}
-
-				for semester_idx, semester := range year_level.Semesters {
-					if semester_idx != selected_semester {
-						continue
-					}
-
-					for section_idx := 0; section_idx < semester.Sections; section_idx++ {
-
-						is_equal_code := Utils.IsEqualStrCaseInsensitiveIgnoreWhiteSpace(curriculum.CurriculumCode, add_curriculum.CurriculumCode)
-						is_equal_name := Utils.IsEqualStrCaseInsensitiveIgnoreWhiteSpace(curriculum.CurriculumName, add_curriculum.CurriculumName)
+						is_equal_code := Utils.IsEqualStrCaseInsensitiveIgnoreWhiteSpace(values.Curriculum.CurriculumCode, add_curriculum.CurriculumCode)
+						is_equal_name := Utils.IsEqualStrCaseInsensitiveIgnoreWhiteSpace(values.Curriculum.CurriculumName, add_curriculum.CurriculumName)
 
 						if is_equal_code && is_equal_name {
 							if insert_idx == -1 {
-								insert_idx = schedule_idx
+								insert_idx = indicies.Usi
 							}
 
 							insert_length++
 						}
 
-						schedule_idx++
-					}
-				}
-			}
-		}
+						return GeneticAlgorithm.IterProceed
+			},
+		)
 
 		if insert_idx < 0 {
 			log.Print("PostCurriculum: unable to find the university schedule insert index for the new curriculum")
