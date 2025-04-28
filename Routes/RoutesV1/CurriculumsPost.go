@@ -24,6 +24,12 @@ func PostCurriculum(ctx *gin.Context) {
 		return
 	}
 
+	if RouteGlobals.IsGeneratingSchedule.Load() {
+		log.Print("PostCurriculum: [busy] you or other department(s) are still generating a schedule, please wait until the process is finished")
+		ctx.String(http.StatusForbidden, "we're unable to add a curriculum right now, you or other department(s) are still generating a schedule, please wait a little while until those process are done")
+		return
+	}
+
 	RouteGlobals.ReindexUniSchedMutex.Lock()
 	defer RouteGlobals.ReindexUniSchedMutex.Unlock()
 

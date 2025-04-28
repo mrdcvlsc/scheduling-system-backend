@@ -26,8 +26,14 @@ func PatchCurriculum(ctx *gin.Context) {
 	update_curriculum := Curriculum.Curriculum{}
 
 	if err := ctx.BindJSON(&update_curriculum); err != nil {
-		log.Print(err)
+		log.Print("PatchCurriculum: [json-bind-failed]", err)
 		ctx.String(http.StatusBadRequest, "we're unable to read the updated curriculum data")
+		return
+	}
+
+	if RouteGlobals.IsGeneratingSchedule.Load() {
+		log.Print("PatchCurriculum: [busy] you or other department(s) are still generating a schedule, please wait until the process is finished")
+		ctx.String(http.StatusForbidden, "we're unable to update the curriculum right now, you or other department(s) are still generating a schedule, please wait a little while until those process are done")
 		return
 	}
 
