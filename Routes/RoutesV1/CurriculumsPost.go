@@ -71,18 +71,18 @@ func PostCurriculum(ctx *gin.Context) {
 		GeneticAlgorithm.IterateSectionsWeekSchedule(university_schedule, all_curriculums, selected_semester, nil, nil,
 			func(indicies GeneticAlgorithm.IterIndices, values GeneticAlgorithm.IterValues) GeneticAlgorithm.IterReturnType {
 
-						is_equal_code := Utils.IsEqualStrCaseInsensitiveIgnoreWhiteSpace(values.Curriculum.CurriculumCode, add_curriculum.CurriculumCode)
-						is_equal_name := Utils.IsEqualStrCaseInsensitiveIgnoreWhiteSpace(values.Curriculum.CurriculumName, add_curriculum.CurriculumName)
+				is_equal_code := Utils.IsEqualStrCaseInsensitiveIgnoreWhiteSpace(values.Curriculum.CurriculumCode, add_curriculum.CurriculumCode)
+				is_equal_name := Utils.IsEqualStrCaseInsensitiveIgnoreWhiteSpace(values.Curriculum.CurriculumName, add_curriculum.CurriculumName)
 
-						if is_equal_code && is_equal_name {
-							if insert_idx == -1 {
-								insert_idx = indicies.Usi
-							}
+				if is_equal_code && is_equal_name {
+					if insert_idx == -1 {
+						insert_idx = indicies.Usi
+					}
 
-							insert_length++
-						}
+					insert_length++
+				}
 
-						return GeneticAlgorithm.IterProceed
+				return GeneticAlgorithm.IterProceed
 			},
 		)
 
