@@ -11,6 +11,9 @@ import (
 )
 
 type SubjectAssignmentInfo struct {
+	SubjectID          uint16 `json:"SubjectID,omitempty"`
+	InstructorID       uint16 `json:"InstructorID,omitempty"`
+	RoomID             uint16 `json:"RoomID,omitempty"`
 	SubjectCode        string `json:"SubjectCode"`
 	InstructorLastName string `json:"InstructorLastName"`
 	RoomName           string `json:"RoomName"`
