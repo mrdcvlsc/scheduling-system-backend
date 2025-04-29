@@ -249,17 +249,10 @@ func RunGeneticAlgorithm(
 						g, MAX_CROSSOVER_TRIALS, err_crossover.Error(),
 					)
 
-					if offspring.UniSched == nil {
-						return nil, nil, fmt.Errorf(
-							"GA-ERROR [Crossover]: unable to produce offspring at generation %d after %d tries, cause by error : %s",
-							g, MAX_CROSSOVER_TRIALS, err_crossover.Error(),
-						)
-					} else {
-						return offspring.UniSched, nil, fmt.Errorf(
-							"GA-ERROR [Crossover]: unable to produce offspring at generation %d after %d tries, cause by error : %s",
-							g, MAX_CROSSOVER_TRIALS, err_crossover.Error(),
-						)
-					}
+					return offspring.UniSched, nil, fmt.Errorf(
+						"GA-ERROR [Crossover]: unable to produce offspring at generation %d after %d tries, cause by error : %s",
+						g, MAX_CROSSOVER_TRIALS, err_crossover.Error(),
+					)
 				}
 
 				continue
