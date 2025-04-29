@@ -25,6 +25,9 @@ func (s *JsonWriter) SaveSchedules(university_schedule Schedule.UniTimeTables, s
 		saved_file = path.Join(project_root, "scheduling-system-temporary-data", "univ-2nd-sem.sched")
 	}
 
+	UniSchedPersistenceMutex.Lock()
+	defer UniSchedPersistenceMutex.Unlock()
+
 	Utils.SaveToBinFile(saved_file, Schedule.SerializeUniversitySchedule(university_schedule))
 
 	return nil

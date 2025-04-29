@@ -28,6 +28,9 @@ func (s *JsonReader) LoadSchedules(semester int) (Schedule.UniTimeTables, error)
 		saved_file = path.Join(project_root, "scheduling-system-temporary-data", "univ-2nd-sem.sched")
 	}
 
+	UniSchedPersistenceMutex.Lock()
+	defer UniSchedPersistenceMutex.Unlock()
+
 	read_bytes, err_read_from_bin_file := Utils.ReadFromBinFile(saved_file)
 
 	if err_read_from_bin_file != nil {

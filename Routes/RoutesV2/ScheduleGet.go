@@ -184,6 +184,9 @@ curriculum_loop:
 			}
 
 			new_sub_assignment := RoutesV1.SubjectAssignmentInfo{
+				SubjectID:          slot.GetSubjectID(),
+				InstructorID:       slot.GetInstructorID(),
+				RoomID:             slot.GetRoomID(),
 				SubjectCode:        sub_id_to_subject_code[slot.GetSubjectID()],
 				InstructorLastName: instructor_id_to_instructor_name[slot.GetInstructorID()],
 				RoomName:           room_id_to_room_name[slot.GetRoomID()],

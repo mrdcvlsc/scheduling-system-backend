@@ -1,6 +1,12 @@
 package StorageSchedule
 
-import "github.com/mrdcvlsc/scheduling-system-backend/Schedule"
+import (
+	"sync"
+
+	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
+)
+
+var UniSchedPersistenceMutex sync.Mutex
 
 type loadRepository interface {
 	LoadSchedules(semester int) (Schedule.UniTimeTables, error)

@@ -11,6 +11,10 @@ import (
 )
 
 func (s *JsonReader) ReadAllRooms() ([]Rooms.Room, error) {
+
+	RoomMutex.Lock()
+	defer RoomMutex.Unlock()
+
 	return json_read_all_rooms()
 }
 
@@ -45,6 +49,7 @@ func json_read_all_rooms() ([]Rooms.Room, error) {
 
 // return a nil room if room does not exist
 func (s *JsonReader) ReadRoom(room_id uint16) (*Rooms.Room, error) {
+
 	rooms, err := s.ReadAllRooms()
 
 	if err != nil {

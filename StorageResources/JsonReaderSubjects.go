@@ -11,6 +11,10 @@ import (
 )
 
 func (s *JsonReader) ReadAllSubjects() ([]Curriculum.Subject, error) {
+
+	SubjectMutex.Lock()
+	defer SubjectMutex.Unlock()
+
 	return json_read_all_subjects()
 }
 
@@ -46,6 +50,10 @@ func json_read_all_subjects() ([]Curriculum.Subject, error) {
 
 // return a nil subject if subject does not exist
 func (s *JsonReader) ReadSubject(subject_id uint16) (*Curriculum.Subject, error) {
+
+	SubjectMutex.Lock()
+	defer SubjectMutex.Unlock()
+
 	subjects, err := json_read_all_subjects()
 
 	if err != nil {

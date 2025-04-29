@@ -17,8 +17,8 @@ func (s *JsonWriter) CreateInstructor(new_instructor Instructors.Instructor) err
 		return errors.New("cannot create a new instructor with a non zero instructor ID because it will overwrite an instructor")
 	}
 
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	InstructorMutex.Lock()
+	defer InstructorMutex.Unlock()
 
 	instructors_with_time_str, err_read := json_read_all_instructors_with_time_string()
 
@@ -49,6 +49,9 @@ func (s *JsonWriter) UpdateInstructor(instructor_to_update Instructors.Instructo
 	if instructor_to_update.InstructorID == 0 {
 		return errors.New("parameter argument missing invalid instructor ID")
 	}
+
+	InstructorMutex.Lock()
+	defer InstructorMutex.Unlock()
 
 	instructors_with_time_str, err_read := json_read_all_instructors_with_time_string()
 
@@ -94,6 +97,9 @@ func (s *JsonWriter) DeleteInstructor(instructor_id uint16) error {
 	if instructor_id == 0 {
 		return errors.New("parameter argument missing invalid instructor ID")
 	}
+
+	InstructorMutex.Lock()
+	defer InstructorMutex.Unlock()
 
 	instructors_with_time_str, err_read := json_read_all_instructors_with_time_string()
 

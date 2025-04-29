@@ -17,6 +17,12 @@ GET:
 */
 func DeleteClearClassSchedule(ctx *gin.Context) {
 
+	if RouteGlobals.IsGeneratingSchedule.Load() {
+		log.Print("v2.DeleteClearClassSchedule: [busy] you or other department(s) are still generating a schedule, please wait until the process is finished")
+		ctx.String(http.StatusForbidden, "we're unable to clear the class schedule right now, you or other department(s) are still generating a schedule, please wait a little while until those process are done")
+		return
+	}
+
 	// parse curriculum id
 
 	curriculum_id, is_valid_curriculum_id_param := RoutesV1.IsValidCurriculumID(ctx)
