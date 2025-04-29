@@ -25,6 +25,9 @@ func PostSubjectTimeSlotMove(ctx *gin.Context) {
 		return
 	}
 
+	RouteGlobals.ReindexUniSchedMutex.Lock()
+	defer RouteGlobals.ReindexUniSchedMutex.Unlock()
+
 	var subject RoutesV1.SubjectAssignmentInfo
 
 	if err := ctx.BindJSON(&subject); err != nil {

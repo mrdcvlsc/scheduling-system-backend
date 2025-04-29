@@ -23,6 +23,12 @@ POST:
 */
 func GetSubjectAvailableTimeSlotMoves(ctx *gin.Context) {
 
+	if RouteGlobals.IsGeneratingSchedule.Load() {
+		log.Print("v2.GetSubjectAvailableTimeSlotMoves: [busy] you or other department(s) are still generating a schedule, please wait until the process is finished")
+		ctx.String(http.StatusForbidden, "we're unable to get the available time slots right now, you or other department(s) are still generating a schedule, please wait a little while until those process are done")
+		return
+	}
+
 	var subject RoutesV1.SubjectAssignmentInfo
 
 	if err := ctx.BindJSON(&subject); err != nil {
