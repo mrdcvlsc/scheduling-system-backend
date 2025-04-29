@@ -12,8 +12,8 @@ import (
 
 func (s *JsonReader) ReadAllCurriculum() ([]Curriculum.Curriculum, error) {
 
-	s.CurriculumsMutex.Lock()
-	defer s.CurriculumsMutex.Unlock()
+	CurriculumsMutex.Lock()
+	defer CurriculumsMutex.Unlock()
 
 	return json_read_all_curriculums()
 }
@@ -49,8 +49,8 @@ func json_read_all_curriculums() ([]Curriculum.Curriculum, error) {
 // return a nil curriculum if curriculum does not exist
 func (s *JsonReader) ReadCurriculum(curriculum_id uint16) (*Curriculum.Curriculum, error) {
 
-	s.CurriculumsMutex.Lock()
-	defer s.CurriculumsMutex.Unlock()
+	CurriculumsMutex.Lock()
+	defer CurriculumsMutex.Unlock()
 
 	curriculums, err := json_read_all_curriculums()
 

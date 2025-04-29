@@ -12,8 +12,8 @@ import (
 
 func (s *JsonReader) ReadAllRooms() ([]Rooms.Room, error) {
 
-	s.RoomMutex.Lock()
-	defer s.RoomMutex.Unlock()
+	RoomMutex.Lock()
+	defer RoomMutex.Unlock()
 
 	return json_read_all_rooms()
 }

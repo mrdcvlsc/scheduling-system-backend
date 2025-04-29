@@ -2,15 +2,12 @@ package StorageSchedule
 
 import (
 	"path"
-	"sync"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
-type JsonWriter struct {
-	Mutex *sync.Mutex
-}
+type JsonWriter struct{}
 
 func (s *JsonWriter) SaveSchedules(university_schedule Schedule.UniTimeTables, semester int) error {
 
@@ -28,8 +25,8 @@ func (s *JsonWriter) SaveSchedules(university_schedule Schedule.UniTimeTables, s
 		saved_file = path.Join(project_root, "scheduling-system-temporary-data", "univ-2nd-sem.sched")
 	}
 
-	s.Mutex.Lock()
-	defer s.Mutex.Unlock()
+	UniSchedPersistenceMutex.Lock()
+	defer UniSchedPersistenceMutex.Unlock()
 
 	Utils.SaveToBinFile(saved_file, Schedule.SerializeUniversitySchedule(university_schedule))
 

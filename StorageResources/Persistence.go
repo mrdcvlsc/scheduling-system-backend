@@ -1,11 +1,19 @@
 package StorageResources
 
 import (
+	"sync"
+
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Departments"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 )
+
+var SubjectMutex sync.Mutex
+var CurriculumsMutex sync.Mutex
+var DepartmentMutex sync.Mutex
+var InstructorMutex sync.Mutex
+var RoomMutex sync.Mutex
 
 type readerRepository interface {
 	// the order of curriculums returned by this method is always sorted by curriculum ID.

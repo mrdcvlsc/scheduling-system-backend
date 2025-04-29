@@ -17,8 +17,8 @@ func (s *JsonWriter) CreateDepartment(new_department Departments.Department) err
 		return errors.New("cannot create a newdepartment with a non zero department ID because that would overwrite a department")
 	}
 
-	s.DepartmentMutex.Lock()
-	defer s.DepartmentMutex.Unlock()
+	DepartmentMutex.Lock()
+	defer DepartmentMutex.Unlock()
 
 	all_departments, err_read := json_read_all_departments()
 
@@ -47,8 +47,8 @@ func (s *JsonWriter) UpdateDepartment(department_to_update Departments.Departmen
 		return errors.New("parameter argument missing invalid department ID")
 	}
 
-	s.DepartmentMutex.Lock()
-	defer s.DepartmentMutex.Unlock()
+	DepartmentMutex.Lock()
+	defer DepartmentMutex.Unlock()
 
 	all_departments, err_read := json_read_all_departments()
 
@@ -88,8 +88,8 @@ func (s *JsonWriter) DeleteDepartment(department_id uint16) error {
 		return errors.New("parameter argument missing invalid department ID")
 	}
 
-	s.DepartmentMutex.Lock()
-	defer s.DepartmentMutex.Unlock()
+	DepartmentMutex.Lock()
+	defer DepartmentMutex.Unlock()
 
 	all_departments, err_read := json_read_all_departments()
 

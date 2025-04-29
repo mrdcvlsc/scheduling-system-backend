@@ -70,8 +70,8 @@ func (s *JsonReader) ReadDepartmentInstructors(department_id int) ([]Instructors
 
 func (s *JsonReader) ReadAllInstructorsWithTimeString() ([]Instructors.InstructorWithTimeString, error) {
 
-	s.InstructorMutex.Lock()
-	defer s.InstructorMutex.Unlock()
+	InstructorMutex.Lock()
+	defer InstructorMutex.Unlock()
 
 	return json_read_all_instructors_with_time_string()
 }

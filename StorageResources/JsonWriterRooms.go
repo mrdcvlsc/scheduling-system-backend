@@ -17,8 +17,8 @@ func (s *JsonWriter) CreateRoom(new_room Rooms.Room) error {
 		return errors.New("cannot create a new room with a non zero room ID because that would overwrite a room item")
 	}
 
-	s.RoomMutex.Lock()
-	defer s.RoomMutex.Unlock()
+	RoomMutex.Lock()
+	defer RoomMutex.Unlock()
 
 	all_rooms, err_read := json_read_all_rooms()
 
@@ -49,8 +49,8 @@ func (s *JsonWriter) UpdateRoom(room_to_update Rooms.Room) error {
 		return errors.New("parameter argument missing invalid room ID")
 	}
 
-	s.RoomMutex.Lock()
-	defer s.RoomMutex.Unlock()
+	RoomMutex.Lock()
+	defer RoomMutex.Unlock()
 
 	all_rooms, err_read := json_read_all_rooms()
 
@@ -96,8 +96,8 @@ func (s *JsonWriter) DeleteRoom(room_id uint16) error {
 		return errors.New("parameter argument missing invalid room ID")
 	}
 
-	s.RoomMutex.Lock()
-	defer s.RoomMutex.Unlock()
+	RoomMutex.Lock()
+	defer RoomMutex.Unlock()
 
 	all_rooms, err_read := json_read_all_rooms()
 

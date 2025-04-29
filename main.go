@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"os"
 	"runtime"
-	"sync"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
@@ -50,34 +49,14 @@ func main() {
 		//                          JSON Persistence
 		//////////////////////////////////////////////////////////////////////////
 
-		var subject_mutex sync.Mutex
-		var curriculums_mutex sync.Mutex
-		var department_mutex sync.Mutex
-		var instructor_mutex sync.Mutex
-		var room_mutex sync.Mutex
-
 		RouteGlobals.ResourcesPersistence = &StorageResources.Persistence{
-			ReaderService: &StorageResources.JsonReader{
-				SubjectMutex:     &subject_mutex,
-				CurriculumsMutex: &curriculums_mutex,
-				DepartmentMutex:  &department_mutex,
-				InstructorMutex:  &instructor_mutex,
-				RoomMutex:        &room_mutex,
-			},
-			WriterService: &StorageResources.JsonWriter{
-				SubjectMutex:     &subject_mutex,
-				CurriculumsMutex: &curriculums_mutex,
-				DepartmentMutex:  &department_mutex,
-				InstructorMutex:  &instructor_mutex,
-				RoomMutex:        &room_mutex,
-			},
+			ReaderService: &StorageResources.JsonReader{},
+			WriterService: &StorageResources.JsonWriter{},
 		}
 
-		var uni_sched_persistence_mutex sync.Mutex
-
 		RouteGlobals.SchedulePersistence = &StorageSchedule.Persistence{
-			LoadService: &StorageSchedule.JsonReader{Mutex: &uni_sched_persistence_mutex},
-			SaveService: &StorageSchedule.JsonWriter{Mutex: &uni_sched_persistence_mutex},
+			LoadService: &StorageSchedule.JsonReader{},
+			SaveService: &StorageSchedule.JsonWriter{},
 		}
 	}
 
