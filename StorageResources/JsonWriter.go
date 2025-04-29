@@ -4,5 +4,9 @@ import "sync"
 
 // this type is for development and testing only
 type JsonWriter struct {
-	mutex sync.Mutex
+	SubjectMutex     *sync.Mutex
+	CurriculumsMutex *sync.Mutex
+	DepartmentMutex  *sync.Mutex
+	InstructorMutex  *sync.Mutex
+	RoomMutex        *sync.Mutex
 }

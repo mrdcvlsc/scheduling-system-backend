@@ -11,6 +11,10 @@ import (
 )
 
 func (s *JsonReader) ReadAllDepartments() ([]Departments.Department, error) {
+
+	s.DepartmentMutex.Lock()
+	defer s.DepartmentMutex.Unlock()
+
 	return json_read_all_departments()
 }
 
@@ -44,6 +48,10 @@ func json_read_all_departments() ([]Departments.Department, error) {
 
 // return a nil department if department does not exist
 func (s *JsonReader) ReadDepartment(department_id uint16) (*Departments.Department, error) {
+
+	s.DepartmentMutex.Lock()
+	defer s.DepartmentMutex.Unlock()
+
 	departments, err := json_read_all_departments()
 
 	if err != nil {

@@ -69,6 +69,10 @@ func (s *JsonReader) ReadDepartmentInstructors(department_id int) ([]Instructors
 }
 
 func (s *JsonReader) ReadAllInstructorsWithTimeString() ([]Instructors.InstructorWithTimeString, error) {
+
+	s.InstructorMutex.Lock()
+	defer s.InstructorMutex.Unlock()
+
 	return json_read_all_instructors_with_time_string()
 }
 
@@ -103,6 +107,7 @@ func json_read_all_instructors_with_time_string() ([]Instructors.InstructorWithT
 
 // return a nil instructor if instructor does not exist
 func (s *JsonReader) ReadInstructor(instructor_id uint16) (*Instructors.Instructor, error) {
+
 	instructors, err := s.ReadAllInstructors()
 
 	if err != nil {

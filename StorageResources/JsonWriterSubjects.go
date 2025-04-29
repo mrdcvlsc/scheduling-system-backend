@@ -17,8 +17,8 @@ func (s *JsonWriter) CreateSubject(new_subject Curriculum.Subject) error {
 		return errors.New("cannot create a new subject with a non zero subject ID because that would overwrite a subject item")
 	}
 
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.SubjectMutex.Lock()
+	defer s.SubjectMutex.Unlock()
 
 	all_subject, err_read := json_read_all_subjects()
 
@@ -50,6 +50,9 @@ func (s *JsonWriter) UpdateSubject(subject_to_update Curriculum.Subject) error {
 	if subject_to_update.ID == 0 {
 		return errors.New("parameter argument missing invalid subject ID")
 	}
+
+	s.SubjectMutex.Lock()
+	defer s.SubjectMutex.Unlock()
 
 	all_subjects, err_read := json_read_all_subjects()
 
@@ -122,6 +125,9 @@ func (s *JsonWriter) DeleteSubject(subject_id uint16) error {
 	if subject_id == 0 {
 		return errors.New("parameter argument missing invalid subject ID")
 	}
+
+	s.SubjectMutex.Lock()
+	defer s.SubjectMutex.Unlock()
 
 	all_subjects, err_read := json_read_all_subjects()
 

@@ -18,8 +18,8 @@ func (s *JsonWriter) CreateCurriculum(new_curriculum Curriculum.Curriculum) erro
 		return errors.New("error CreateCurriculum(): cannot create a new curriculum with a non-zero CurriculumID")
 	}
 
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.CurriculumsMutex.Lock()
+	defer s.CurriculumsMutex.Unlock()
 
 	all_curriculums, err_read := json_read_all_curriculums()
 
@@ -49,6 +49,9 @@ func (s *JsonWriter) UpdateCurriculum(updated_curriculum Curriculum.Curriculum) 
 	if updated_curriculum.CurriculumID == 0 {
 		return errors.New("error UpdateCurriculum(): parameter argument missing invalid CurriculumID")
 	}
+
+	s.CurriculumsMutex.Lock()
+	defer s.CurriculumsMutex.Unlock()
 
 	all_curriculums, err_read := json_read_all_curriculums()
 
@@ -86,6 +89,9 @@ func (s *JsonWriter) DeleteCurriculum(curriculum_id uint16) error {
 	if curriculum_id == 0 {
 		return errors.New("parameter argument missing invalid curriculum ID")
 	}
+
+	s.CurriculumsMutex.Lock()
+	defer s.CurriculumsMutex.Unlock()
 
 	all_curriculums, err_read := json_read_all_curriculums()
 

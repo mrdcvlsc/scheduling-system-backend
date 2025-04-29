@@ -50,9 +50,27 @@ func main() {
 		//                          JSON Persistence
 		//////////////////////////////////////////////////////////////////////////
 
+		var subject_mutex sync.Mutex
+		var curriculums_mutex sync.Mutex
+		var department_mutex sync.Mutex
+		var instructor_mutex sync.Mutex
+		var room_mutex sync.Mutex
+
 		RouteGlobals.ResourcesPersistence = &StorageResources.Persistence{
-			ReaderService: &StorageResources.JsonReader{},
-			WriterService: &StorageResources.JsonWriter{},
+			ReaderService: &StorageResources.JsonReader{
+				SubjectMutex:     &subject_mutex,
+				CurriculumsMutex: &curriculums_mutex,
+				DepartmentMutex:  &department_mutex,
+				InstructorMutex:  &instructor_mutex,
+				RoomMutex:        &room_mutex,
+			},
+			WriterService: &StorageResources.JsonWriter{
+				SubjectMutex:     &subject_mutex,
+				CurriculumsMutex: &curriculums_mutex,
+				DepartmentMutex:  &department_mutex,
+				InstructorMutex:  &instructor_mutex,
+				RoomMutex:        &room_mutex,
+			},
 		}
 
 		var uni_sched_persistence_mutex sync.Mutex
