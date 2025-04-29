@@ -14,6 +14,7 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
+	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
 const CROSSOVER_DOMINANT_GENE int = 75 // % - percentage to be likely that the dominant parent's gene will be use during crossover
@@ -87,6 +88,16 @@ func Crossover(
 				"error parent subjects have different subject time slot block counts, parent 1 subjects: %d, parent 2 subjects: %d, possible cause by wrong university schedule indexing order",
 				len(parent_1_subjects), len(parent_2_subjects),
 			)
+
+			fmt.Print("\n\nParent 1:\n\n")
+
+			Utils.PrettyPrint(parent_1_subjects)
+
+			fmt.Print("\n\nParent 2:\n\n")
+
+			Utils.PrettyPrint(parent_2_subjects)
+
+			fmt.Print("\n\n")
 
 			return IterBreakCurriculumLoop
 		}
