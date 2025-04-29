@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"sync"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
@@ -54,9 +55,11 @@ func main() {
 			WriterService: &StorageResources.JsonWriter{},
 		}
 
+		var uni_sched_persistence_mutex sync.Mutex
+
 		RouteGlobals.SchedulePersistence = &StorageSchedule.Persistence{
-			LoadService: &StorageSchedule.JsonReader{},
-			SaveService: &StorageSchedule.JsonWriter{},
+			LoadService: &StorageSchedule.JsonReader{Mutex: &uni_sched_persistence_mutex},
+			SaveService: &StorageSchedule.JsonWriter{Mutex: &uni_sched_persistence_mutex},
 		}
 	}
 

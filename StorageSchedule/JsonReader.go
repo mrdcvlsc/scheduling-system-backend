@@ -2,12 +2,15 @@ package StorageSchedule
 
 import (
 	"path"
+	"sync"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
-type JsonReader struct{}
+type JsonReader struct {
+	Mutex *sync.Mutex
+}
 
 const first_semester int = 0
 const second_semester int = 1
@@ -27,6 +30,9 @@ func (s *JsonReader) LoadSchedules(semester int) (Schedule.UniTimeTables, error)
 	} else if semester == second_semester {
 		saved_file = path.Join(project_root, "scheduling-system-temporary-data", "univ-2nd-sem.sched")
 	}
+
+	s.Mutex.Lock()
+	defer s.Mutex.Unlock()
 
 	read_bytes, err_read_from_bin_file := Utils.ReadFromBinFile(saved_file)
 
