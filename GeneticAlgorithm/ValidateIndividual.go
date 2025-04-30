@@ -6,7 +6,6 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
-	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 )
 
 /*
@@ -18,7 +17,7 @@ to validate whole university schedules, set department to encode to nil:
 */
 func HorizontalValidation(
 	university_sched Schedule.UniTimeTables,
-	resource_persistence *StorageResources.Persistence,
+	curriculums []Curriculum.Curriculum,
 	department_to_validate map[uint16]bool, selected_semester int,
 ) []error {
 
@@ -27,12 +26,6 @@ func HorizontalValidation(
 	/////////////////////////////////////////////////////////////////////////////////
 	//                            HORIZONTAL CHECKS
 	/////////////////////////////////////////////////////////////////////////////////
-
-	curriculums, err_read_all_curriculum := resource_persistence.ReaderService.ReadAllCurriculum()
-
-	if err_read_all_curriculum != nil {
-		errs_slice = append(errs_slice, err_read_all_curriculum)
-	}
 
 	total_university_sections := Curriculum.GetTotalNumberOfSections(curriculums, selected_semester)
 

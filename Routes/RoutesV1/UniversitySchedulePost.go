@@ -2,6 +2,7 @@ package RoutesV1
 
 import (
 	"io"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -39,14 +40,30 @@ func PostUniversitySchedule(ctx *gin.Context) {
 		return
 	}
 
-	for _, err_vertical_validation := range university_schedules.VerticalValidation(RouteGlobals.ResourcesPersistence) {
+	rooms, err_read_all_rooms := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllRooms()
+
+	if err_read_all_rooms != nil {
+		log.Print("PostUniversitySchedule: [read-rooms-error] caused by ", err_read_all_rooms)
+		ctx.String(http.StatusInternalServerError, "tried to add university schedule but, we can not retrieve the required rooms information right now")
+		return
+	}
+
+	curriculums, err_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
+
+	if err_curriculums != nil {
+		log.Print("PostUniversitySchedule: [read-curriculums-error] caused by ", err_curriculums)
+		ctx.String(http.StatusInternalServerError, "tried to add university schedule but, we can not retrieve the required curriculums information right now")
+		return
+	}
+
+	for _, err_vertical_validation := range university_schedules.VerticalValidation(rooms) {
 		if err_vertical_validation != nil {
 			ctx.String(http.StatusConflict, "we detected an invalid schedule")
 			return
 		}
 	}
 
-	for _, err_horizontal_validation := range university_schedules.HorizontalValidation(RouteGlobals.ResourcesPersistence, nil, selected_semester) {
+	for _, err_horizontal_validation := range university_schedules.HorizontalValidation(curriculums, nil, selected_semester) {
 		if err_horizontal_validation != nil {
 			ctx.String(http.StatusConflict, "we detected an invalid schedule")
 			return

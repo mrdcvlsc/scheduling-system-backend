@@ -9,8 +9,8 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
-	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
@@ -36,7 +36,7 @@ func ApplyClearDepartmentSchedule(sched Schedule.UniTimeTables, all_curriculums 
 func ApplyRandomDaySwapTimeSlots(
 	sched Schedule.UniTimeTables, all_curriculums []Curriculum.Curriculum,
 	department_id uint16, selected_semester int,
-	resource_persistence *StorageResources.Persistence,
+	rooms []Rooms.Room,
 	instructor_id_to_instructor map[uint16]*Instructors.Instructor,
 ) {
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
@@ -90,8 +90,8 @@ func ApplyRandomDaySwapTimeSlots(
 					}
 				}
 
-				err_day_a := sched.VerticalRangedValidation(resource_persistence, day, 1, 0, Const.N_DAILY_TIME_SLOTS)
-				err_day_b := sched.VerticalRangedValidation(resource_persistence, day_swap, 1, 0, Const.N_DAILY_TIME_SLOTS)
+				err_day_a := sched.VerticalRangedValidation(rooms, day, 1, 0, Const.N_DAILY_TIME_SLOTS)
+				err_day_b := sched.VerticalRangedValidation(rooms, day_swap, 1, 0, Const.N_DAILY_TIME_SLOTS)
 
 				// if there are vertical errors, undo the mutation
 
@@ -119,7 +119,7 @@ func ApplyRandomDaySwapTimeSlots(
 
 func ApplyRandomSubjectDaySwap(
 	sched Schedule.UniTimeTables,
-	resource_persistence *StorageResources.Persistence,
+	rooms []Rooms.Room,
 	all_curriculums []Curriculum.Curriculum,
 	department_id uint16, selected_semester int,
 	instructor_id_to_instructor map[uint16]*Instructors.Instructor,
@@ -199,7 +199,7 @@ func ApplyRandomSubjectDaySwap(
 					swap_slot.Set(rand_subject.SubjectID, rand_subject.InstructorID, rand_subject.RoomID)
 				}
 
-				err_overlaps := sched.VerticalRangedValidation(resource_persistence,
+				err_overlaps := sched.VerticalRangedValidation(rooms,
 					day_swap, 1,
 					rand_subject.StartingTimeSlot, rand_subject.TimeSlotSize,
 				)
@@ -228,7 +228,7 @@ func ApplyRandomSubjectDaySwap(
 
 func ApplyRandomSubjectTimeSlotNudge(
 	sched Schedule.UniTimeTables,
-	resource_persistence *StorageResources.Persistence,
+	rooms []Rooms.Room,
 	all_curriculums []Curriculum.Curriculum,
 	department_id uint16, selected_semester int,
 	instructor_id_to_instructor map[uint16]*Instructors.Instructor,
@@ -327,7 +327,7 @@ func ApplyRandomSubjectTimeSlotNudge(
 					nudge_slot.Set(rnd_subject.SubjectID, rnd_subject.InstructorID, rnd_subject.RoomID)
 				}
 
-				err_overlaps := sched.VerticalRangedValidation(resource_persistence,
+				err_overlaps := sched.VerticalRangedValidation(rooms,
 					rnd_subject.Day, 1,
 					rnd_subject.StartingTimeSlot+nudge_value, rnd_subject.TimeSlotSize,
 				)
@@ -362,7 +362,6 @@ func ApplyRandomSubjectTimeSlotNudge(
 // TODO: debug there is an error here (currently this mutation function is not being used)
 func ApplyRandomSubjectErasure(
 	sched Schedule.UniTimeTables,
-	resource_persistence *StorageResources.Persistence,
 	all_curriculums []Curriculum.Curriculum,
 	department_id uint16, selected_semester int,
 ) {
@@ -439,7 +438,7 @@ func ApplyRandomSubjectErasure(
 
 func ApplyRandomSubjectTimeSlotAndDayNudge(
 	sched Schedule.UniTimeTables,
-	resource_persistence *StorageResources.Persistence,
+	rooms []Rooms.Room,
 	all_curriculums []Curriculum.Curriculum,
 	department_id uint16, selected_semester int,
 	instructor_id_to_instructor map[uint16]*Instructors.Instructor,
@@ -539,7 +538,7 @@ func ApplyRandomSubjectTimeSlotAndDayNudge(
 					nudge_slot.Set(rnd_subject.SubjectID, rnd_subject.InstructorID, rnd_subject.RoomID)
 				}
 
-				err_overlaps := sched.VerticalRangedValidation(resource_persistence,
+				err_overlaps := sched.VerticalRangedValidation(rooms,
 					day_swap, 1,
 					rnd_subject.StartingTimeSlot+nudge_value, rnd_subject.TimeSlotSize,
 				)

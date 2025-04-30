@@ -54,17 +54,25 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
+	departments, err_all_departments := persistence.ReaderService.ReadAllDepartments()
+
+	if err_all_departments != nil {
+		t.Fatal(err_all_departments)
+	}
+
+	rooms, err_all_rooms := persistence.ReaderService.ReadAllRooms()
+
+	if err_all_rooms != nil {
+		t.Fatal(err_all_rooms)
+	}
+
 	curriculums, err_all_curriculums := persistence.ReaderService.ReadAllCurriculum()
 
 	if err_all_curriculums != nil {
 		t.Fatal(err_all_curriculums)
 	}
 
-	dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(&persistence)
-
-	if err_dept_id_to_department != nil {
-		t.Fatal(err_dept_id_to_department)
-	}
+	dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(departments)
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
@@ -117,7 +125,7 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 
 		// t.Logf("Schedules Generated : %d,    Calculated Total Number Of Sections : %d", len(university_schedules), total_sections_calculated)
 
-		err_vertical_validations := university_schedules.VerticalValidation(&persistence)
+		err_vertical_validations := university_schedules.VerticalValidation(rooms)
 
 		for _, e := range err_vertical_validations {
 			t.Error(e)
@@ -127,7 +135,7 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 		///////////////////////
 
 		generated_encoding_resource, err_gen_encode_resource := GeneticAlgorithm.GenerateEncodingResourceFromUniTimeTable(
-			university_schedules, curriculums, target_semester, &persistence,
+			university_schedules, curriculums, target_semester, default_encoding_resource,
 		)
 
 		if err_gen_encode_resource != nil {
@@ -145,7 +153,7 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 		/////////////////
 
 		if err == nil {
-			err_horizontal_validations := university_schedules.HorizontalValidation(&persistence, nil, target_semester)
+			err_horizontal_validations := university_schedules.HorizontalValidation(curriculums, nil, target_semester)
 
 			for _, e := range err_horizontal_validations {
 				t.Fatal(e)
@@ -227,21 +235,29 @@ func GeneratePopWithDepartmentSelection(t *testing.T, target_semester int) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
+	departments, err_all_departments := persistence.ReaderService.ReadAllDepartments()
+
+	if err_all_departments != nil {
+		t.Fatal(err_all_departments)
+	}
+
+	rooms, err_all_rooms := persistence.ReaderService.ReadAllRooms()
+
+	if err_all_rooms != nil {
+		t.Fatal(err_all_rooms)
+	}
+
 	curriculums, err_all_curriculums := persistence.ReaderService.ReadAllCurriculum()
 
 	if err_all_curriculums != nil {
 		t.Fatal(err_all_curriculums)
 	}
 
-	dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(&persistence)
-
-	if err_dept_id_to_department != nil {
-		t.Fatal(err_dept_id_to_department)
-	}
+	dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(departments)
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	encoding_resource, err_read_default_encoding_resource := GeneticAlgorithm.ReadDefaultEncodingResource(&persistence)
+	default_encoding_resource, err_read_default_encoding_resource := GeneticAlgorithm.ReadDefaultEncodingResource(&persistence)
 
 	if err_read_default_encoding_resource != nil {
 		t.Fatal(err_read_default_encoding_resource)
@@ -277,7 +293,12 @@ new_population_loop:
 			is_department_id_to_has_curriculum[curriculum.DepartmentID] = true
 		}
 
-		track_resources := encoding_resource
+		track_resources, err_der_copy := default_encoding_resource.MakeCopy()
+
+		if err_der_copy != nil {
+			t.Fatal(err_der_copy)
+		}
+
 		track_schedules := empty_university_schedule
 
 		if !track_schedules.IsEmpty() {
@@ -356,7 +377,7 @@ new_population_loop:
 				t.Fatalf("returned a nil university schedule : loop iteration %d\n", i)
 			}
 
-			err_vertical_validations := track_schedules.VerticalValidation(&persistence)
+			err_vertical_validations := track_schedules.VerticalValidation(rooms)
 
 			for _, e := range err_vertical_validations {
 				t.Error(e)
@@ -369,7 +390,7 @@ new_population_loop:
 			// it to the resulting encoding resource from the same previous generated department schedule uni time table
 
 			generated_encoding_resource, output_resources := GeneticAlgorithm.GenerateEncodingResourceFromUniTimeTable(
-				track_schedules, curriculums, target_semester, &persistence,
+				track_schedules, curriculums, target_semester, default_encoding_resource,
 			)
 
 			if output_resources != nil {
@@ -390,7 +411,7 @@ new_population_loop:
 
 				fmt.Printf("Generated schedules for all departments, the department %s\n", department.Name)
 
-				err_intentional_horizontal_validation := track_schedules.HorizontalValidation(&persistence, nil, target_semester)
+				err_intentional_horizontal_validation := track_schedules.HorizontalValidation(curriculums, nil, target_semester)
 
 				if err_intentional_horizontal_validation == nil {
 					t.Fatal("there should be a missing subject error here since the university schedule is not complete yet")
@@ -401,7 +422,7 @@ new_population_loop:
 				department_to_validate := make(map[uint16]bool)
 				department_to_validate[department.DepartmentID] = true
 
-				err_department_horizontal_validations := track_schedules.HorizontalValidation(&persistence, department_to_validate, target_semester)
+				err_department_horizontal_validations := track_schedules.HorizontalValidation(curriculums, department_to_validate, target_semester)
 
 				for _, e := range err_department_horizontal_validations {
 					t.Fatal(e)
@@ -416,7 +437,7 @@ new_population_loop:
 					t.Fatalf("returned an empty university schedule : loop iteration %d\n", i)
 				}
 
-				err_horizontal_validations := track_schedules.HorizontalValidation(&persistence, nil, target_semester)
+				err_horizontal_validations := track_schedules.HorizontalValidation(curriculums, nil, target_semester)
 
 				for _, e := range err_horizontal_validations {
 					t.Fatal(e)
@@ -456,21 +477,23 @@ func BenchmarkNewPopulationFirstSem(b *testing.B) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
+	departments, err_all_departments := persistence.ReaderService.ReadAllDepartments()
+
+	if err_all_departments != nil {
+		b.Fatal(err_all_departments)
+	}
+
 	curriculums, err_all_curriculums := persistence.ReaderService.ReadAllCurriculum()
 
 	if err_all_curriculums != nil {
 		b.Fatal(err_all_curriculums)
 	}
 
-	dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(&persistence)
-
-	if err_dept_id_to_department != nil {
-		b.Fatal(err_dept_id_to_department)
-	}
+	dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(departments)
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	encoding_resource, err_read_default_encoding_resource := GeneticAlgorithm.ReadDefaultEncodingResource(&persistence)
+	default_encoding_resource, err_read_default_encoding_resource := GeneticAlgorithm.ReadDefaultEncodingResource(&persistence)
 
 	if err_read_default_encoding_resource != nil {
 		b.Fatal(err_read_default_encoding_resource)
@@ -484,7 +507,7 @@ func BenchmarkNewPopulationFirstSem(b *testing.B) {
 		GeneticAlgorithm.EncodeIndividualGenome(
 			empty_university_schedule,
 			curriculums, dept_id_to_department,
-			encoding_resource, nil,
+			default_encoding_resource, nil,
 			GeneticAlgorithm.TERM_1ST_SEMESTER, 0,
 		)
 	}
@@ -495,21 +518,23 @@ func BenchmarkNewPopulationSecondSem(b *testing.B) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
+	departments, err_all_departments := persistence.ReaderService.ReadAllDepartments()
+
+	if err_all_departments != nil {
+		b.Fatal(err_all_departments)
+	}
+
 	curriculums, err_all_curriculums := persistence.ReaderService.ReadAllCurriculum()
 
 	if err_all_curriculums != nil {
 		b.Fatal(err_all_curriculums)
 	}
 
-	dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(&persistence)
-
-	if err_dept_id_to_department != nil {
-		b.Fatal(err_dept_id_to_department)
-	}
+	dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(departments)
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	encoding_resource, err_read_default_encoding_resource := GeneticAlgorithm.ReadDefaultEncodingResource(&persistence)
+	default_encoding_resource, err_read_default_encoding_resource := GeneticAlgorithm.ReadDefaultEncodingResource(&persistence)
 
 	if err_read_default_encoding_resource != nil {
 		b.Fatal(err_read_default_encoding_resource)
@@ -523,7 +548,7 @@ func BenchmarkNewPopulationSecondSem(b *testing.B) {
 		GeneticAlgorithm.EncodeIndividualGenome(
 			empty_university_schedule,
 			curriculums, dept_id_to_department,
-			encoding_resource, nil,
+			default_encoding_resource, nil,
 			GeneticAlgorithm.TERM_2ND_SEMESTER, 0,
 		)
 	}

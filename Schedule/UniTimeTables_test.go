@@ -22,21 +22,29 @@ func Test_UniTimeTablesSerializationAndDeserialization(t *testing.T) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
+	departments, err_read_all_departments := resource_persistence.ReaderService.ReadAllDepartments()
+
+	if err_read_all_departments != nil {
+		t.Fatal(err_read_all_departments)
+	}
+
+	rooms, err_read_all_rooms := resource_persistence.ReaderService.ReadAllRooms()
+
+	if err_read_all_rooms != nil {
+		t.Fatal(err_read_all_rooms)
+	}
+
 	curriculums, err_read_all_curriculum := storage_persistence.ReaderService.ReadAllCurriculum()
 
 	if err_read_all_curriculum != nil {
 		t.Fatal(err_read_all_curriculum)
 	}
 
-	dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(&resource_persistence)
-
-	if err_dept_id_to_department != nil {
-		t.Fatal(err_dept_id_to_department)
-	}
+	dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(departments)
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	encoding_resource, err_read_default_encoding_resource := GeneticAlgorithm.ReadDefaultEncodingResource(&resource_persistence)
+	default_encoding_resource, err_read_default_encoding_resource := GeneticAlgorithm.ReadDefaultEncodingResource(&resource_persistence)
 
 	if err_read_default_encoding_resource != nil {
 		t.Fatal(err_read_default_encoding_resource)
@@ -50,7 +58,7 @@ func Test_UniTimeTablesSerializationAndDeserialization(t *testing.T) {
 		uni_sched, encoding_resource_output, err := GeneticAlgorithm.EncodeIndividualGenome(
 			empty_university_schedule,
 			curriculums, dept_id_to_department,
-			encoding_resource, nil,
+			default_encoding_resource, nil,
 			GeneticAlgorithm.TERM_1ST_SEMESTER, 0,
 		)
 
@@ -64,7 +72,7 @@ func Test_UniTimeTablesSerializationAndDeserialization(t *testing.T) {
 
 		errs_slice := make([]error, 0)
 
-		errs_slice = append(errs_slice, uni_sched.VerticalValidation(&resource_persistence)...)
+		errs_slice = append(errs_slice, uni_sched.VerticalValidation(rooms)...)
 
 		if len(errs_slice) > 0 {
 			for _, e := range errs_slice {
@@ -73,7 +81,7 @@ func Test_UniTimeTablesSerializationAndDeserialization(t *testing.T) {
 		}
 
 		if err == nil {
-			errs_slice = append(errs_slice, uni_sched.HorizontalValidation(&resource_persistence, nil, GeneticAlgorithm.TERM_1ST_SEMESTER)...)
+			errs_slice = append(errs_slice, uni_sched.HorizontalValidation(curriculums, nil, GeneticAlgorithm.TERM_1ST_SEMESTER)...)
 		}
 
 		if len(errs_slice) > 0 {
@@ -85,7 +93,7 @@ func Test_UniTimeTablesSerializationAndDeserialization(t *testing.T) {
 		///////////////////////
 
 		generated_encoding_resource, output_resources := GeneticAlgorithm.GenerateEncodingResourceFromUniTimeTable(
-			uni_sched, curriculums, GeneticAlgorithm.TERM_1ST_SEMESTER, &resource_persistence,
+			uni_sched, curriculums, GeneticAlgorithm.TERM_1ST_SEMESTER, default_encoding_resource,
 		)
 
 		if output_resources != nil {
@@ -138,12 +146,19 @@ func Test_UniTimeTablesSerializationAndDeserialization(t *testing.T) {
 
 func TestVerticalValidation_InstructorWithoutSubject(t *testing.T) {
 	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+
+	rooms, err_read_all_rooms := persistence.ReaderService.ReadAllRooms()
+
+	if err_read_all_rooms != nil {
+		t.Fatal(err_read_all_rooms)
+	}
+
 	uni := Schedule.NewUniTimeTables(1)
 	// instructor assigned but no subject
 	if err := uni[0].GetDayTimeTable(0).GetTimeSlot(0).Set(0, 42, 0); err != nil {
 		t.Fatal(err)
 	}
-	errs := uni.VerticalValidation(&persistence)
+	errs := uni.VerticalValidation(rooms)
 	if len(errs) != 1 {
 		t.Fatalf("expected 1 error, got %d", len(errs))
 	}
@@ -154,6 +169,7 @@ func TestVerticalValidation_InstructorWithoutSubject(t *testing.T) {
 
 func TestVerticalValidation_RoomWithoutSubject(t *testing.T) {
 	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+
 	rooms, err := persistence.ReaderService.ReadAllRooms()
 	if err != nil || len(rooms) == 0 {
 		t.Skip("no rooms available for test")
@@ -164,7 +180,7 @@ func TestVerticalValidation_RoomWithoutSubject(t *testing.T) {
 	if err := uni[0].GetDayTimeTable(0).GetTimeSlot(0).Set(0, 0, roomID); err != nil {
 		t.Fatal(err)
 	}
-	errs := uni.VerticalValidation(&persistence)
+	errs := uni.VerticalValidation(rooms)
 	if len(errs) != 1 {
 		t.Fatalf("expected 1 error, got %d", len(errs))
 	}
@@ -175,6 +191,13 @@ func TestVerticalValidation_RoomWithoutSubject(t *testing.T) {
 
 func TestVerticalValidation_OverlappingInstructor(t *testing.T) {
 	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+
+	rooms, err_read_all_rooms := persistence.ReaderService.ReadAllRooms()
+
+	if err_read_all_rooms != nil {
+		t.Fatal(err_read_all_rooms)
+	}
+
 	// two sections, same instructor, same slot
 	uni := Schedule.NewUniTimeTables(2)
 	for i := 0; i < 2; i++ {
@@ -182,7 +205,7 @@ func TestVerticalValidation_OverlappingInstructor(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	errs := uni.VerticalValidation(&persistence)
+	errs := uni.VerticalValidation(rooms)
 	if len(errs) != 1 {
 		t.Fatalf("expected 1 error, got %d", len(errs))
 	}
@@ -207,7 +230,7 @@ func TestVerticalValidation_OverlappingRoomWithinAndExceedingCapacity(t *testing
 			t.Fatal(err)
 		}
 	}
-	errs := uniWithin.VerticalValidation(&persistence)
+	errs := uniWithin.VerticalValidation(rooms)
 	if len(errs) != 0 {
 		t.Errorf("expected no errors within capacity, got %d", len(errs))
 	}
@@ -219,7 +242,7 @@ func TestVerticalValidation_OverlappingRoomWithinAndExceedingCapacity(t *testing
 			t.Fatal(err)
 		}
 	}
-	errs2 := uniExceed.VerticalValidation(&persistence)
+	errs2 := uniExceed.VerticalValidation(rooms)
 	if len(errs2) != 1 {
 		t.Fatalf("expected 1 error exceeding capacity, got %d", len(errs2))
 	}
@@ -246,7 +269,7 @@ func TestVerticalValidation_MixedErrors(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	errs := uni.VerticalValidation(&persistence)
+	errs := uni.VerticalValidation(rooms)
 	if len(errs) != 2 {
 		t.Fatalf("expected 2 errors, got %d", len(errs))
 	}
@@ -260,6 +283,13 @@ func TestVerticalValidation_MixedErrors(t *testing.T) {
 
 func TestHorizontalValidation_MissingEntireSubject(t *testing.T) {
 	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+
+	curriculums, err_read_all_curriculum := persistence.ReaderService.ReadAllCurriculum()
+
+	if err_read_all_curriculum != nil {
+		t.Fatal(err_read_all_curriculum)
+	}
+
 	currs, err := persistence.ReaderService.ReadAllCurriculum()
 	if err != nil {
 		t.Fatal(err)
@@ -288,7 +318,7 @@ func TestHorizontalValidation_MissingEntireSubject(t *testing.T) {
 	total := Curriculum.GetTotalNumberOfSections(currs, 0)
 	uni := Schedule.NewUniTimeTables(uint(total))
 
-	errs := uni.HorizontalValidation(&persistence, map[uint16]bool{deptID: true}, 0)
+	errs := uni.HorizontalValidation(curriculums, map[uint16]bool{deptID: true}, 0)
 	if len(errs) == 0 {
 		t.Fatalf("expected missing‐subject errors, got none")
 	}
@@ -309,6 +339,12 @@ func TestHorizontalValidation_MissingEntireSubject(t *testing.T) {
 
 func TestHorizontalValidation_TimeSlotAllocationBounds(t *testing.T) {
 	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+	curriculums, err_read_all_curriculum := persistence.ReaderService.ReadAllCurriculum()
+
+	if err_read_all_curriculum != nil {
+		t.Fatal(err_read_all_curriculum)
+	}
+
 	currs, err := persistence.ReaderService.ReadAllCurriculum()
 	if err != nil {
 		t.Fatal(err)
@@ -343,7 +379,7 @@ func TestHorizontalValidation_TimeSlotAllocationBounds(t *testing.T) {
 	for i := 0; i < slotsRequired-1 && i < Const.N_DAILY_TIME_SLOTS; i++ {
 		uniFew[0].GetDayTimeTable(0).GetTimeSlot(i).Set(subj.ID, 0, 0)
 	}
-	errsFew := uniFew.HorizontalValidation(&persistence, map[uint16]bool{deptID: true}, 0)
+	errsFew := uniFew.HorizontalValidation(curriculums, map[uint16]bool{deptID: true}, 0)
 	if len(errsFew) == 0 {
 		t.Errorf("expected missing time‐slot allocation error, got none")
 	}
@@ -352,7 +388,7 @@ func TestHorizontalValidation_TimeSlotAllocationBounds(t *testing.T) {
 	for i := 0; i < slotsRequired+1 && i < Const.N_DAILY_TIME_SLOTS; i++ {
 		uniMany[0].GetDayTimeTable(0).GetTimeSlot(i).Set(subj.ID, 0, 0)
 	}
-	errsMany := uniMany.HorizontalValidation(&persistence, map[uint16]bool{deptID: true}, 0)
+	errsMany := uniMany.HorizontalValidation(curriculums, map[uint16]bool{deptID: true}, 0)
 	if len(errsMany) == 0 {
 		t.Errorf("expected extra time‐slot allocation error, got none")
 	}
@@ -360,6 +396,13 @@ func TestHorizontalValidation_TimeSlotAllocationBounds(t *testing.T) {
 
 func TestHorizontalValidation_DepartmentFilterReducesErrors(t *testing.T) {
 	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+
+	curriculums, err_read_all_curriculum := persistence.ReaderService.ReadAllCurriculum()
+
+	if err_read_all_curriculum != nil {
+		t.Fatal(err_read_all_curriculum)
+	}
+
 	currs, err := persistence.ReaderService.ReadAllCurriculum()
 	if err != nil {
 		t.Fatal(err)
@@ -370,10 +413,10 @@ func TestHorizontalValidation_DepartmentFilterReducesErrors(t *testing.T) {
 	// build full schedule with no assignments
 	total := Curriculum.GetTotalNumberOfSections(currs, 0)
 	uni := Schedule.NewUniTimeTables(uint(total))
-	errsNoFilter := uni.HorizontalValidation(&persistence, nil, 0)
+	errsNoFilter := uni.HorizontalValidation(curriculums, nil, 0)
 	// filter only first department
 	filter := map[uint16]bool{currs[0].DepartmentID: true}
-	errsFilter := uni.HorizontalValidation(&persistence, filter, 0)
+	errsFilter := uni.HorizontalValidation(curriculums, filter, 0)
 	if len(errsFilter) > len(errsNoFilter) {
 		t.Errorf("expected filter to reduce or equal errors, got %d > %d", len(errsFilter), len(errsNoFilter))
 	}

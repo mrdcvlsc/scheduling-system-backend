@@ -12,14 +12,8 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
-func GenerateMapDeptIdToRoomTypeToRooms(persistence *StorageResources.Persistence) (map[uint16]map[uint16][]Rooms.Room, error) {
+func GenerateMapDeptIdToRoomTypeToRooms(rooms []Rooms.Room) map[uint16]map[uint16][]Rooms.Room {
 	department_id_to_room_type_to_rooms := make(map[uint16]map[uint16][]Rooms.Room)
-
-	rooms, err := persistence.ReaderService.ReadAllRooms()
-
-	if err != nil {
-		return nil, err
-	}
 
 	for _, room := range rooms {
 		_, has_department_id := department_id_to_room_type_to_rooms[room.DepartmentID]
@@ -40,17 +34,11 @@ func GenerateMapDeptIdToRoomTypeToRooms(persistence *StorageResources.Persistenc
 		}
 	}
 
-	return department_id_to_room_type_to_rooms, nil
+	return department_id_to_room_type_to_rooms
 }
 
-func GenerateMapDeptIdToInstructors(persistence *StorageResources.Persistence) (map[uint16][]Instructors.Instructor, error) {
+func GenerateMapDeptIdToInstructors(instructors []Instructors.Instructor) map[uint16][]Instructors.Instructor {
 	department_id_to_instructors := make(map[uint16][]Instructors.Instructor)
-
-	instructors, err := persistence.ReaderService.ReadAllInstructors()
-
-	if err != nil {
-		return nil, err
-	}
 
 	for _, instructor := range instructors {
 		_, has_department_id := department_id_to_instructors[instructor.DepartmentID]
@@ -65,23 +53,17 @@ func GenerateMapDeptIdToInstructors(persistence *StorageResources.Persistence) (
 		}
 	}
 
-	return department_id_to_instructors, nil
+	return department_id_to_instructors
 }
 
-func GenerateMapDeptIdToDepartment(persistence *StorageResources.Persistence) (map[uint16]Departments.Department, error) {
+func GenerateMapDeptIdToDepartment(departments []Departments.Department) map[uint16]Departments.Department {
 	department_id_to_department := make(map[uint16]Departments.Department)
-
-	departments, err := persistence.ReaderService.ReadAllDepartments()
-
-	if err != nil {
-		return nil, err
-	}
 
 	for _, department := range departments {
 		department_id_to_department[department.DepartmentID] = department
 	}
 
-	return department_id_to_department, nil
+	return department_id_to_department
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -134,17 +116,19 @@ func EstimateResourceAvailability(persistence *StorageResources.Persistence, sel
 
 	err_list := make([]error, 0)
 
+	departments, err_department := persistence.ReaderService.ReadAllDepartments()
+
+	if err_department != nil {
+		err_list = append(err_list, err_department)
+		return err_list
+	}
+
+	department_id_to_department := GenerateMapDeptIdToDepartment(departments)
+
 	curriculums, err_curriculum := persistence.ReaderService.ReadAllCurriculum()
 
 	if err_curriculum != nil {
 		err_list = append(err_list, err_curriculum)
-		return err_list
-	}
-
-	department_id_to_department, err_department_id_to_department := GenerateMapDeptIdToDepartment(persistence)
-
-	if err_department_id_to_department != nil {
-		err_list = append(err_list, err_department_id_to_department)
 		return err_list
 	}
 

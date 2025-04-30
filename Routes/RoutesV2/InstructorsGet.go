@@ -161,6 +161,12 @@ func GetInstructorResource(ctx *gin.Context) {
 			return
 		}
 
+		err_set_cache := RouteGlobals.SetCachedUniversitySchedule(semester_idx, university_schedules)
+
+		if err_set_cache != nil {
+			log.Println(err_set_cache.Error())
+		}
+
 		instructor_time_allocation, sub_assign, err_get_instructor_time_allocation := get_instructor_time_allocation(
 			*selected_instructor_base,
 			university_schedules, all_curriculums,

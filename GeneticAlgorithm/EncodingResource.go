@@ -190,6 +190,8 @@ func IsEqualEncodingResource(a, b *EncodingResource) bool {
 }
 
 /*
+@param - `default_empty_encoding_resource` - should strictly
+
 use to generate an `EncodingResource` for a `UniTimeTables`, can be used for user
 configured university schedules or university schedules loaded from the persistence
 since they don't have any associated `EncodingResource` instance.
@@ -206,13 +208,13 @@ func GenerateEncodingResourceFromUniTimeTable(
 	university_schedules Schedule.UniTimeTables,
 	curriculums []Curriculum.Curriculum,
 	selected_semester int,
-	resource_persistence *StorageResources.Persistence,
+	default_empty_encoding_resource *EncodingResource,
 ) (*EncodingResource, error) {
 
-	encode_resource, err_read_default_encoding_resource := ReadDefaultEncodingResource(resource_persistence)
+	encode_resource, err_make_copy := default_empty_encoding_resource.MakeCopy()
 
-	if err_read_default_encoding_resource != nil {
-		return nil, err_read_default_encoding_resource
+	if err_make_copy != nil {
+		return nil, err_make_copy
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////
@@ -313,17 +315,22 @@ func GenerateEncodingResourceFromUniTimeTable(
 
 // reads the default values of `EncodingResource` saved in a persistence instance.
 func ReadDefaultEncodingResource(resource_persistence *StorageResources.Persistence) (*EncodingResource, error) {
-	dept_id_to_room_type_to_rooms, err_dept_id_to_room_type_to_rooms := GenerateMapDeptIdToRoomTypeToRooms(resource_persistence)
 
-	if err_dept_id_to_room_type_to_rooms != nil {
-		return nil, err_dept_id_to_room_type_to_rooms
+	rooms, err_read_rooms := resource_persistence.ReaderService.ReadAllRooms()
+
+	if err_read_rooms != nil {
+		return nil, err_read_rooms
 	}
 
-	dept_id_to_instructors, err_dept_id_to_instructors := GenerateMapDeptIdToInstructors(resource_persistence)
+	dept_id_to_room_type_to_rooms := GenerateMapDeptIdToRoomTypeToRooms(rooms)
 
-	if err_dept_id_to_instructors != nil {
-		return nil, err_dept_id_to_instructors
+	instructors, err_read_instructors := resource_persistence.ReaderService.ReadAllInstructors()
+
+	if err_read_instructors != nil {
+		return nil, err_read_instructors
 	}
+
+	dept_id_to_instructors := GenerateMapDeptIdToInstructors(instructors)
 
 	return &EncodingResource{
 		IsSchedIdxToSubIdToSkip: make(map[uint16]map[uint16]bool),

@@ -279,7 +279,21 @@ func GetValidateSchedules(ctx *gin.Context) {
 		return
 	}
 
-	errs_vertical_validation := university_schedules.VerticalValidation(RouteGlobals.ResourcesPersistence)
+	rooms, err_read_all_rooms := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllRooms()
+
+	if err_read_all_rooms != nil {
+		ctx.String(http.StatusInternalServerError, "we can not retrieve the rooms information right now")
+		return
+	}
+
+	curriculums, err_read_all_curriculum := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
+
+	if err_read_all_curriculum != nil {
+		ctx.String(http.StatusInternalServerError, "we're unable to read curriculums information right now")
+		return
+	}
+
+	errs_vertical_validation := university_schedules.VerticalValidation(rooms)
 
 	for _, err_vertical_validation := range errs_vertical_validation {
 		if err_vertical_validation != nil {
@@ -292,7 +306,7 @@ func GetValidateSchedules(ctx *gin.Context) {
 		return
 	}
 
-	errs_horizontal_validation := university_schedules.HorizontalValidation(RouteGlobals.ResourcesPersistence, department_to_horizontal_validate, selected_semester)
+	errs_horizontal_validation := university_schedules.HorizontalValidation(curriculums, department_to_horizontal_validate, selected_semester)
 
 	for _, err_horizontal_validation := range errs_horizontal_validation {
 		if err_horizontal_validation != nil {

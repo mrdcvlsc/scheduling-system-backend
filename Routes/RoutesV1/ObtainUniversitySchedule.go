@@ -12,6 +12,7 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 /*
@@ -33,29 +34,42 @@ func ObtainUniversitySchedule(ctx *gin.Context, departments_to_validate map[uint
 	cached_university_schedule, has_cache, err_get_cache := RouteGlobals.GetCachedUniversitySchedule(semester)
 
 	if err_get_cache != nil {
-		log.Println("ObtainUniversitySchedule:", err_get_cache.Error())
+		log.Println("ObtainUniversitySchedule: [cache-error] , caused by ", err_get_cache.Error())
 		ctx.String(http.StatusBadRequest, err_get_cache.Error())
 		return nil, false
 	}
 
+	rooms, err_read_all_rooms := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllRooms()
+
+	if err_read_all_rooms != nil {
+		log.Print("ObtainUniversitySchedule: [read-rooms-error] caused by ", err_read_all_rooms)
+		ctx.String(http.StatusInternalServerError, "we can not retrieve the rooms information right now")
+		return nil, false
+	}
+
+	curriculums, err_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
+
+	if err_curriculums != nil {
+		log.Print("ObtainUniversitySchedule: [read-curriculums-error] caused by ", err_curriculums)
+		ctx.String(http.StatusInternalServerError, "we can not retrieve the curriculums information right now")
+		return nil, false
+	}
+
 	if has_cache {
-		log.Println("ObtainUniversitySchedule: retrieving university schedule from cache.")
+		log.Println("ObtainUniversitySchedule: [retrieved-from-cache] retrieving university schedule from cache.")
 		university_schedules = cached_university_schedule
 	} else {
-		log.Println("ObtainUniversitySchedule: no cached detected loading from persistence")
+		log.Println("ObtainUniversitySchedule: [cache-not-found] loading from persistence")
 		read_university_schedules, err_load_schedules := RouteGlobals.SchedulePersistence.LoadService.LoadSchedules(semester)
 
 		if err_load_schedules != nil {
-			log.Println("ObtainUniversitySchedule:", err_load_schedules)
+			log.Println("ObtainUniversitySchedule: [persistence-failed] , caused by ", err_load_schedules)
 
-			if errors.Is(err_load_schedules, os.ErrNotExist) {
-				log.Printf("ObtainUniversitySchedule: schedule for semester index %d is not created yet, creating an empty schedule instead", semester)
-
-				curriculums, err_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
-
-				if err_curriculums != nil {
-					log.Fatal("ObtainUniversitySchedule:", err_curriculums)
-				}
+			if errors.Is(err_load_schedules, os.ErrNotExist) || mongo.ErrNoDocuments == err_load_schedules {
+				log.Printf(
+					"ObtainUniversitySchedule: [no-schedule] schedule for %s is not created yet, creating an empty schedule instead",
+					Curriculum.SEMESTER_INDEX_NAME[semester],
+				)
 
 				university_schedules = GeneticAlgorithm.NewEmptyIndividual(curriculums, semester)
 			} else {
@@ -71,7 +85,7 @@ func ObtainUniversitySchedule(ctx *gin.Context, departments_to_validate map[uint
 		return university_schedules, true
 	}
 
-	if errs := university_schedules.VerticalValidation(RouteGlobals.ResourcesPersistence); len(errs) > 0 {
+	if errs := university_schedules.VerticalValidation(rooms); len(errs) > 0 {
 		log.Println("ObtainUniversitySchedule: invalid schedule detected, vertical overlap, caused by:")
 
 		for _, e := range errs {
@@ -84,7 +98,7 @@ func ObtainUniversitySchedule(ctx *gin.Context, departments_to_validate map[uint
 		return nil, false
 	}
 
-	if errs := university_schedules.HorizontalValidation(RouteGlobals.ResourcesPersistence, departments_to_validate, semester); len(errs) > 0 {
+	if errs := university_schedules.HorizontalValidation(curriculums, departments_to_validate, semester); len(errs) > 0 {
 		log.Println("ObtainUniversitySchedule: invalid schedule detected, horizontal overlap, caused by:")
 
 		for _, e := range errs {
@@ -120,29 +134,42 @@ func ObtainUniversityScheduleNoHorizontalValidation(ctx *gin.Context, semester i
 	cached_university_schedule, has_cache, err_get_cache := RouteGlobals.GetCachedUniversitySchedule(semester)
 
 	if err_get_cache != nil {
-		log.Println("ObtainUniversityScheduleNoHorizontalValidation:", err_get_cache.Error())
+		log.Println("ObtainUniversityScheduleNoHorizontalValidation: [cache-error] , caused by ", err_get_cache.Error())
 		ctx.String(http.StatusBadRequest, err_get_cache.Error())
 		return nil, false
 	}
 
+	rooms, err_read_all_rooms := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllRooms()
+
+	if err_read_all_rooms != nil {
+		log.Print("ObtainUniversityScheduleNoHorizontalValidation: [read-rooms-error] caused by ", err_read_all_rooms)
+		ctx.String(http.StatusInternalServerError, "we can not retrieve the rooms information right now")
+		return nil, false
+	}
+
+	curriculums, err_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
+
+	if err_curriculums != nil {
+		log.Print("ObtainUniversityScheduleNoHorizontalValidation: [read-curriculum-error] caused by ", err_curriculums)
+		ctx.String(http.StatusInternalServerError, "we can not retrieve the curriculums information right now")
+		return nil, false
+	}
+
 	if has_cache {
-		log.Println("ObtainUniversityScheduleNoHorizontalValidation: retrieving university schedule from cache.")
+		log.Println("ObtainUniversityScheduleNoHorizontalValidation: [retrieved-from-cache] retrieving university schedule from cache.")
 		university_schedules = cached_university_schedule
 	} else {
-		log.Println("ObtainUniversityScheduleNoHorizontalValidation: no cached detected loading from persistence")
+		log.Println("ObtainUniversityScheduleNoHorizontalValidation: [cache-not-found] loading from persistence")
 		read_university_schedules, err_load_schedules := RouteGlobals.SchedulePersistence.LoadService.LoadSchedules(semester)
 
 		if err_load_schedules != nil {
-			log.Println("ObtainUniversityScheduleNoHorizontalValidation:", err_load_schedules)
+			log.Println("ObtainUniversityScheduleNoHorizontalValidation: [persistence-failed] , caused by ", err_load_schedules)
 
-			if errors.Is(err_load_schedules, os.ErrNotExist) {
-				log.Printf("ObtainUniversityScheduleNoHorizontalValidation: schedule for semester index %d is not created yet, creating an empty schedule instead", semester)
-
-				curriculums, err_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
-
-				if err_curriculums != nil {
-					log.Fatal("ObtainUniversityScheduleNoHorizontalValidation:", err_curriculums)
-				}
+			if errors.Is(err_load_schedules, os.ErrNotExist) || mongo.ErrNoDocuments == err_load_schedules {
+				log.Printf(
+					"ObtainUniversityScheduleNoHorizontalValidation: [no-schedule] schedule for %s is not created yet, creating an empty schedule instead",
+					Curriculum.SEMESTER_INDEX_NAME[semester],
+				)
 
 				university_schedules = GeneticAlgorithm.NewEmptyIndividual(curriculums, semester)
 			} else {
@@ -158,7 +185,7 @@ func ObtainUniversityScheduleNoHorizontalValidation(ctx *gin.Context, semester i
 		return university_schedules, true
 	}
 
-	for _, err_vertical_validation := range university_schedules.VerticalValidation(RouteGlobals.ResourcesPersistence) {
+	for _, err_vertical_validation := range university_schedules.VerticalValidation(rooms) {
 		if err_vertical_validation != nil {
 			log.Println("ObtainUniversityScheduleNoHorizontalValidation: invalid schedule detected - vertical overlap")
 			ctx.String(http.StatusConflict, "server detected an invalid schedule with vertically overlapping data")
@@ -190,28 +217,39 @@ func ObtainUniversityScheduleNoContext(departments_to_validate map[uint16]bool, 
 	cached_university_schedule, has_cache, err_get_cache := RouteGlobals.GetCachedUniversitySchedule(semester)
 
 	if err_get_cache != nil {
-		log.Println("ObtainUniversityScheduleNoContext:", err_get_cache.Error())
+		log.Println("ObtainUniversityScheduleNoContext: [cache-error] , caused by ", err_get_cache.Error())
 		return nil, err_get_cache
 	}
 
+	rooms, err_read_all_rooms := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllRooms()
+
+	if err_read_all_rooms != nil {
+		log.Print("ObtainUniversityScheduleNoContext: [read-rooms-error] caused by ", err_read_all_rooms)
+		return nil, err_read_all_rooms
+	}
+
+	curriculums, err_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
+
+	if err_curriculums != nil {
+		log.Print("ObtainUniversityScheduleNoContext: [read-curriculums-error] caused by ", err_curriculums)
+		return nil, err_curriculums
+	}
+
 	if has_cache {
-		log.Println("ObtainUniversityScheduleNoContext: retrieving university schedule from cache.")
+		log.Println("ObtainUniversityScheduleNoContext: [retrieved-from-cache] retrieving university schedule from cache.")
 		university_schedules = cached_university_schedule
 	} else {
-		log.Println("ObtainUniversityScheduleNoContext: no cached detected loading from persistence")
+		log.Println("ObtainUniversityScheduleNoContext: [cache-not-found] loading from persistence")
 		read_university_schedules, err_load_schedules := RouteGlobals.SchedulePersistence.LoadService.LoadSchedules(semester)
 
 		if err_load_schedules != nil {
-			log.Println("ObtainUniversityScheduleNoContext:", err_load_schedules)
+			log.Println("ObtainUniversityScheduleNoContext: [persistence-failed] , caused by ", err_load_schedules)
 
-			if errors.Is(err_load_schedules, os.ErrNotExist) {
-				log.Printf("ObtainUniversityScheduleNoContext: schedule for semester index %d is not created yet, creating an empty schedule instead", semester)
-
-				curriculums, err_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
-
-				if err_curriculums != nil {
-					log.Fatal("ObtainUniversityScheduleNoContext:", err_curriculums)
-				}
+			if errors.Is(err_load_schedules, os.ErrNotExist) || mongo.ErrNoDocuments == err_load_schedules {
+				log.Printf(
+					"ObtainUniversityScheduleNoContext: [no-schedule] schedule for %s is not created yet, creating an empty schedule instead",
+					Curriculum.SEMESTER_INDEX_NAME[semester],
+				)
 
 				university_schedules = GeneticAlgorithm.NewEmptyIndividual(curriculums, semester)
 			} else {
@@ -226,14 +264,14 @@ func ObtainUniversityScheduleNoContext(departments_to_validate map[uint16]bool, 
 		return university_schedules, nil
 	}
 
-	for _, err_vertical_validation := range university_schedules.VerticalValidation(RouteGlobals.ResourcesPersistence) {
+	for _, err_vertical_validation := range university_schedules.VerticalValidation(rooms) {
 		if err_vertical_validation != nil {
 			log.Println("ObtainUniversityScheduleNoContext: invalid schedule detected, vertical overlaps")
 			return university_schedules, errors.New("server detected an invalid schedule with vertically overlapping data")
 		}
 	}
 
-	for _, err_horizontal_validation := range university_schedules.HorizontalValidation(RouteGlobals.ResourcesPersistence, departments_to_validate, semester) {
+	for _, err_horizontal_validation := range university_schedules.HorizontalValidation(curriculums, departments_to_validate, semester) {
 		if err_horizontal_validation != nil {
 			log.Println("ObtainUniversityScheduleNoContext: invalid schedule detected, horizontal overlaps")
 			return university_schedules, errors.New("server detected an invalid schedule with horizontally overlapping data")
@@ -265,27 +303,38 @@ func ObtainUniversityScheduleNoContextNoHorizontalValidation(semester int) (Sche
 	cached_university_schedule, has_cache, err_get_cache := RouteGlobals.GetCachedUniversitySchedule(semester)
 
 	if err_get_cache != nil {
-		log.Println("ObtainUniversityScheduleNoContextNoHorizontalValidation:", err_get_cache.Error())
+		log.Println("ObtainUniversityScheduleNoContextNoHorizontalValidation: [cache-error] , caused by ", err_get_cache.Error())
 		return nil, err_get_cache
 	}
 
+	rooms, err_read_all_rooms := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllRooms()
+
+	if err_read_all_rooms != nil {
+		log.Print("ObtainUniversityScheduleNoContextNoHorizontalValidation: [read-rooms-error] caused by ", err_read_all_rooms)
+		return nil, err_read_all_rooms
+	}
+
 	if has_cache {
-		log.Println("ObtainUniversityScheduleNoContextNoHorizontalValidation: retrieving university schedule from cache.")
+		log.Println("ObtainUniversityScheduleNoContextNoHorizontalValidation: [retrieved-from-cache] retrieving university schedule from cache.")
 		university_schedules = cached_university_schedule
 	} else {
-		log.Println("ObtainUniversityScheduleNoContextNoHorizontalValidation: no cached detected loading from persistence")
+		log.Println("ObtainUniversityScheduleNoContextNoHorizontalValidation: [cache-not-found] loading from persistence")
 		read_university_schedules, err_load_schedules := RouteGlobals.SchedulePersistence.LoadService.LoadSchedules(semester)
 
 		if err_load_schedules != nil {
-			log.Println("ObtainUniversityScheduleNoContextNoHorizontalValidation:", err_load_schedules)
+			log.Println("ObtainUniversityScheduleNoContextNoHorizontalValidation: [persistence-failed] , caused by ", err_load_schedules)
 
-			if errors.Is(err_load_schedules, os.ErrNotExist) {
-				log.Printf("ObtainUniversityScheduleNoContextNoHorizontalValidation: schedule for semester index %d is not created yet, creating an empty schedule instead", semester)
+			if errors.Is(err_load_schedules, os.ErrNotExist) || mongo.ErrNoDocuments == err_load_schedules {
+				log.Printf(
+					"ObtainUniversityScheduleNoContextNoHorizontalValidation: [no-schedule] schedule for %s is not created yet, creating an empty schedule instead",
+					Curriculum.SEMESTER_INDEX_NAME[semester],
+				)
 
 				curriculums, err_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
 
 				if err_curriculums != nil {
-					log.Fatal("ObtainUniversityScheduleNoContextNoHorizontalValidation:", err_curriculums)
+					log.Print("ObtainUniversityScheduleNoContextNoHorizontalValidation: [read-curriculums-error] caused by ", err_curriculums)
+					return nil, err_curriculums
 				}
 
 				university_schedules = GeneticAlgorithm.NewEmptyIndividual(curriculums, semester)
@@ -301,7 +350,7 @@ func ObtainUniversityScheduleNoContextNoHorizontalValidation(semester int) (Sche
 		return university_schedules, nil
 	}
 
-	for _, err_vertical_validation := range university_schedules.VerticalValidation(RouteGlobals.ResourcesPersistence) {
+	for _, err_vertical_validation := range university_schedules.VerticalValidation(rooms) {
 		if err_vertical_validation != nil {
 			log.Println("ObtainUniversityScheduleNoContextNoHorizontalValidation: invalid schedule detected, vertical overlaps")
 			return university_schedules, errors.New("server detected an invalid schedule with vertically overlapping data")
@@ -331,27 +380,31 @@ func ObtainUniversityScheduleNoValidation(semester int) (Schedule.UniTimeTables,
 	cached_university_schedule, has_cache, err_get_cache := RouteGlobals.GetCachedUniversitySchedule(semester)
 
 	if err_get_cache != nil {
-		log.Println("ObtainUniversityScheduleNoContextNoHorizontalValidation:", err_get_cache.Error())
+		log.Println("ObtainUniversityScheduleNoValidation: [cache-error] , caused by ", err_get_cache.Error())
 		return nil, err_get_cache
 	}
 
 	if has_cache {
-		log.Println("ObtainUniversityScheduleNoContextNoHorizontalValidation: retrieving university schedule from cache.")
+		log.Println("ObtainUniversityScheduleNoValidation: [retrieved-from-cache] retrieving university schedule from cache.")
 		university_schedules = cached_university_schedule
 	} else {
-		log.Println("ObtainUniversityScheduleNoContextNoHorizontalValidation: no cached detected loading from persistence")
+		log.Println("ObtainUniversityScheduleNoValidation: [cache-not-found] loading from persistence")
 		read_university_schedules, err_load_schedules := RouteGlobals.SchedulePersistence.LoadService.LoadSchedules(semester)
 
 		if err_load_schedules != nil {
-			log.Println("ObtainUniversityScheduleNoContextNoHorizontalValidation:", err_load_schedules)
+			log.Println("ObtainUniversityScheduleNoValidation: [persistence-failed] , caused by ", err_load_schedules)
 
-			if errors.Is(err_load_schedules, os.ErrNotExist) {
-				log.Printf("ObtainUniversityScheduleNoContextNoHorizontalValidation: schedule for semester index %d is not created yet, creating an empty schedule instead", semester)
+			if errors.Is(err_load_schedules, os.ErrNotExist) || mongo.ErrNoDocuments == err_load_schedules {
+				log.Printf(
+					"ObtainUniversityScheduleNoValidation: [no-schedule] schedule for %s is not created yet, creating an empty schedule instead",
+					Curriculum.SEMESTER_INDEX_NAME[semester],
+				)
 
 				curriculums, err_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
 
 				if err_curriculums != nil {
-					log.Fatal("ObtainUniversityScheduleNoContextNoHorizontalValidation:", err_curriculums)
+					log.Print("ObtainUniversityScheduleNoValidation: [read-curriculums-error] caused by ", err_curriculums)
+					return nil, err_curriculums
 				}
 
 				university_schedules = GeneticAlgorithm.NewEmptyIndividual(curriculums, semester)

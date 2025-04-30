@@ -31,12 +31,15 @@ func RequestGenerateSchedule(ctx *gin.Context) {
 		return
 	}
 
-	dept_id_to_department, err_gen_dept_id_to_dept := GeneticAlgorithm.GenerateMapDeptIdToDepartment(RouteGlobals.ResourcesPersistence)
+	departments, err_read_departments := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllDepartments()
 
-	if err_gen_dept_id_to_dept != nil {
+	if err_read_departments != nil {
+		log.Print("RequestGenerateSchedule: [read-departments-error] caused by ", err_read_departments)
 		ctx.String(http.StatusInternalServerError, "we're unable to retrieve the departments right now")
 		return
 	}
+
+	dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(departments)
 
 	department_id, is_valid_department_id := IsValidParameterDepartmentID(ctx)
 
@@ -96,24 +99,129 @@ func encode_schedule() {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
+	rooms, err_rooms := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllRooms()
+
+	if err_rooms != nil {
+		log.Fatal("encode_schedule: read room error : ", err_rooms)
+
+		for {
+			department_to_encode, semester_to_encode, err_pop_from_queue := RouteGlobals.PopDepartmentToEncodeFromSchedGenQueue()
+
+			if err_pop_from_queue != nil || !has_department_to_encode(department_to_encode) {
+				break // no more department and semester in the schedule generation queue to be encoded in the schedules
+			}
+
+			for dept_id_key, is_to_encode_dept := range department_to_encode {
+
+				if !is_to_encode_dept {
+					continue
+				}
+
+				RouteGlobals.SetDeptSchedGenResult(
+					RouteGlobals.DeptSchedGenKey{DepartmentID: dept_id_key, Semester: semester_to_encode},
+					RouteGlobals.SchedGenResult{
+						Status:  RouteGlobals.SchedGenStatusInternalError,
+						Message: "read room error occur during schedule generation preperation",
+					},
+				)
+			}
+		}
+
+		return
+	}
+
 	curriculums, err_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
 
 	if err_curriculums != nil {
 		log.Fatal("encode_schedule: read curriculum error : ", err_curriculums)
+
+		for {
+			department_to_encode, semester_to_encode, err_pop_from_queue := RouteGlobals.PopDepartmentToEncodeFromSchedGenQueue()
+
+			if err_pop_from_queue != nil || !has_department_to_encode(department_to_encode) {
+				break // no more department and semester in the schedule generation queue to be encoded in the schedules
+			}
+
+			for dept_id_key, is_to_encode_dept := range department_to_encode {
+
+				if !is_to_encode_dept {
+					continue
+				}
+
+				RouteGlobals.SetDeptSchedGenResult(
+					RouteGlobals.DeptSchedGenKey{DepartmentID: dept_id_key, Semester: semester_to_encode},
+					RouteGlobals.SchedGenResult{
+						Status:  RouteGlobals.SchedGenStatusInternalError,
+						Message: "read curriculum error occur during schedule generation preperation",
+					},
+				)
+			}
+		}
+
 		return
 	}
 
-	dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(RouteGlobals.ResourcesPersistence)
+	departments, err_read_departments := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllDepartments()
 
-	if err_dept_id_to_department != nil {
-		log.Fatal("encode_schedule: generate map to department id error : ", err_dept_id_to_department)
+	if err_read_departments != nil {
+		log.Fatal("encode_schedule: read department error : ", err_read_departments)
+
+		for {
+			department_to_encode, semester_to_encode, err_pop_from_queue := RouteGlobals.PopDepartmentToEncodeFromSchedGenQueue()
+
+			if err_pop_from_queue != nil || !has_department_to_encode(department_to_encode) {
+				break // no more department and semester in the schedule generation queue to be encoded in the schedules
+			}
+
+			for dept_id_key, is_to_encode_dept := range department_to_encode {
+
+				if !is_to_encode_dept {
+					continue
+				}
+
+				RouteGlobals.SetDeptSchedGenResult(
+					RouteGlobals.DeptSchedGenKey{DepartmentID: dept_id_key, Semester: semester_to_encode},
+					RouteGlobals.SchedGenResult{
+						Status:  RouteGlobals.SchedGenStatusInternalError,
+						Message: "read department error occur during schedule generation preperation",
+					},
+				)
+			}
+		}
+
 		return
 	}
 
-	default_encoding_resource, err_default_encoding_resource := GeneticAlgorithm.ReadDefaultEncodingResource(RouteGlobals.ResourcesPersistence)
+	dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(departments)
+
+	default_empty_encoding_resource, err_default_encoding_resource := GeneticAlgorithm.ReadDefaultEncodingResource(RouteGlobals.ResourcesPersistence)
 
 	if err_default_encoding_resource != nil {
 		log.Print("encode_schedule: read default encoding resource error : ", err_default_encoding_resource)
+
+		for {
+			department_to_encode, semester_to_encode, err_pop_from_queue := RouteGlobals.PopDepartmentToEncodeFromSchedGenQueue()
+
+			if err_pop_from_queue != nil || !has_department_to_encode(department_to_encode) {
+				break // no more department and semester in the schedule generation queue to be encoded in the schedules
+			}
+
+			for dept_id_key, is_to_encode_dept := range department_to_encode {
+
+				if !is_to_encode_dept {
+					continue
+				}
+
+				RouteGlobals.SetDeptSchedGenResult(
+					RouteGlobals.DeptSchedGenKey{DepartmentID: dept_id_key, Semester: semester_to_encode},
+					RouteGlobals.SchedGenResult{
+						Status:  RouteGlobals.SchedGenStatusInternalError,
+						Message: "read default encoding resource error occur during schedule generation preperation",
+					},
+				)
+			}
+		}
+
 		return
 	}
 
@@ -185,7 +293,7 @@ queue_pop_loop:
 		}
 
 		generated_encoding_resource, err_gen_encoding_resource = GeneticAlgorithm.GenerateEncodingResourceFromUniTimeTable(
-			university_schedule, curriculums, semester_to_encode, RouteGlobals.ResourcesPersistence,
+			university_schedule, curriculums, semester_to_encode, default_empty_encoding_resource,
 		)
 
 		if err_gen_encoding_resource != nil {
@@ -233,7 +341,7 @@ queue_pop_loop:
 			other_dept_to_validate[other_dept_id] = true
 
 			errs_hv := university_schedule.HorizontalValidation(
-				RouteGlobals.ResourcesPersistence,
+				curriculums,
 				other_dept_to_validate, semester_to_encode,
 			)
 
@@ -266,8 +374,8 @@ queue_pop_loop:
 			previous_fitness := 0.0
 
 			fittest_uni_sched, fittest_encoding_resource, err_genetic_algorithm := GeneticAlgorithm.RunGeneticAlgorithm(
-				university_schedule, curriculums, dept_id_to_department,
-				default_encoding_resource, generated_encoding_resource,
+				university_schedule, curriculums, rooms, dept_id_to_department,
+				default_empty_encoding_resource, generated_encoding_resource,
 				department_to_encode, semester_to_encode,
 				POPULATION_SIZE, TOTAL_GENERATION,
 				RouteGlobals.ResourcesPersistence, func(generation int, generation_fittest_sched Schedule.UniTimeTables, fitness float64) {
@@ -480,7 +588,7 @@ queue_pop_loop:
 
 			// check for overlapping instructors and rooms
 
-			if err := fittest_uni_sched.VerticalValidation(RouteGlobals.ResourcesPersistence); len(err) > 0 {
+			if err := fittest_uni_sched.VerticalValidation(rooms); len(err) > 0 {
 				if retry >= MAX_GENETIC_ALGORITHM_RETRY-1 {
 					RouteGlobals.SetDeptSchedGenResult(
 						RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
@@ -514,7 +622,7 @@ queue_pop_loop:
 
 			// check for missing subjects or missing subject time slot allocations
 
-			if err := fittest_uni_sched.HorizontalValidation(RouteGlobals.ResourcesPersistence, department_to_encode, semester_to_encode); len(err) > 0 {
+			if err := fittest_uni_sched.HorizontalValidation(curriculums, department_to_encode, semester_to_encode); len(err) > 0 {
 				if retry >= MAX_GENETIC_ALGORITHM_RETRY-1 {
 
 					RouteGlobals.SetDeptSchedGenResult(
@@ -602,7 +710,7 @@ queue_pop_loop:
 				other_dept_to_validate[other_dept_id] = true
 
 				errs_hv := fittest_uni_sched.HorizontalValidation(
-					RouteGlobals.ResourcesPersistence,
+					curriculums,
 					other_dept_to_validate, semester_to_encode,
 				)
 
