@@ -37,9 +37,21 @@ func main() {
 
 		RouteGlobals.ResourcesPersistence = &StorageResources.Persistence{
 			ReaderService: &StorageResources.MongodbReader{
-				Mongo: &StorageResources.MongoDB{
-					Client: mongo_client,
-				},
+				Mongo: &StorageResources.MongoDB{Client: mongo_client},
+			},
+
+			WriterService: &StorageResources.MongodbWriter{
+				Mongo: &StorageResources.MongoDB{Client: mongo_client},
+			},
+		}
+
+		RouteGlobals.SchedulePersistence = &StorageSchedule.Persistence{
+			LoadService: &StorageSchedule.MongodbReader{
+				Mongo: &StorageSchedule.MongoDB{Client: mongo_client},
+			},
+
+			SaveService: &StorageSchedule.MongodbWriter{
+				Mongo: &StorageSchedule.MongoDB{Client: mongo_client},
 			},
 		}
 
