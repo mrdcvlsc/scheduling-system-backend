@@ -30,17 +30,25 @@ func Test_JsonReadWriteUniversitySchedules1stSem(t *testing.T) {
 
 		////////////////////////////////////////////////////////////////////////////////////////
 
+		departments, err_read_all_departments := resource_persistence.ReaderService.ReadAllDepartments()
+
+		if err_read_all_departments != nil {
+			t.Fatal(err_read_all_departments)
+		}
+
+		rooms, err_read_all_rooms := resource_persistence.ReaderService.ReadAllRooms()
+
+		if err_read_all_rooms != nil {
+			t.Fatal(err_read_all_rooms)
+		}
+
 		curriculums, err_curriculums := persistence.ReaderService.ReadAllCurriculum()
 
 		if err_curriculums != nil {
 			t.Fatal(err_curriculums)
 		}
 
-		dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(&persistence)
-
-		if err_dept_id_to_department != nil {
-			t.Fatal(err_dept_id_to_department)
-		}
+		dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(departments)
 
 		fmt.Printf("\ntotal 1st semester departments detected : %d\n", len(dept_id_to_department))
 
@@ -107,23 +115,17 @@ func Test_JsonReadWriteUniversitySchedules1stSem(t *testing.T) {
 			t.Fatal("the first university schedule generated is empty")
 		}
 
-		err_validation := first_university_schedule.VerticalValidation(&resource_persistence)
+		err_validation := first_university_schedule.VerticalValidation(rooms)
 
 		for _, e := range err_validation {
 			t.Fatal(e)
 		}
 
-		err_vertical_validation := first_university_schedule.VerticalValidation(&resource_persistence)
-
 		if first_university_schedule.IsEmpty() {
 			t.Fatal("loaded university schedules are empty")
 		}
 
-		for e := range err_vertical_validation {
-			t.Fatal(e)
-		}
-
-		err_horizontal_validation := first_university_schedule.HorizontalValidation(&resource_persistence, nil, GeneticAlgorithm.TERM_1ST_SEMESTER)
+		err_horizontal_validation := first_university_schedule.HorizontalValidation(curriculums, nil, GeneticAlgorithm.TERM_1ST_SEMESTER)
 
 		for e := range err_horizontal_validation {
 			t.Fatal(e)
@@ -140,16 +142,26 @@ func Test_JsonReadWriteUniversitySchedules1stSem(t *testing.T) {
 	}
 
 	{
-		schedule_persistence := StorageSchedule.Persistence{LoadService: &StorageSchedule.JsonReader{}}
-		resource_persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+		rooms, err_read_all_rooms := resource_persistence.ReaderService.ReadAllRooms()
 
+		if err_read_all_rooms != nil {
+			t.Fatal(err_read_all_rooms)
+		}
+
+		curriculums, err_curriculums := resource_persistence.ReaderService.ReadAllCurriculum()
+
+		if err_curriculums != nil {
+			t.Fatal(err_curriculums)
+		}
+
+		schedule_persistence := StorageSchedule.Persistence{LoadService: &StorageSchedule.JsonReader{}}
 		load_university_schedules, err_load_schedules := schedule_persistence.LoadService.LoadSchedules(GeneticAlgorithm.TERM_1ST_SEMESTER)
 
 		if err_load_schedules != nil {
 			t.Fatal(err_load_schedules)
 		}
 
-		err_vertical_validation := load_university_schedules.VerticalValidation(&resource_persistence)
+		err_vertical_validation := load_university_schedules.VerticalValidation(rooms)
 
 		if load_university_schedules.IsEmpty() {
 			t.Fatal("loaded university schedules are empty")
@@ -160,7 +172,7 @@ func Test_JsonReadWriteUniversitySchedules1stSem(t *testing.T) {
 		}
 
 		if err_load_schedules == nil {
-			err_horizontal_validation := load_university_schedules.HorizontalValidation(&resource_persistence, nil, GeneticAlgorithm.TERM_1ST_SEMESTER)
+			err_horizontal_validation := load_university_schedules.HorizontalValidation(curriculums, nil, GeneticAlgorithm.TERM_1ST_SEMESTER)
 
 			for e := range err_horizontal_validation {
 				t.Fatal(e)
@@ -214,17 +226,25 @@ func Test_JsonReadWriteUniversitySchedules2ndSem(t *testing.T) {
 
 		////////////////////////////////////////////////////////////////////////////////////////
 
+		departments, err_read_all_departments := resource_persistence.ReaderService.ReadAllDepartments()
+
+		if err_read_all_departments != nil {
+			t.Fatal(err_read_all_departments)
+		}
+
+		rooms, err_read_all_rooms := resource_persistence.ReaderService.ReadAllRooms()
+
+		if err_read_all_rooms != nil {
+			t.Fatal(err_read_all_rooms)
+		}
+
 		curriculums, err_curriculums := persistence.ReaderService.ReadAllCurriculum()
 
 		if err_curriculums != nil {
 			t.Fatal(err_curriculums)
 		}
 
-		dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(&persistence)
-
-		if err_dept_id_to_department != nil {
-			t.Fatal(err_dept_id_to_department)
-		}
+		dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(departments)
 
 		fmt.Printf("\ntotal 2ND semester departments detected : %d\n", len(dept_id_to_department))
 
@@ -289,23 +309,17 @@ func Test_JsonReadWriteUniversitySchedules2ndSem(t *testing.T) {
 			t.Fatal("the first university schedule generated is empty")
 		}
 
-		err_validation := first_university_schedule.VerticalValidation(&resource_persistence)
+		err_validation := first_university_schedule.VerticalValidation(rooms)
 
 		for _, e := range err_validation {
 			t.Fatal(e)
 		}
 
-		err_vertical_validation := first_university_schedule.VerticalValidation(&resource_persistence)
-
 		if first_university_schedule.IsEmpty() {
 			t.Fatal("loaded university schedules are empty")
 		}
 
-		for e := range err_vertical_validation {
-			t.Fatal(e)
-		}
-
-		err_horizontal_validation := first_university_schedule.HorizontalValidation(&resource_persistence, nil, GeneticAlgorithm.TERM_2ND_SEMESTER)
+		err_horizontal_validation := first_university_schedule.HorizontalValidation(curriculums, nil, GeneticAlgorithm.TERM_2ND_SEMESTER)
 
 		for e := range err_horizontal_validation {
 			t.Fatal(e)
@@ -322,8 +336,19 @@ func Test_JsonReadWriteUniversitySchedules2ndSem(t *testing.T) {
 	}
 
 	{
+		rooms, err_read_all_rooms := resource_persistence.ReaderService.ReadAllRooms()
+
+		if err_read_all_rooms != nil {
+			t.Fatal(err_read_all_rooms)
+		}
+
+		curriculums, err_curriculums := resource_persistence.ReaderService.ReadAllCurriculum()
+
+		if err_curriculums != nil {
+			t.Fatal(err_curriculums)
+		}
+
 		schedule_persistence := StorageSchedule.Persistence{LoadService: &StorageSchedule.JsonReader{}}
-		resource_persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
 
 		load_university_schedules, err_load_schedules := schedule_persistence.LoadService.LoadSchedules(GeneticAlgorithm.TERM_2ND_SEMESTER)
 
@@ -331,7 +356,7 @@ func Test_JsonReadWriteUniversitySchedules2ndSem(t *testing.T) {
 			t.Fatal(err_load_schedules)
 		}
 
-		err_vertical_validation := load_university_schedules.VerticalValidation(&resource_persistence)
+		err_vertical_validation := load_university_schedules.VerticalValidation(rooms)
 
 		if load_university_schedules.IsEmpty() {
 			t.Fatal("loaded university schedules are empty")
@@ -342,7 +367,7 @@ func Test_JsonReadWriteUniversitySchedules2ndSem(t *testing.T) {
 		}
 
 		if err_load_schedules == nil {
-			err_horizontal_validation := load_university_schedules.HorizontalValidation(&resource_persistence, nil, GeneticAlgorithm.TERM_2ND_SEMESTER)
+			err_horizontal_validation := load_university_schedules.HorizontalValidation(curriculums, nil, GeneticAlgorithm.TERM_2ND_SEMESTER)
 
 			for e := range err_horizontal_validation {
 				t.Fatal(e)

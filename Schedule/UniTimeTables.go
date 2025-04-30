@@ -8,7 +8,7 @@ import (
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
-	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 )
 
 // The type that represent all of the weekly schedules of each classes / sections
@@ -121,18 +121,11 @@ func (university_sched UniTimeTables) IsEmpty() bool {
 
 // validate rooms and instructors time slot availability, this function detects overlapping instructor or room time slots.
 func (university_sched UniTimeTables) VerticalRangedValidation(
-	resource_persistence *StorageResources.Persistence,
+	rooms []Rooms.Room,
 	day_start, day_size,
 	time_slot_start, time_slot_size int,
 ) []error {
 	errs_slice := make([]error, 0, 16)
-
-	rooms, err_read_all_rooms := resource_persistence.ReaderService.ReadAllRooms()
-
-	if err_read_all_rooms != nil {
-		errs_slice = append(errs_slice, err_read_all_rooms)
-		return errs_slice
-	}
 
 	room_id_to_capacity := make(map[uint16]uint16)
 
@@ -266,9 +259,9 @@ func (university_sched UniTimeTables) VerticalRangedValidation(
 }
 
 // validate rooms and instructors time slot availability, this function detects overlapping instructor or room time slots.
-func (university_sched UniTimeTables) VerticalValidation(resource_persistence *StorageResources.Persistence) []error {
+func (university_sched UniTimeTables) VerticalValidation(rooms []Rooms.Room) []error {
 	return university_sched.VerticalRangedValidation(
-		resource_persistence,
+		rooms,
 		0, Const.N_WEEKLY_SCHOOL_DAYS,
 		0, Const.N_DAILY_TIME_SLOTS,
 	)
@@ -282,7 +275,7 @@ to validate whole university schedules, set department to encode to nil:
 	department_to_validate = nil
 */
 func (university_sched UniTimeTables) HorizontalValidation(
-	resource_persistence *StorageResources.Persistence,
+	curriculums []Curriculum.Curriculum,
 	department_to_validate map[uint16]bool, selected_semester int,
 ) []error {
 
@@ -291,12 +284,6 @@ func (university_sched UniTimeTables) HorizontalValidation(
 	/////////////////////////////////////////////////////////////////////////////////
 	//                            HORIZONTAL CHECKS
 	/////////////////////////////////////////////////////////////////////////////////
-
-	curriculums, err_read_all_curriculum := resource_persistence.ReaderService.ReadAllCurriculum()
-
-	if err_read_all_curriculum != nil {
-		errs_slice = append(errs_slice, err_read_all_curriculum)
-	}
 
 	total_university_sections := Curriculum.GetTotalNumberOfSections(curriculums, selected_semester)
 

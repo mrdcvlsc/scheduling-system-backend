@@ -41,17 +41,25 @@ func TestGeneratedScheduleFitness(t *testing.T) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
+	departments, err_all_departments := persistence.ReaderService.ReadAllDepartments()
+
+	if err_all_departments != nil {
+		t.Fatal(err_all_departments)
+	}
+
+	rooms, err_all_rooms := persistence.ReaderService.ReadAllRooms()
+
+	if err_all_rooms != nil {
+		t.Fatal(err_all_rooms)
+	}
+
 	curriculums, err_all_curriculums := persistence.ReaderService.ReadAllCurriculum()
 
 	if err_all_curriculums != nil {
 		t.Fatal(err_all_curriculums)
 	}
 
-	dept_id_to_department, err_dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(&persistence)
-
-	if err_dept_id_to_department != nil {
-		t.Fatal(err_dept_id_to_department)
-	}
+	dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(departments)
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
@@ -87,14 +95,14 @@ func TestGeneratedScheduleFitness(t *testing.T) {
 			t.Fatalf("returned an empty university schedule : loop iteration %d\n", i)
 		}
 
-		err_vertical_validations := university_schedules.VerticalValidation(&persistence)
+		err_vertical_validations := university_schedules.VerticalValidation(rooms)
 
 		for _, e := range err_vertical_validations {
 			t.Error(e)
 		}
 
 		if err == nil {
-			err_horizontal_validations := university_schedules.HorizontalValidation(&persistence, nil, target_semester)
+			err_horizontal_validations := university_schedules.HorizontalValidation(curriculums, nil, target_semester)
 
 			for _, e := range err_horizontal_validations {
 				t.Fatal(e)

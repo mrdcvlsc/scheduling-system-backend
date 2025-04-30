@@ -123,10 +123,18 @@ func GetDepartmentInstructorsAllocated(ctx *gin.Context) {
 		return
 	}
 
+	default_empty_encoding_resource, err_read_default_encoding := GeneticAlgorithm.ReadDefaultEncodingResource(RouteGlobals.ResourcesPersistence)
+
+	if err_read_default_encoding != nil {
+		log.Print("GetDepartmentInstructorsAllocated: we're unable to retrieve the default encoding resource for the requested semester, caused by ", err_read_default_encoding)
+		ctx.String(http.StatusInternalServerError, "we're unable to retrieve the default encoding resource required")
+		return
+	}
+
 	university_encoding_resource, err_generating := GeneticAlgorithm.GenerateEncodingResourceFromUniTimeTable(
 		university_schedule,
 		curriculums, selected_semester,
-		RouteGlobals.ResourcesPersistence,
+		default_empty_encoding_resource,
 	)
 
 	if err_generating != nil {

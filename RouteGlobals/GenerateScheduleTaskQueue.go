@@ -54,21 +54,27 @@ func GetDepartSchedGenResult(key DeptSchedGenKey) SchedGenResult {
 		department_id_to_sched_gen_last_result = make(map[DeptSchedGenKey]SchedGenResult)
 	}
 
-	dept_id_to_department, err := GeneticAlgorithm.GenerateMapDeptIdToDepartment(ResourcesPersistence)
+	departments, err_read_departments := ResourcesPersistence.ReaderService.ReadAllDepartments()
+
+	if err_read_departments != nil {
+		log.Print("GetDepartSchedGenResult: we're unable to retrieve the departments, caused by ", err_read_departments)
+		return SchedGenResult{
+			Status:  SchedGenStatusInternalError,
+			Message: "something wrong happened, we're unable to retrieve the departments while processing the queue",
+		}
+	}
+
+	dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(departments)
 
 	last_sched_gen_result, has_key := department_id_to_sched_gen_last_result[key]
 
 	if !has_key {
 
-		msg := fmt.Sprintf("schedule is not generated yet for department with id %d semester %d", key.DepartmentID, key.Semester+1)
-
-		if err == nil {
-			msg = fmt.Sprintf(
-				"schedule is not generated yet for the %s %s",
-				dept_id_to_department[key.DepartmentID].Name,
-				Curriculum.SEMESTER_INDEX_NAME[key.Semester],
-			)
-		}
+		msg := fmt.Sprintf(
+			"schedule is not generated yet for the %s %s",
+			dept_id_to_department[key.DepartmentID].Name,
+			Curriculum.SEMESTER_INDEX_NAME[key.Semester],
+		)
 
 		return SchedGenResult{
 			Status:  SchedGenStatusNotStarted,

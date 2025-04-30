@@ -11,6 +11,7 @@ import (
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Departments"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 )
@@ -27,6 +28,7 @@ type SchedAndResources struct {
 func RunGeneticAlgorithm(
 	base_uni_sched Schedule.UniTimeTables,
 	curriculums []Curriculum.Curriculum,
+	rooms []Rooms.Room,
 	dept_id_to_department map[uint16]Departments.Department,
 	default_empty_encoding_resource, base_encoding_resource *EncodingResource,
 	department_to_encode map[uint16]bool,
@@ -104,7 +106,7 @@ func RunGeneticAlgorithm(
 
 		ApplyClearDepartmentSchedule(copy_uni_sched, curriculums, department_id, selected_semester)
 
-		copy_encoding_resource, err_gen_copy_encoding_resource := GenerateEncodingResourceFromUniTimeTable(copy_uni_sched, curriculums, selected_semester, resource_persistence)
+		copy_encoding_resource, err_gen_copy_encoding_resource := GenerateEncodingResourceFromUniTimeTable(copy_uni_sched, curriculums, selected_semester, default_empty_encoding_resource)
 
 		if err_gen_copy_encoding_resource != nil {
 			return nil, nil, fmt.Errorf("unable to generate encoding resource from individual during genesis generation")
@@ -233,8 +235,8 @@ func RunGeneticAlgorithm(
 			parent2 := population[parent2_idx]
 
 			offspring, err_crossover := Crossover(
-				parent1.UniSched, parent2.UniSched,
-				curriculums, selected_semester,
+				parent1.UniSched, parent2.UniSched, default_empty_encoding_resource,
+				curriculums, rooms, selected_semester,
 				dept_id_to_department, department_to_encode,
 				default_instructor_id_to_instructor,
 				resource_persistence,
@@ -281,10 +283,10 @@ func RunGeneticAlgorithm(
 			// apply random mutations to some of the CURRENT individuals in the population
 
 			// ApplyRandomSubjectErasure(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
-			ApplyRandomDaySwapTimeSlots(population[i].UniSched, curriculums, department_id, selected_semester, resource_persistence, default_instructor_id_to_instructor)
-			ApplyRandomSubjectDaySwap(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
-			ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
-			ApplyRandomSubjectTimeSlotAndDayNudge(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
+			ApplyRandomDaySwapTimeSlots(population[i].UniSched, curriculums, department_id, selected_semester, rooms, default_instructor_id_to_instructor)
+			ApplyRandomSubjectDaySwap(population[i].UniSched, rooms, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
+			ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, rooms, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
+			ApplyRandomSubjectTimeSlotAndDayNudge(population[i].UniSched, rooms, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
 
 			// repair broken genome after mutations
 
@@ -293,7 +295,7 @@ func RunGeneticAlgorithm(
 			for re_encode_tries < MAX_RE_ENCODE_REPAIR_TRIALS {
 
 				generated_encoding_resource, err_generate_encoding_resource := GenerateEncodingResourceFromUniTimeTable(
-					population[i].UniSched, curriculums, selected_semester, resource_persistence,
+					population[i].UniSched, curriculums, selected_semester, default_empty_encoding_resource,
 				)
 
 				if err_generate_encoding_resource != nil {
@@ -328,11 +330,11 @@ func RunGeneticAlgorithm(
 							g, MAX_RE_ENCODE_REPAIR_TRIALS, err_repair_schedule.Error(),
 						)
 					} else {
-						// ApplyRandomSubjectErasure(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
-						ApplyRandomDaySwapTimeSlots(population[i].UniSched, curriculums, department_id, selected_semester, resource_persistence, default_instructor_id_to_instructor)
-						ApplyRandomSubjectDaySwap(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
-						ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
-						ApplyRandomSubjectTimeSlotAndDayNudge(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
+						// ApplyRandomSubjectErasure(population[i].UniSched, rooms, curriculums, department_id, selected_semester)
+						ApplyRandomDaySwapTimeSlots(population[i].UniSched, curriculums, department_id, selected_semester, rooms, default_instructor_id_to_instructor)
+						ApplyRandomSubjectDaySwap(population[i].UniSched, rooms, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
+						ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, rooms, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
+						ApplyRandomSubjectTimeSlotAndDayNudge(population[i].UniSched, rooms, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
 					}
 
 					continue
@@ -398,7 +400,7 @@ func RunGeneticAlgorithm(
 		return nil, nil, errors.New("fittest university schedule is empty")
 	}
 
-	if errs := genesis_population[0].UniSched.VerticalValidation(resource_persistence); len(errs) > 0 {
+	if errs := genesis_population[0].UniSched.VerticalValidation(rooms); len(errs) > 0 {
 		log.Printf("GA-ERROR: fittest university schedule have vertical overlaps:\n\n%v\n\n", errs)
 		return nil, nil, errors.New("fittest university schedule have vertical overlaps")
 	} else {
@@ -412,7 +414,7 @@ func RunGeneticAlgorithm(
 		}
 	}
 
-	if len(genesis_population[0].UniSched.HorizontalValidation(resource_persistence, department_to_encode, selected_semester)) > 0 {
+	if len(genesis_population[0].UniSched.HorizontalValidation(curriculums, department_to_encode, selected_semester)) > 0 {
 		log.Printf("GA-ERROR: fittest university schedule is empty")
 		return nil, nil, errors.New("fittest university schedule is empty")
 	} else {

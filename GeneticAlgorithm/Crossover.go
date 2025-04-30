@@ -12,6 +12,7 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Departments"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
@@ -20,8 +21,8 @@ import (
 const CROSSOVER_DOMINANT_GENE int = 75 // % - percentage to be likely that the dominant parent's gene will be use during crossover
 
 func Crossover(
-	parent1, parent2 Schedule.UniTimeTables,
-	curriculums []Curriculum.Curriculum, selected_semester int,
+	parent1, parent2 Schedule.UniTimeTables, default_encoding_resource *EncodingResource,
+	curriculums []Curriculum.Curriculum, rooms []Rooms.Room, selected_semester int,
 	dept_id_to_department map[uint16]Departments.Department,
 	department_to_encode map[uint16]bool,
 	instructor_id_to_instructor map[uint16]*Instructors.Instructor,
@@ -203,7 +204,7 @@ func Crossover(
 				i, indicies.Usi,
 				offspring,
 				base_parent_subjects,
-				resource_persistence,
+				rooms,
 				instructor_id_to_instructor,
 			)
 
@@ -225,7 +226,7 @@ func Crossover(
 				i, indicies.Usi,
 				offspring,
 				fallback_parent_subjects,
-				resource_persistence,
+				rooms,
 				instructor_id_to_instructor,
 			)
 
@@ -257,7 +258,7 @@ func Crossover(
 	}
 
 	encoding_resource, err_gen_encoding_resource := GenerateEncodingResourceFromUniTimeTable(
-		offspring, curriculums, selected_semester, resource_persistence,
+		offspring, curriculums, selected_semester, default_encoding_resource,
 	)
 
 	if err_gen_encoding_resource != nil {
@@ -298,7 +299,7 @@ func inherit_trait_from_a_parent(
 	i, usi int,
 	offspring Schedule.UniTimeTables,
 	json_subjects []Schedule.TimeSlotSubjectJSON,
-	resource_persistence *StorageResources.Persistence,
+	rooms []Rooms.Room,
 	instructor_id_to_instructor map[uint16]*Instructors.Instructor,
 ) inherit_trait_result {
 	subject := &json_subjects[i]
@@ -363,7 +364,7 @@ func inherit_trait_from_a_parent(
 
 		// TODO: optimization - remove after implementing direct check using instructor and room availability
 		err_vv = offspring.VerticalRangedValidation(
-			resource_persistence,
+			rooms,
 			subject.Day, 1,
 			subject.StartingTimeSlot, subject.TimeSlotSize,
 		)
@@ -374,7 +375,7 @@ func inherit_trait_from_a_parent(
 
 		// TODO: optimization - remove after implementing direct check using instructor and room availability
 		err_vv_extend = offspring.VerticalRangedValidation(
-			resource_persistence,
+			rooms,
 			subj_extend.Day, 1,
 			subj_extend.StartingTimeSlot, subj_extend.TimeSlotSize,
 		)

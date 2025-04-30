@@ -97,8 +97,16 @@ func GetSubjectAvailableTimeSlotMoves(ctx *gin.Context) {
 
 	// generate encoding resource
 
+	default_empty_encoding_resource, err_read_default_encoding := GeneticAlgorithm.ReadDefaultEncodingResource(RouteGlobals.ResourcesPersistence)
+
+	if err_read_default_encoding != nil {
+		log.Print("GetSubjectAvailableTimeSlotMoves: we're unable to retrieve the default encoding resource for the requested semester, caused by ", err_read_default_encoding)
+		ctx.String(http.StatusInternalServerError, "we're unable to retrieve the default encoding resource required")
+		return
+	}
+
 	encoding_resource, err_gen_encoding_resource := GeneticAlgorithm.GenerateEncodingResourceFromUniTimeTable(
-		university_schedules, all_curriculums, selected_semester, RouteGlobals.ResourcesPersistence,
+		university_schedules, all_curriculums, selected_semester, default_empty_encoding_resource,
 	)
 
 	if err_gen_encoding_resource != nil {
