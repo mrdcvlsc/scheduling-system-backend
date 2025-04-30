@@ -1,23 +1,23 @@
 package Curriculum
 
 type Curriculum struct {
-	CurriculumID   uint16      `json:"CurriculumID"`   // non negative & non-zero unique number even if for example we have Computer Science (OLD) and Computer Science (New)
-	CurriculumName string      `json:"CurriculumName"` // e.g. Computer Science, Information Technology
-	CurriculumCode string      `json:"CurriculumCode"` // e.g. BSCS, BSIT
-	DepartmentID   uint16      `json:"DepartmentID"`
-	YearLevels     []YearLevel `json:"YearLevels"`
+	CurriculumID   uint16      `json:"CurriculumID" bson:"CurriculumID"`     // non negative & non-zero unique number even if for example we have Computer Science (OLD) and Computer Science (New)
+	CurriculumName string      `json:"CurriculumName" bson:"CurriculumName"` // e.g. Computer Science, Information Technology
+	CurriculumCode string      `json:"CurriculumCode" bson:"CurriculumCode"` // e.g. BSCS, BSIT
+	DepartmentID   uint16      `json:"DepartmentID" bson:"DepartmentID"`
+	YearLevels     []YearLevel `json:"YearLevels" bson:"YearLevels"`
 }
 
 type YearLevel struct {
-	Name      string     `json:"Name"`
-	IsActive  bool       `json:"IsActive"`
-	Semesters []Semester `json:"Semesters"`
+	Name      string     `json:"Name" bson:"Name"`
+	IsActive  bool       `json:"IsActive" bson:"IsActive"`
+	Semesters []Semester `json:"Semesters" bson:"Semesters"`
 }
 
 type Semester struct {
-	Name     string    `json:"Name"`
-	Sections int       `json:"Sections"`
-	Subjects []Subject `json:"Subjects"`
+	Name     string    `json:"Name" bson:"Name"`
+	Sections int       `json:"Sections" bson:"Sections"`
+	Subjects []Subject `json:"Subjects" bson:"Subjects"`
 }
 
 var SEMESTER_INDEX_NAME [6]string = [6]string{
