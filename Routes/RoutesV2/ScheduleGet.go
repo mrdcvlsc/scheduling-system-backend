@@ -85,30 +85,25 @@ func GetJsonClassSchedule(ctx *gin.Context) {
 
 	// parse schedule_idx parameter
 
-	schedule_idx := 0
+	schedule_idx := -1
 
-curriculum_loop:
-	for _, curriculum := range all_curriculums {
-		for year_level_idx, year_level := range curriculum.YearLevels {
-			if !year_level.IsActive {
-				continue
+	GeneticAlgorithm.IterateSectionsWeekSchedule(university_schedules, all_curriculums, selected_semester, nil, nil,
+		func(indicies GeneticAlgorithm.IterIndices, values GeneticAlgorithm.IterValues) GeneticAlgorithm.IterReturnType {
+			if curriculum_id == int(values.Curriculum.CurriculumID) && indicies.YearLevel == param_year_level_idx && indicies.Section == param_section_idx {
+				schedule_idx = indicies.Usi
+				return GeneticAlgorithm.IterBreakCurriculumLoop
 			}
 
-			for semester_idx, semester := range year_level.Semesters {
-				if semester_idx != selected_semester {
-					continue
-				}
+			return GeneticAlgorithm.IterProceed
+		},
+	)
 
-				for section_idx := 0; section_idx < semester.Sections; section_idx++ {
+	// check if section index was found
 
-					if curriculum_id == int(curriculum.CurriculumID) && year_level_idx == param_year_level_idx && section_idx == param_section_idx {
-						break curriculum_loop
-					}
-
-					schedule_idx++
-				}
-			}
-		}
+	if schedule_idx < 0 {
+		log.Print("unable to find the section")
+		ctx.String(http.StatusInternalServerError, "unable to find that section, the curriculum might have been edited, please refresh the page")
+		return
 	}
 
 	// extract selected schedule
