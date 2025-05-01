@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
@@ -82,44 +83,29 @@ func PatchCurriculum(ctx *gin.Context) {
 
 		curriculum_key_to_weekly_section_sched := make(map[CurriculumSectionKey]Schedule.WeekTimeTable)
 
-		original_uni_sched_idx := 0
 		mid_starting_index := -1
 		mid_length := 0
 
-		for _, curriculum := range all_curriculums {
-			for yl_idx, year_level := range curriculum.YearLevels {
+		GeneticAlgorithm.IterateSectionsWeekSchedule(university_schedule, all_curriculums, selected_semester, nil, nil,
+			func(indicies GeneticAlgorithm.IterIndices, values GeneticAlgorithm.IterValues) GeneticAlgorithm.IterReturnType {
+				if values.Curriculum.CurriculumID == update_curriculum.CurriculumID {
 
-				if !year_level.IsActive {
-					continue
-				}
-
-				for semester_idx, semester := range year_level.Semesters {
-					if semester_idx != selected_semester {
-						continue
+					if mid_starting_index == -1 {
+						mid_starting_index = indicies.Usi
 					}
 
-					for section_idx := 0; section_idx < semester.Sections; section_idx++ {
+					curriculum_key_to_weekly_section_sched[CurriculumSectionKey{
+						YearLevelIndex: indicies.YearLevel,
+						SemesterIndex:  indicies.Semester,
+						SectionIndex:   indicies.Section,
+					}] = university_schedule[indicies.Usi]
 
-						if curriculum.CurriculumID == update_curriculum.CurriculumID {
-
-							if mid_starting_index == -1 {
-								mid_starting_index = original_uni_sched_idx
-							}
-
-							curriculum_key_to_weekly_section_sched[CurriculumSectionKey{
-								YearLevelIndex: yl_idx,
-								SemesterIndex:  semester_idx,
-								SectionIndex:   section_idx,
-							}] = university_schedule[original_uni_sched_idx]
-
-							mid_length++
-						}
-
-						original_uni_sched_idx++
-					}
+					mid_length++
 				}
-			}
-		}
+
+				return GeneticAlgorithm.IterProceed
+			},
+		)
 
 		// partition university schedules
 
@@ -143,24 +129,24 @@ func PatchCurriculum(ctx *gin.Context) {
 				continue
 			}
 
-			for semester_idx, semester := range year_level.Semesters {
-				if semester_idx != selected_semester {
-					continue
-				}
+			if selected_semester < 0 || selected_semester >= len(year_level.Semesters) {
+				continue // skip invalid semester index
+			}
 
-				for section_idx := range semester.Sections {
+			semester := year_level.Semesters[selected_semester]
 
-					week_section_sched, has_key := curriculum_key_to_weekly_section_sched[CurriculumSectionKey{
-						YearLevelIndex: yl_idx,
-						SemesterIndex:  semester_idx,
-						SectionIndex:   section_idx,
-					}]
+			for section_idx := range semester.Sections {
 
-					if has_key {
-						updated_curriculum_schedules = append(updated_curriculum_schedules, week_section_sched)
-					} else {
-						updated_curriculum_schedules = append(updated_curriculum_schedules, Schedule.WeekTimeTable{})
-					}
+				week_section_sched, has_key := curriculum_key_to_weekly_section_sched[CurriculumSectionKey{
+					YearLevelIndex: yl_idx,
+					SemesterIndex:  selected_semester,
+					SectionIndex:   section_idx,
+				}]
+
+				if has_key {
+					updated_curriculum_schedules = append(updated_curriculum_schedules, week_section_sched)
+				} else {
+					updated_curriculum_schedules = append(updated_curriculum_schedules, Schedule.WeekTimeTable{})
 				}
 			}
 		}
