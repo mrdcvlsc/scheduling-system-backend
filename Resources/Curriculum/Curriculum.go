@@ -56,3 +56,37 @@ func GetTotalNumberOfSections(curriculums []Curriculum, selected_semester int) i
 
 	return section_count
 }
+
+func (s *Curriculum) GetTotalSections() int {
+	section_count := 0
+
+	for _, year_level := range s.YearLevels {
+		if !year_level.IsActive {
+			continue
+		}
+
+		for _, semester := range year_level.Semesters {
+			section_count += semester.Sections
+		}
+	}
+
+	return section_count
+}
+
+func (s *Curriculum) GetTotalSectionsBySemester(semester_idx int) int {
+	section_count := 0
+
+	for _, year_level := range s.YearLevels {
+		if !year_level.IsActive {
+			continue
+		}
+
+		if semester_idx < 0 || semester_idx >= len(year_level.Semesters) {
+			continue
+		}
+
+		section_count += year_level.Semesters[semester_idx].Sections
+	}
+
+	return section_count
+}
