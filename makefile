@@ -62,8 +62,9 @@ testvs:
 
 gh_test:
 	go clean -testcache
-	go test ./... -p 1 -timeout 0
+	go test ./... -p 1 -timeout 0 -skip "TestIntegration"
 
+	@echo "running unit tests with fresh dev resources each"
 	$(MAKE) devr
 	go clean -testcache && go test -run Test ./GeneticAlgorithm -timeout 0
 	$(MAKE) devr
@@ -82,9 +83,13 @@ gh_test:
 	go clean -testcache && go test -run Test ./Tests/schedule_datastructure_basic -timeout 0
 	$(MAKE) devr
 	go clean -testcache && go test -run Test ./Utils -timeout 0
+	
+	@echo "running integration tests"
 	$(MAKE) devr
+	go clean -testcache && go test -run TestIntegration ./ -timeout 0
 
 gh_test_local:
+	@echo "running unit tests with fresh dev resources each"
 	$(MAKE) devr_local
 	go clean -testcache && go test -run Test ./GeneticAlgorithm -timeout 0
 	$(MAKE) devr_local
@@ -103,7 +108,10 @@ gh_test_local:
 	go clean -testcache && go test -run Test ./Tests/schedule_datastructure_basic -timeout 0
 	$(MAKE) devr_local
 	go clean -testcache && go test -run Test ./Utils -timeout 0
+
+	@echo "running integration tests"
 	$(MAKE) devr_local
+	go clean -testcache && go test -run TestIntegration ./ -timeout 0
 
 bench:
 	# we need to escape the dollar sign for the command: go test -run=^$ -bench=. ./...
