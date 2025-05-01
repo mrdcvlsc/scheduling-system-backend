@@ -36,11 +36,17 @@ func PostCurriculum(ctx *gin.Context) {
 
 	// save new curriculum
 
-	err := RouteGlobals.ResourcesPersistence.WriterService.CreateCurriculum(add_curriculum)
+	id, err := RouteGlobals.ResourcesPersistence.WriterService.CreateCurriculum(add_curriculum)
 
 	if err != nil {
 		log.Print(err)
 		ctx.String(http.StatusBadRequest, "we are unable to properly add the curriculum")
+		return
+	}
+
+	if id == 0 {
+		log.Print(err)
+		ctx.String(http.StatusBadRequest, "we are unable to properly add the curriculum, the system generated an unknown id")
 		return
 	}
 

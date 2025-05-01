@@ -578,10 +578,14 @@ func TestJsonFilePersistence_CurriculumCRU(t *testing.T) {
 		}},
 	}
 
-	err_create_curriculum := TestPersistence.WriterService.CreateCurriculum(new_curriculum)
+	id, err_create_curriculum := TestPersistence.WriterService.CreateCurriculum(new_curriculum)
 
 	if err_create_curriculum != nil {
 		t.Error(err_create_curriculum)
+	}
+
+	if id == 0 {
+		t.Error("new curriculums can't have an ID of 0 and has no error during creation")
 	}
 
 	// read 2

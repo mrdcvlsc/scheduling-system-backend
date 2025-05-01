@@ -12,10 +12,10 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
-func (s *JsonWriter) CreateCurriculum(new_curriculum Curriculum.Curriculum) error {
+func (s *JsonWriter) CreateCurriculum(new_curriculum Curriculum.Curriculum) (uint16, error) {
 
 	if new_curriculum.CurriculumID != 0 {
-		return errors.New("error CreateCurriculum(): cannot create a new curriculum with a non-zero CurriculumID")
+		return 0, errors.New("error CreateCurriculum(): cannot create a new curriculum with a non-zero CurriculumID")
 	}
 
 	CurriculumsMutex.Lock()
@@ -24,12 +24,14 @@ func (s *JsonWriter) CreateCurriculum(new_curriculum Curriculum.Curriculum) erro
 	all_curriculums, err_read := json_read_all_curriculums()
 
 	if err_read != nil {
-		return fmt.Errorf("error CreateCurriculum(): %s", err_read.Error())
+		return 0, fmt.Errorf("error CreateCurriculum(): %s", err_read.Error())
 	}
+
+	new_curriculum_id := all_curriculums[len(all_curriculums)-1].CurriculumID + 1
 
 	err_save := json_save_curriculum(
 		Curriculum.Curriculum{
-			CurriculumID:   all_curriculums[len(all_curriculums)-1].CurriculumID + 1,
+			CurriculumID:   new_curriculum_id,
 			CurriculumName: new_curriculum.CurriculumName,
 			CurriculumCode: new_curriculum.CurriculumCode,
 			DepartmentID:   new_curriculum.DepartmentID,
@@ -38,10 +40,10 @@ func (s *JsonWriter) CreateCurriculum(new_curriculum Curriculum.Curriculum) erro
 	)
 
 	if err_save != nil {
-		return fmt.Errorf("error CreateCurriculum(): %s", err_save.Error())
+		return 0, fmt.Errorf("error CreateCurriculum(): %s", err_save.Error())
 	}
 
-	return nil
+	return new_curriculum_id, nil
 }
 
 func (s *JsonWriter) UpdateCurriculum(updated_curriculum Curriculum.Curriculum) error {

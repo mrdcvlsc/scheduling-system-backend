@@ -12,10 +12,10 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func (s *MongodbWriter) CreateCurriculum(new_curriculum Curriculum.Curriculum) error {
+func (s *MongodbWriter) CreateCurriculum(new_curriculum Curriculum.Curriculum) (uint16, error) {
 
 	if new_curriculum.CurriculumID != 0 {
-		return errors.New("error CreateCurriculum(): cannot create a new curriculum with a non-zero CurriculumID")
+		return 0, errors.New("error CreateCurriculum(): cannot create a new curriculum with a non-zero CurriculumID")
 	}
 
 	s.mutex.Lock()
@@ -36,7 +36,7 @@ func (s *MongodbWriter) CreateCurriculum(new_curriculum Curriculum.Curriculum) e
 	cursor_last, err_find_last := curriculum_collection.Find(context.TODO(), bson.D{{}}, opt_find_last)
 
 	if err_find_last != nil {
-		return fmt.Errorf("CreateCurriculum Find() error: %s", err_find_last.Error())
+		return 0, fmt.Errorf("CreateCurriculum Find() error: %s", err_find_last.Error())
 	}
 
 	defer func() {
@@ -53,14 +53,16 @@ func (s *MongodbWriter) CreateCurriculum(new_curriculum Curriculum.Curriculum) e
 
 		if err_decode_last != nil {
 			log.Println("CreateCurriculum Decode() error:", cursor_last)
-			return err_decode_last
+			return 0, err_decode_last
 		}
 	}
 
 	///// save new curriculm curriculum /////
 
+	new_curriculum_id := last_curriculum.CurriculumID + 1
+
 	save_new_curriculum := &Curriculum.Curriculum{
-		CurriculumID:   last_curriculum.CurriculumID + 1,
+		CurriculumID:   new_curriculum_id,
 		CurriculumName: new_curriculum.CurriculumName,
 		CurriculumCode: new_curriculum.CurriculumCode,
 		DepartmentID:   new_curriculum.DepartmentID,
@@ -71,12 +73,12 @@ func (s *MongodbWriter) CreateCurriculum(new_curriculum Curriculum.Curriculum) e
 
 	if err_insert_one != nil {
 		log.Println("CreateCurriculum: InsertOne() error:", err_insert_one)
-		return err_insert_one
+		return 0, err_insert_one
 	}
 
 	log.Println("CreateCurriculum: InsertOne Result:", insert_one_result)
 
-	return nil
+	return new_curriculum_id, nil
 }
 
 func (s *MongodbWriter) UpdateCurriculum(updated_curriculum Curriculum.Curriculum) error {
