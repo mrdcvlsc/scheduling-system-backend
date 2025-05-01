@@ -7,6 +7,7 @@ import (
 
 	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
+	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageSchedule"
 )
@@ -34,14 +35,26 @@ func TestEstimateResourceAvailabilitySecondSem(t *testing.T) {
 }
 
 func TestNewPopulationFirstSem(t *testing.T) {
-	GeneratePopulations(t, GeneticAlgorithm.TERM_1ST_SEMESTER)
+	total_sections := GeneratePopulations(t, GeneticAlgorithm.TERM_1ST_SEMESTER)
+
+	if total_sections != 192 {
+		t.Fatal("total sections generated is not equal to the expected number of sections")
+	}
+
+	t.Log("Total Sections For First Semester : ", total_sections)
 }
 
 func TestNewPopulationSecondSem(t *testing.T) {
-	GeneratePopulations(t, GeneticAlgorithm.TERM_2ND_SEMESTER)
+	total_sections := GeneratePopulations(t, GeneticAlgorithm.TERM_2ND_SEMESTER)
+
+	if total_sections != 184 {
+		t.Fatal("total sections generated is not equal to the expected number of sections")
+	}
+
+	t.Log("Total Sections For Second Semester : ", total_sections)
 }
 
-func GeneratePopulations(t *testing.T, target_semester int) {
+func GeneratePopulations(t *testing.T, target_semester int) int {
 	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
 
 	t.Logf("Semester : %d\n\n", target_semester)
@@ -84,6 +97,8 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
+	var final_uni_sched Schedule.UniTimeTables
+
 	for i := 0; i < total_test_iterations; i++ {
 		if (i == 0) || (((i + 1) % 32) == 0) {
 			fmt.Printf("Generating schedules (%d)..................................\n", (i + 1))
@@ -108,6 +123,13 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 
 		if len(university_schedules) == 0 {
 			t.Fatal("No university schedules generated")
+		}
+
+		if len(university_schedules) != len(empty_university_schedule) {
+			t.Fatalf(
+				"the generated total sections for the semester index %d is %d, but the generated empty schedules only contains %d which is a mismatch",
+				target_semester, len(university_schedules), len(empty_university_schedule),
+			)
 		}
 
 		if err != nil {
@@ -186,6 +208,8 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 				t.Fatal("Test No Changes : error encoding resource equal test failed")
 			}
 		}
+
+		final_uni_sched = university_schedules
 	}
 
 	failed_individuals := float64(len(err_list_generation))
@@ -208,6 +232,8 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 	}
 
 	t.Logf("There are a total of %d validation errors detected when generating university schedules", len(err_list_validation))
+
+	return len(final_uni_sched)
 }
 
 //////////////////////////////////////
