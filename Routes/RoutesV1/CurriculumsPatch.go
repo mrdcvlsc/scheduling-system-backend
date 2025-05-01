@@ -33,13 +33,7 @@ func PatchCurriculum(ctx *gin.Context) {
 
 	// check if the new updated curriculum have at least 1 section
 
-	updated_total_sections := 0
-
-	for _, year_level := range update_curriculum.YearLevels {
-		for _, semester := range year_level.Semesters {
-			updated_total_sections += semester.Sections
-		}
-	}
+	updated_total_sections := update_curriculum.GetTotalSections()
 
 	if updated_total_sections <= 0 {
 		log.Print("PatchCurriculum: updating a curriculum without any sections are not allowed")
@@ -68,6 +62,12 @@ func PatchCurriculum(ctx *gin.Context) {
 	}
 
 	for selected_semester := range Curriculum.SUPPORTED_SEMESTERS {
+
+		semester_total_sections := update_curriculum.GetTotalSectionsBySemester(selected_semester)
+
+		if semester_total_sections <= 0 {
+			continue
+		}
 
 		// obtain univesity schedules for each semester
 
