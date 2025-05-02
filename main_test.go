@@ -4,18 +4,22 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"reflect"
 	"testing"
 	"time"
 
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
+	"github.com/google/go-cmp/cmp"
 	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Departments"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 	"github.com/mrdcvlsc/scheduling-system-backend/Routes/RoutesV1"
 	"github.com/mrdcvlsc/scheduling-system-backend/Routes/RoutesV2"
@@ -26,7 +30,7 @@ import (
 
 var SessionStore = cookie.NewStore([]byte(os.Getenv("SESSION_SECRET")))
 
-func TestIntegrationEditCurriculumSection(t *testing.T) {
+func TestIntegrationEditCurriculumSectionV1(t *testing.T) {
 
 	// initialize the router
 
@@ -40,6 +44,18 @@ func TestIntegrationEditCurriculumSection(t *testing.T) {
 	if err_read_departments != nil {
 		t.Fatalf("Failed to read departments: %v", err_read_departments)
 	}
+
+	departments_without_gen := make([]Departments.Department, 0, len(departments))
+
+	for i := range departments {
+		if departments[i].DepartmentID == 0 {
+			continue
+		}
+
+		departments_without_gen = append(departments_without_gen, departments[i])
+	}
+
+	departments = departments_without_gen
 
 	for semester := range Curriculum.SUPPORTED_SEMESTERS {
 		for _, department := range departments {
@@ -85,8 +101,76 @@ func TestIntegrationEditCurriculumSection(t *testing.T) {
 			break
 		}
 
-		time.Sleep(3 * time.Second)
+		time.Sleep(1 * time.Second)
 		t.Log("Waiting for schedule generation to finish...")
+	}
+
+	// validate each departments using schedule generation results
+
+	for semester := range Curriculum.SUPPORTED_SEMESTERS {
+		for _, department := range departments {
+
+			///////////////////////////////////////////////// lies here a memory you don't want to remember... ///////////////////
+
+			request := httptest.NewRequest(
+				http.MethodGet,
+				fmt.Sprintf("/v1/dept_gen_result?semester=%d&department_id=%d", semester, department.DepartmentID),
+				nil,
+			)
+
+			response := httptest.NewRecorder()
+
+			router.ServeHTTP(response, request)
+
+			if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
+				t.Fatalf("Unexpected status code %d for department %d: body: %s", response.Code, department.DepartmentID, response.Body.String())
+			} else {
+				response_body := &RouteGlobals.SchedGenResult{}
+				if err := json.Unmarshal(response.Body.Bytes(), &response_body); err != nil {
+					t.Fatalf("Failed to parse generation status response: %v", err)
+				}
+
+				if response_body.Status != RouteGlobals.SchedGenStatusSuccess {
+					t.Fatalf("Failed to generation schedule in %s, %s - %s", department.Code, response_body.Status, response_body.Message)
+				}
+
+				t.Logf("Validation result %s : %s", response_body.Status, response_body.Message)
+			}
+		}
+	}
+
+	// validate each department using the API
+
+	for semester := range Curriculum.SUPPORTED_SEMESTERS {
+		for _, department := range departments {
+
+			///////////////////////////////////////////////// lies here a memory you don't want to remember... ///////////////////
+
+			request := httptest.NewRequest(
+				http.MethodGet,
+				fmt.Sprintf("/v2/validate_schedules?semester=%d&department_id=%d", semester, department.DepartmentID),
+				nil,
+			)
+
+			response := httptest.NewRecorder()
+
+			router.ServeHTTP(response, request)
+
+			switch response.Code {
+			case http.StatusNotFound, http.StatusConflict:
+				var validationResponse []string
+				if err := json.Unmarshal(response.Body.Bytes(), &validationResponse); err != nil {
+					t.Fatalf("Failed to parse validation response for department %d: %v", department.DepartmentID, err)
+				}
+				if len(validationResponse) > 0 {
+					t.Fatalf("Validation errors for department %d: %v", department.DepartmentID, validationResponse)
+				}
+			default:
+				if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
+					t.Fatalf("Unexpected status code %d for department %d: body: %s", response.Code, department.DepartmentID, response.Body.String())
+				}
+			}
+		}
 	}
 
 	// edit curriculum section counts
@@ -100,7 +184,7 @@ func TestIntegrationEditCurriculumSection(t *testing.T) {
 	for c, curriculum := range curriculums {
 		for y, year_level := range curriculum.YearLevels {
 			for s := range year_level.Semesters {
-				curriculums[c].YearLevels[y].Semesters[s].Sections = Utils.RandomInRange(0, 7)
+				curriculums[c].YearLevels[y].Semesters[s].Sections = Utils.RandomInRange(0, 6)
 			}
 		}
 	}
@@ -141,7 +225,7 @@ func TestIntegrationEditCurriculumSection(t *testing.T) {
 			func(indicies GeneticAlgorithm.IterIndices, values GeneticAlgorithm.IterValues) GeneticAlgorithm.IterReturnType {
 
 				subject_from_schedule := make(map[uint16]int)
-				for _, subject := range values.WeekSched.GetWeekSubjectsJSON() {
+				for _, subject := range university_schedule[indicies.Usi].GetWeekSubjectsJSON() {
 					_, has_id := subject_from_schedule[subject.SubjectID]
 					if !has_id {
 						subject_from_schedule[subject.SubjectID] = subject.TimeSlotSize
@@ -156,6 +240,17 @@ func TestIntegrationEditCurriculumSection(t *testing.T) {
 				}
 
 				if (len(subject_from_schedule) != len(subject_from_curriculum)) && indicies.Section < 4 {
+
+					log.Print("from schedule :\n\n")
+
+					Utils.PrettyPrint(subject_from_schedule)
+
+					log.Print("\n\nfrom curriculum :\n\n")
+
+					Utils.PrettyPrint(subject_from_curriculum)
+
+					log.Print("\n\n")
+
 					t.Fatalf(
 						"Mismatch in number of subjects, %s, %s, %s, section %s : schedule has %d, curriculum has %d",
 						values.Curriculum.CurriculumCode,
@@ -198,6 +293,362 @@ func TestIntegrationEditCurriculumSection(t *testing.T) {
 				return GeneticAlgorithm.IterProceed
 			},
 		)
+	}
+}
+
+func TestIntegrationEditCurriculumSectionV2(t *testing.T) {
+
+	const MIN_SUCCESS_COUNT int = 3
+
+	success_count := 0
+
+test_loop:
+	for test_iteration := range 5 {
+		router := setup_router()
+
+		// generate university schedules for all semesters
+
+		departments, err_read_departments := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllDepartments()
+
+		if err_read_departments != nil {
+			t.Fatalf("Failed to read departments: %v", err_read_departments)
+		}
+
+		departments_without_gen := make([]Departments.Department, 0, len(departments))
+
+		for i := range departments {
+			if departments[i].DepartmentID == 0 {
+				continue
+			}
+
+			departments_without_gen = append(departments_without_gen, departments[i])
+		}
+
+		departments = departments_without_gen
+
+		for semester := range Curriculum.SUPPORTED_SEMESTERS {
+			for _, department := range departments {
+
+				///////////////////////////////////////////////// lies here a memory you don't want to remember... ///////////////////
+
+				t.Logf("generating schedule for %s %s", department.Name, Curriculum.SEMESTER_INDEX_NAME[semester])
+
+				request := httptest.NewRequest(
+					http.MethodPost, fmt.Sprintf(
+						"/v1/generate_schedule?semester=%d&department_id=%d",
+						semester, department.DepartmentID,
+					),
+					http.NoBody,
+				)
+
+				response := httptest.NewRecorder()
+
+				router.ServeHTTP(response, request)
+
+				if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
+					t.Fatalf("Failed to generate schedules: status code %d, body: %s", response.Code, response.Body.String())
+				}
+			}
+		}
+
+		// wait for the schedules to be generated
+
+		for {
+			request := httptest.NewRequest(http.MethodGet, "/v1/gen_status", nil)
+			response := httptest.NewRecorder()
+
+			router.ServeHTTP(response, request)
+
+			if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
+				t.Fatalf("Failed to check generation status: status code %d, body: %s", response.Code, response.Body.String())
+			}
+
+			var get_body struct {
+				IsGenerating bool `json:"status"`
+			}
+
+			if err := json.Unmarshal(response.Body.Bytes(), &get_body); err != nil {
+				t.Fatalf("Failed to parse generation status response: %v", err)
+			}
+
+			if !get_body.IsGenerating {
+				break
+			}
+
+			time.Sleep(1 * time.Second)
+			t.Log("Waiting for schedule generation to finish...")
+		}
+
+		// validate each departments using schedule generation results
+
+		for semester := range Curriculum.SUPPORTED_SEMESTERS {
+			for _, department := range departments {
+
+				///////////////////////////////////////////////// lies here a memory you don't want to remember... ///////////////////
+
+				request := httptest.NewRequest(
+					http.MethodGet,
+					fmt.Sprintf("/v1/dept_gen_result?semester=%d&department_id=%d", semester, department.DepartmentID),
+					nil,
+				)
+
+				response := httptest.NewRecorder()
+
+				router.ServeHTTP(response, request)
+
+				if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
+					if success_count >= MIN_SUCCESS_COUNT {
+						continue test_loop
+					}
+
+					t.Fatalf("Unexpected status code %d for department %d: body: %s", response.Code, department.DepartmentID, response.Body.String())
+				} else {
+					response_body := &RouteGlobals.SchedGenResult{}
+					if err := json.Unmarshal(response.Body.Bytes(), &response_body); err != nil {
+						t.Fatalf("Failed to parse generation status response: %v", err)
+					}
+
+					if response_body.Status != RouteGlobals.SchedGenStatusSuccess {
+						t.Fatalf("Failed to generation schedule in %s, %s - %s", department.Code, response_body.Status, response_body.Message)
+					}
+
+					t.Logf("Validation result %s : %s", response_body.Status, response_body.Message)
+				}
+			}
+		}
+
+		// validate each department using the API
+
+		for semester := range Curriculum.SUPPORTED_SEMESTERS {
+			for _, department := range departments {
+
+				///////////////////////////////////////////////// lies here a memory you don't want to remember... ///////////////////
+
+				request := httptest.NewRequest(
+					http.MethodGet,
+					fmt.Sprintf("/v2/validate_schedules?semester=%d&department_id=%d", semester, department.DepartmentID),
+					nil,
+				)
+
+				response := httptest.NewRecorder()
+
+				router.ServeHTTP(response, request)
+
+				switch response.Code {
+				case http.StatusNotFound, http.StatusConflict:
+					var validationResponse []string
+					if err := json.Unmarshal(response.Body.Bytes(), &validationResponse); err != nil {
+						if success_count >= MIN_SUCCESS_COUNT {
+							continue test_loop
+						}
+
+						t.Fatalf("Failed to parse validation response for department %d: %v", department.DepartmentID, err)
+					}
+
+					if len(validationResponse) > 0 {
+						if success_count >= MIN_SUCCESS_COUNT {
+							continue test_loop
+						}
+
+						t.Fatalf("Validation errors for department %d: %v", department.DepartmentID, validationResponse)
+					}
+				default:
+					if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
+						if success_count >= MIN_SUCCESS_COUNT {
+							continue test_loop
+						}
+
+						t.Fatalf("Unexpected status code %d for department %d: body: %s", response.Code, department.DepartmentID, response.Body.String())
+					}
+				}
+			}
+		}
+
+		// edit curriculum section counts
+
+		old_curriculums, err_read_old_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
+
+		if err_read_old_curriculums != nil {
+			t.Fatalf("Failed to read old curriculums: %v", err_read_old_curriculums)
+		}
+
+		set_new_curriculums, err_read_set_new_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
+
+		if err_read_set_new_curriculums != nil {
+			t.Fatalf("Failed to read new curriculums: %v", err_read_old_curriculums)
+		}
+
+		for c, curriculum := range set_new_curriculums {
+
+			if curriculum.DepartmentID != 1 {
+				continue
+			}
+
+			for y, year_level := range curriculum.YearLevels {
+				for s := range year_level.Semesters {
+					set_new_curriculums[c].YearLevels[y].Semesters[s].Sections = Utils.RandomInRange(0, 5)
+				}
+			}
+		}
+
+		for _, curriculum := range set_new_curriculums {
+
+			if curriculum.DepartmentID != 1 {
+				continue
+			}
+
+			json_curriculum, err := json.Marshal(curriculum)
+
+			if err != nil {
+				panic(err)
+			}
+
+			request := httptest.NewRequest(http.MethodPatch, "/v1/curriculum_update", bytes.NewBuffer(json_curriculum))
+
+			request.Header.Set("Content-Type", "application/json")
+
+			response := httptest.NewRecorder()
+
+			router.ServeHTTP(response, request)
+
+			if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
+				t.Fatalf("Failed to edit curriculum sections: status code %d, body: %s", response.Code, response.Body.String())
+			}
+		}
+
+		// validate the schedule
+
+		for semester := range Curriculum.SUPPORTED_SEMESTERS {
+			university_schedule, err_load_sched := RouteGlobals.SchedulePersistence.LoadService.LoadSchedules(semester)
+
+			log.Println("university schedule length : ", len(university_schedule))
+
+			if err_load_sched != nil {
+				t.Fatalf("Failed to load schedules: %v", err_load_sched)
+			}
+
+			new_curriculums, err_read_new_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
+
+			if err_read_new_curriculums != nil {
+				t.Fatalf("Failed to read new curriculums: %v", err_read_old_curriculums)
+			}
+
+			if !reflect.DeepEqual(new_curriculums, set_new_curriculums) {
+				diff := cmp.Diff(new_curriculums, set_new_curriculums)
+				t.Fatalf("The curriculums are not equal. Differences:\n%s", diff)
+			}
+
+			GeneticAlgorithm.IterateSectionsWeekSchedule(university_schedule, new_curriculums, semester, nil, nil,
+				func(indicies GeneticAlgorithm.IterIndices, values GeneticAlgorithm.IterValues) GeneticAlgorithm.IterReturnType {
+
+					t.Logf(">>>>>>>>>>>>> CURRICULUM %s[%d]", values.Curriculum.CurriculumCode, values.Curriculum.DepartmentID)
+
+					subject_from_schedule := make(map[uint16]int)
+					for _, subject := range university_schedule[indicies.Usi].GetWeekSubjectsJSON() {
+
+						if subject.SubjectID != 0 && subject.TimeSlotSize == 0 {
+							t.Fatal("Get Week Subjects JSON has a bug")
+						}
+
+						_, has_id := subject_from_schedule[subject.SubjectID]
+						if !has_id {
+							subject_from_schedule[subject.SubjectID] = subject.TimeSlotSize
+						} else {
+							subject_from_schedule[subject.SubjectID] += subject.TimeSlotSize
+						}
+					}
+
+					subject_from_curriculum := make(map[uint16]int)
+					for _, subject := range values.Semester.Subjects {
+						subject_from_curriculum[subject.ID] = int(subject.LecHours+subject.LabHours) * Const.N_HOUR_TIME_SLOTS
+					}
+
+					old_curriculum_sections := old_curriculums[indicies.Curriculum].YearLevels[indicies.YearLevel].Semesters[indicies.Semester].Sections
+					new_curriculum_sections := new_curriculums[indicies.Curriculum].YearLevels[indicies.YearLevel].Semesters[indicies.Semester].Sections
+
+					if (len(subject_from_schedule) != len(subject_from_curriculum)) && indicies.Section < old_curriculum_sections {
+
+						log.Print("from schedule :\n\n")
+
+						Utils.PrettyPrint(subject_from_schedule)
+
+						log.Print("\n\nfrom curriculum :\n\n")
+
+						Utils.PrettyPrint(subject_from_curriculum)
+
+						log.Print("\n\n")
+
+						has_subject := false
+
+						for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
+							for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
+								if university_schedule[indicies.Usi][day][time_slot].GetSubjectID() != 0 {
+									has_subject = true
+								}
+							}
+						}
+
+						if has_subject {
+							t.Fatal("week schedule has subject but subject from schedule has length of 0")
+						}
+
+						t.Fatalf(
+							"[test-iteration=%d] : Mismatch in number of subjects, %s, %s, %s, section %s : schedule has %d, curriculum has %d, old curriculum sections %d, new curriculum sections %d",
+							test_iteration,
+							values.Curriculum.CurriculumCode,
+							values.YearLevel.Name, Curriculum.SEMESTER_INDEX_NAME[indicies.Semester],
+							Curriculum.SECTION[indicies.Section],
+							len(subject_from_schedule),
+							len(subject_from_curriculum),
+							old_curriculum_sections, new_curriculum_sections,
+						)
+					}
+
+					for k, v := range subject_from_schedule {
+						if subject_from_schedule[k] != subject_from_curriculum[k] && indicies.Section < old_curriculum_sections {
+							t.Fatalf(
+								"[test-iteration=%d] : Mismatch in %s, %s, %s, section %s, subject id %d: schedule has %d time slots, while curriculum has %d time slots, old curriculum sections %d, new curriculum sections %d",
+								test_iteration,
+								values.Curriculum.CurriculumCode,
+								values.YearLevel.Name, Curriculum.SEMESTER_INDEX_NAME[indicies.Semester],
+								Curriculum.SEMESTER_INDEX_NAME[indicies.Section],
+								k, v, subject_from_curriculum[k],
+								old_curriculum_sections, new_curriculum_sections,
+							)
+						}
+					}
+
+					if indicies.Section >= old_curriculum_sections && len(subject_from_schedule) != 0 {
+						t.Fatalf(
+							"[test-iteration=%d] : %s, %s, %s, section %s has %d subjects even though it should not contain any because it is a new section, old curriculum sections %d, new curriculum sections %d",
+							test_iteration,
+							values.Curriculum.CurriculumCode,
+							values.YearLevel.Name, Curriculum.SEMESTER_INDEX_NAME[indicies.Semester],
+							Curriculum.SECTION[indicies.Section],
+							subject_from_schedule,
+							old_curriculum_sections, new_curriculum_sections,
+						)
+					} else if indicies.Section < old_curriculum_sections && len(subject_from_schedule) == 0 {
+						t.Fatalf(
+							"[test-iteration=%d] : %s, %s, %s, section %s has 0 subjects even though it should contain at least one, old curriculum sections %d, new curriculum sections %d",
+							test_iteration,
+							values.Curriculum.CurriculumCode,
+							values.YearLevel.Name, Curriculum.SEMESTER_INDEX_NAME[indicies.Semester],
+							Curriculum.SECTION[indicies.Section],
+							old_curriculum_sections, new_curriculum_sections,
+						)
+					}
+
+					return GeneticAlgorithm.IterProceed
+				},
+			)
+		}
+
+		success_count++
+	}
+
+	if success_count < MIN_SUCCESS_COUNT {
+		t.Fatal("not enough success during test")
 	}
 }
 

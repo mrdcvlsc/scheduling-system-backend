@@ -44,7 +44,7 @@ jobs:
         if: runner.os == 'Linux'
         run: cat scheduling-system-temporary-data/instructors.json | sed -E 's/("FirstName":[[:space:]]*)"[^"]*"/\1"****"/g;s/("MiddleInitial":[[:space:]]*)"[^"]*"/\1"****"/g;s/("LastName":[[:space:]]*)"[^"]*"/\1"****"/g' scheduling-system-temporary-data/instructors.json
 
-      - name: Run Tests
+      - name: Unit Tests
         run: make gh_test
         env:
           GITHUB_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
@@ -61,7 +61,7 @@ jobs:
       - name: Check Node Fetch Wait Value
         run: grep -nr "1000 \* 60 \*" ./Tests
 
-      - name: Run Server And Node Fetch Test
+      - name: Integration Test - generate schedule using node.js fetch calls
         run: |
             ./app & sleep 1 && node Tests/schedule-serialization.js
             make devr && ./app & sleep 1 && node Tests/schedule-serialization.js
@@ -70,4 +70,9 @@ jobs:
           GIN_MODE: debug
           PROTOCOL: tcp
           NODE_VERSION: lts
+          GITHUB_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
+
+      - name: Integration Tests - edit curriculum sections
+        run: make gh_i_test
+        env:
           GITHUB_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}

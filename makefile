@@ -84,9 +84,14 @@ gh_test:
 	$(MAKE) devr
 	go clean -testcache && go test -run Test ./Utils -timeout 0
 	
+gh_i_test:
 	@echo "running integration tests"
+
 	$(MAKE) devr
-	go clean -testcache && go test -run TestIntegration ./ -timeout 0
+	go clean -testcache && go test -run TestIntegrationEditCurriculumSectionV1 ./ -timeout 0
+
+	$(MAKE) devr
+	go clean -testcache && go test -run TestIntegrationEditCurriculumSectionV2 ./ -timeout 0
 
 gh_test_local:
 	@echo "running unit tests with fresh dev resources each"
@@ -109,9 +114,14 @@ gh_test_local:
 	$(MAKE) devr_local
 	go clean -testcache && go test -run Test ./Utils -timeout 0
 
+gh_i_test_local:
 	@echo "running integration tests"
+
 	$(MAKE) devr_local
-	go clean -testcache && go test -run TestIntegration ./ -timeout 0
+	go clean -testcache && go test -run TestIntegrationEditCurriculumSectionV1 ./ -timeout 0
+
+	$(MAKE) devr_local
+	go clean -testcache && go test -run TestIntegrationEditCurriculumSectionV2 ./ -timeout 0
 
 bench:
 	# we need to escape the dollar sign for the command: go test -run=^$ -bench=. ./...
