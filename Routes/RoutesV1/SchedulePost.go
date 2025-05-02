@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"reflect"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -18,6 +19,8 @@ const DEFAULT_INITIAL_REQUEST_COUNT uint = 30
 const POPULATION_SIZE = 24
 const TOTAL_GENERATION = 12
 
+var request_gen_sched_mutex sync.Mutex
+
 /*
 POST:
 
@@ -25,9 +28,16 @@ POST:
 */
 func RequestGenerateSchedule(ctx *gin.Context) {
 
+	request_gen_sched_mutex.Lock()
+	defer request_gen_sched_mutex.Unlock()
+
+	is_already_generating_schedules := RouteGlobals.IsGeneratingSchedule.Load()
+	RouteGlobals.IsGeneratingSchedule.Store(true)
+
 	semester, is_valid_semester_idx := IsValidParameterSemesterIndex(ctx)
 
 	if !is_valid_semester_idx {
+		RouteGlobals.IsGeneratingSchedule.Store(false)
 		return
 	}
 
@@ -36,6 +46,7 @@ func RequestGenerateSchedule(ctx *gin.Context) {
 	if err_read_departments != nil {
 		log.Print("RequestGenerateSchedule: [read-departments-error] caused by ", err_read_departments)
 		ctx.String(http.StatusInternalServerError, "we're unable to retrieve the departments right now")
+		RouteGlobals.IsGeneratingSchedule.Store(false)
 		return
 	}
 
@@ -44,6 +55,7 @@ func RequestGenerateSchedule(ctx *gin.Context) {
 	department_id, is_valid_department_id := IsValidParameterDepartmentID(ctx)
 
 	if !is_valid_department_id {
+		RouteGlobals.IsGeneratingSchedule.Store(false)
 		return
 	}
 
@@ -77,7 +89,7 @@ func RequestGenerateSchedule(ctx *gin.Context) {
 		response_status = http.StatusContinue
 	}
 
-	if !RouteGlobals.IsGeneratingSchedule.Load() {
+	if !is_already_generating_schedules {
 		response_msg += " the schedule generation function has started"
 		go encode_schedule()
 	} else {
