@@ -3,6 +3,7 @@ package StorageSchedule_test
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
@@ -10,6 +11,7 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageSchedule"
+	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
 func Test_JsonReadWriteUniversitySchedules1stSem(t *testing.T) {
@@ -84,8 +86,10 @@ func Test_JsonReadWriteUniversitySchedules1stSem(t *testing.T) {
 
 		fmt.Print("Entering Loop\n")
 
-		tries := 128
+		tries := 1024
+
 		for range tries {
+			time.Sleep(time.Millisecond * time.Duration(Utils.RandomInRange(100, 500)))
 
 			empty_university_schedule := GeneticAlgorithm.NewEmptyIndividual(curriculums, GeneticAlgorithm.TERM_1ST_SEMESTER)
 

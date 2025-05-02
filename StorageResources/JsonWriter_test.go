@@ -427,8 +427,8 @@ func TestJsonFilePersistence_SubjectCRU(t *testing.T) {
 
 	all_subjects1[2].Code = "PDT 1000"
 	all_subjects1[2].Name = "Subject Update 1000"
-	all_subjects1[2].LecHours = 3
-	all_subjects1[2].LabHours = 7
+	all_subjects1[2].LecHours = 1
+	all_subjects1[2].LabHours = 2
 	all_subjects1[2].BitFlags = ^uint16(0)
 
 	err_update_subject := TestPersistence.WriterService.UpdateSubject(all_subjects1[2])
@@ -483,11 +483,11 @@ func TestJsonFilePersistence_SubjectCRU(t *testing.T) {
 		t.Error("wrong `all_subjects2[2].Name`")
 	}
 
-	if all_subjects2[2].LecHours != 3 {
+	if all_subjects2[2].LecHours != 1 {
 		t.Error("wrong `all_subjects2[2].LecHours`")
 	}
 
-	if all_subjects2[2].LabHours != 7 {
+	if all_subjects2[2].LabHours != 2 {
 		t.Error("wrong `all_subjects2[2].LabHours`")
 	}
 
