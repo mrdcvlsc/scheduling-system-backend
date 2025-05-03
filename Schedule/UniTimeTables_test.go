@@ -81,7 +81,9 @@ func Test_UniTimeTablesSerializationAndDeserialization(t *testing.T) {
 		}
 
 		if err == nil {
-			errs_slice = append(errs_slice, uni_sched.HorizontalValidation(curriculums, nil, GeneticAlgorithm.TERM_1ST_SEMESTER)...)
+			errs_slice = append(errs_slice,
+				GeneticAlgorithm.HorizontalValidation(uni_sched, curriculums, nil, GeneticAlgorithm.TERM_1ST_SEMESTER)...,
+			)
 		}
 
 		if len(errs_slice) > 0 {
@@ -318,7 +320,8 @@ func TestHorizontalValidation_MissingEntireSubject(t *testing.T) {
 	total := Curriculum.GetTotalNumberOfSections(currs, 0)
 	uni := Schedule.NewUniTimeTables(uint(total))
 
-	errs := uni.HorizontalValidation(curriculums, map[uint16]bool{deptID: true}, 0)
+	errs := GeneticAlgorithm.HorizontalValidation(uni, curriculums, map[uint16]bool{deptID: true}, 0)
+
 	if len(errs) == 0 {
 		t.Fatalf("expected missing‐subject errors, got none")
 	}
@@ -379,7 +382,9 @@ func TestHorizontalValidation_TimeSlotAllocationBounds(t *testing.T) {
 	for i := 0; i < slotsRequired-1 && i < Const.N_DAILY_TIME_SLOTS; i++ {
 		uniFew[0].GetDayTimeTable(0).GetTimeSlot(i).Set(subj.ID, 0, 0)
 	}
-	errsFew := uniFew.HorizontalValidation(curriculums, map[uint16]bool{deptID: true}, 0)
+
+	errsFew := GeneticAlgorithm.HorizontalValidation(uniFew, curriculums, map[uint16]bool{deptID: true}, 0)
+
 	if len(errsFew) == 0 {
 		t.Errorf("expected missing time‐slot allocation error, got none")
 	}
@@ -388,7 +393,9 @@ func TestHorizontalValidation_TimeSlotAllocationBounds(t *testing.T) {
 	for i := 0; i < slotsRequired+1 && i < Const.N_DAILY_TIME_SLOTS; i++ {
 		uniMany[0].GetDayTimeTable(0).GetTimeSlot(i).Set(subj.ID, 0, 0)
 	}
-	errsMany := uniMany.HorizontalValidation(curriculums, map[uint16]bool{deptID: true}, 0)
+
+	errsMany := GeneticAlgorithm.HorizontalValidation(uniMany, curriculums, map[uint16]bool{deptID: true}, 0)
+
 	if len(errsMany) == 0 {
 		t.Errorf("expected extra time‐slot allocation error, got none")
 	}
@@ -413,10 +420,15 @@ func TestHorizontalValidation_DepartmentFilterReducesErrors(t *testing.T) {
 	// build full schedule with no assignments
 	total := Curriculum.GetTotalNumberOfSections(currs, 0)
 	uni := Schedule.NewUniTimeTables(uint(total))
-	errsNoFilter := uni.HorizontalValidation(curriculums, nil, 0)
+
+	errsNoFilter := GeneticAlgorithm.HorizontalValidation(uni, curriculums, nil, 0)
+
 	// filter only first department
+
 	filter := map[uint16]bool{currs[0].DepartmentID: true}
-	errsFilter := uni.HorizontalValidation(curriculums, filter, 0)
+
+	errsFilter := GeneticAlgorithm.HorizontalValidation(uni, curriculums, filter, 0)
+
 	if len(errsFilter) > len(errsNoFilter) {
 		t.Errorf("expected filter to reduce or equal errors, got %d > %d", len(errsFilter), len(errsNoFilter))
 	}

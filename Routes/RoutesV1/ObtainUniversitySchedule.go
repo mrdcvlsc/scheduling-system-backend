@@ -98,10 +98,14 @@ func ObtainUniversitySchedule(ctx *gin.Context, departments_to_validate map[uint
 		return nil, false
 	}
 
-	if errs := university_schedules.HorizontalValidation(curriculums, departments_to_validate, semester); len(errs) > 0 {
+	errs_horizontal_validation := GeneticAlgorithm.HorizontalValidation(
+		university_schedules, curriculums, departments_to_validate, semester,
+	)
+
+	if len(errs_horizontal_validation) > 0 {
 		log.Println("ObtainUniversitySchedule: invalid schedule detected, horizontal overlap, caused by:")
 
-		for _, e := range errs {
+		for _, e := range errs_horizontal_validation {
 			fmt.Println(e.Error())
 		}
 
@@ -271,7 +275,11 @@ func ObtainUniversityScheduleNoContext(departments_to_validate map[uint16]bool, 
 		}
 	}
 
-	for _, err_horizontal_validation := range university_schedules.HorizontalValidation(curriculums, departments_to_validate, semester) {
+	errs_horizontal_validation := GeneticAlgorithm.HorizontalValidation(
+		university_schedules, curriculums, departments_to_validate, semester,
+	)
+
+	for _, err_horizontal_validation := range errs_horizontal_validation {
 		if err_horizontal_validation != nil {
 			log.Println("ObtainUniversityScheduleNoContext: invalid schedule detected, horizontal overlaps")
 			return university_schedules, errors.New("server detected an invalid schedule with horizontally overlapping data")

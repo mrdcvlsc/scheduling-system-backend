@@ -353,9 +353,8 @@ queue_pop_loop:
 			other_dept_to_validate := make(map[uint16]bool)
 			other_dept_to_validate[other_dept_id] = true
 
-			errs_hv := university_schedule.HorizontalValidation(
-				curriculums,
-				other_dept_to_validate, semester_to_encode,
+			errs_hv := GeneticAlgorithm.HorizontalValidation(
+				university_schedule, curriculums, other_dept_to_validate, semester_to_encode,
 			)
 
 			is_other_dept_valid_initial[other_dept_id] = len(errs_hv) == 0
@@ -624,7 +623,11 @@ queue_pop_loop:
 
 			// check for missing subjects or missing subject time slot allocations
 
-			if err := fittest_uni_sched.HorizontalValidation(curriculums, department_to_encode, semester_to_encode); len(err) > 0 {
+			errs_horizontal_validation := GeneticAlgorithm.HorizontalValidation(
+				fittest_uni_sched, curriculums, department_to_encode, semester_to_encode,
+			)
+
+			if len(errs_horizontal_validation) > 0 {
 				if retry >= MAX_GENETIC_ALGORITHM_RETRY-1 {
 
 					RouteGlobals.SetDeptSchedGenResult(
@@ -639,7 +642,7 @@ queue_pop_loop:
 						"encode_schedule: [failed] error genetic algorithm output schedule has 'horizontal' validation problems for %s %s after %d tries.\n\n%v\n\n",
 						dept_id_to_department[department_id].Code,
 						Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
-						retry+1, err,
+						retry+1, errs_horizontal_validation,
 					)
 
 					continue queue_pop_loop
@@ -649,7 +652,7 @@ queue_pop_loop:
 					"encode_schedule: [retrying] error genetic algorithm output schedule has 'horizontal' validation problems for %s %s, retrying for %d times...\n\n%v\n\n",
 					dept_id_to_department[department_id].Code,
 					Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
-					retry+2, err,
+					retry+2, errs_horizontal_validation,
 				)
 
 				continue
@@ -711,9 +714,8 @@ queue_pop_loop:
 				other_dept_to_validate := make(map[uint16]bool)
 				other_dept_to_validate[other_dept_id] = true
 
-				errs_hv := fittest_uni_sched.HorizontalValidation(
-					curriculums,
-					other_dept_to_validate, semester_to_encode,
+				errs_hv := GeneticAlgorithm.HorizontalValidation(
+					fittest_uni_sched, curriculums, other_dept_to_validate, semester_to_encode,
 				)
 
 				is_other_dept_valid_final[other_dept_id] = len(errs_hv) == 0

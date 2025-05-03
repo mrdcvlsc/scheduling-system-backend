@@ -302,7 +302,9 @@ func GetValidateSchedules(ctx *gin.Context) {
 		return
 	}
 
-	errs_horizontal_validation := university_schedules.HorizontalValidation(curriculums, department_to_horizontal_validate, selected_semester)
+	errs_horizontal_validation := GeneticAlgorithm.HorizontalValidation(
+		university_schedules, curriculums, department_to_horizontal_validate, selected_semester,
+	)
 
 	for _, err_horizontal_validation := range errs_horizontal_validation {
 		if err_horizontal_validation != nil {

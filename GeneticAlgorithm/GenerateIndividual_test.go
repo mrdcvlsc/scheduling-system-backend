@@ -243,7 +243,7 @@ func GeneratePopulations(t *testing.T, target_semester int) int {
 		/////////////////
 
 		if err == nil {
-			err_horizontal_validations := university_schedules.HorizontalValidation(curriculums, nil, target_semester)
+			err_horizontal_validations := GeneticAlgorithm.HorizontalValidation(university_schedules, curriculums, nil, target_semester)
 
 			for _, e := range err_horizontal_validations {
 				t.Fatal(e)
@@ -505,7 +505,7 @@ new_population_loop:
 
 				fmt.Printf("Generated schedules for all departments, the department %s\n", department.Name)
 
-				err_intentional_horizontal_validation := track_schedules.HorizontalValidation(curriculums, nil, target_semester)
+				err_intentional_horizontal_validation := GeneticAlgorithm.HorizontalValidation(track_schedules, curriculums, nil, target_semester)
 
 				if err_intentional_horizontal_validation == nil {
 					t.Fatal("there should be a missing subject error here since the university schedule is not complete yet")
@@ -516,7 +516,9 @@ new_population_loop:
 				department_to_validate := make(map[uint16]bool)
 				department_to_validate[department.DepartmentID] = true
 
-				err_department_horizontal_validations := track_schedules.HorizontalValidation(curriculums, department_to_validate, target_semester)
+				err_department_horizontal_validations := GeneticAlgorithm.HorizontalValidation(
+					track_schedules, curriculums, department_to_validate, target_semester,
+				)
 
 				for _, e := range err_department_horizontal_validations {
 					t.Fatal(e)
@@ -531,7 +533,9 @@ new_population_loop:
 					t.Fatalf("returned an empty university schedule : loop iteration %d\n", i)
 				}
 
-				err_horizontal_validations := track_schedules.HorizontalValidation(curriculums, nil, target_semester)
+				err_horizontal_validations := GeneticAlgorithm.HorizontalValidation(
+					track_schedules, curriculums, nil, target_semester,
+				)
 
 				for _, e := range err_horizontal_validations {
 					t.Fatal(e)

@@ -414,7 +414,9 @@ func RunGeneticAlgorithm(
 		}
 	}
 
-	if len(genesis_population[0].UniSched.HorizontalValidation(curriculums, department_to_encode, selected_semester)) > 0 {
+	errs_horizontal_validation := HorizontalValidation(genesis_population[0].UniSched, curriculums, department_to_encode, selected_semester)
+
+	if len(errs_horizontal_validation) > 0 {
 		log.Printf("GA-ERROR: fittest university schedule is empty")
 		return nil, nil, errors.New("fittest university schedule is empty")
 	} else {

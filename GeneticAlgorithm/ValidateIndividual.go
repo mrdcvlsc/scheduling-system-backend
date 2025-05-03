@@ -53,6 +53,13 @@ func HorizontalValidation(
 			}
 		}
 
+		is_subject_id_to_is_in_curriculum := make(map[uint16]bool)
+		stray_subject_ids := make([]uint16, 0)
+
+		for _, section_subject := range values.Semester.Subjects {
+			is_subject_id_to_is_in_curriculum[section_subject.ID] = true
+		}
+
 		subject_id_to_time_slot_count := make(map[uint16]int)
 
 		for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
@@ -61,6 +68,10 @@ func HorizontalValidation(
 
 				if subject_id == 0 {
 					continue
+				}
+
+				if !is_subject_id_to_is_in_curriculum[subject_id] {
+					stray_subject_ids = append(stray_subject_ids, subject_id)
 				}
 
 				_, has_subjsubject_id := subject_id_to_time_slot_count[subject_id]
@@ -108,6 +119,17 @@ func HorizontalValidation(
 					curriculum.CurriculumCode, year_level.Name, semester.Name, Curriculum.SECTION[section_idx], usi,
 				))
 			}
+		}
+
+		if len(stray_subject_ids) > 0 {
+			errs_slice = append(errs_slice, fmt.Errorf(
+				"the schedule in %s, %s, %s, section %s (usi:%d) has stray subject ids: [%v]",
+				curriculum.CurriculumCode,
+				year_level.Name,
+				semester.Name,
+				Curriculum.SECTION[section_idx],
+				usi, stray_subject_ids,
+			))
 		}
 
 		return IterProceed
