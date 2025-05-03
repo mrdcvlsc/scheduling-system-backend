@@ -143,6 +143,11 @@ func EncodeIndividualGenome(
 				semester.Subjects[i], semester.Subjects[j] = semester.Subjects[j], semester.Subjects[i]
 			})
 
+			// prioritize specialized subjects
+			sort.Slice(semester.Subjects, func(i, j int) bool {
+				return len(semester.Subjects[i].DesignatedInstructors) > len(semester.Subjects[j].DesignatedInstructors)
+			})
+
 			/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 			// TODO: implement distribution types
