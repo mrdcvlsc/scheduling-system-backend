@@ -1,6 +1,7 @@
 package RoutesV2
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -315,4 +316,143 @@ func GetValidateSchedules(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, validation_results)
+}
+
+/*
+GET:
+
+	"/estimate_resources?department_id=[N>0]&semester=[0-N>=1]"
+*/
+func GetEstimates(ctx *gin.Context) {
+	selected_semester, is_valid_semester_param := RoutesV1.IsValidParameterSemesterIndex(ctx)
+
+	if !is_valid_semester_param {
+		return
+	}
+
+	department_id, is_valid_department_id_param := RoutesV1.IsValidParameterDepartmentID(ctx)
+
+	if !is_valid_department_id_param {
+		return
+	}
+
+	missing_resources, err := GeneticAlgorithm.EstimateResourceAvailability(RouteGlobals.ResourcesPersistence, selected_semester, department_id)
+
+	if err != nil {
+		log.Print("GetEstimates: [error-estimation]")
+		ctx.String(http.StatusInternalServerError, "error in resource estimation, caused by ", err.Error())
+		return
+	}
+
+	log.Printf("Missing Resources :\n\n%+v\n\n", missing_resources)
+
+	missing_resources_msg := ""
+
+	// problems
+
+	if missing_resources.InstructorTimeSlot > 0 {
+
+		if len(missing_resources_msg) > 0 {
+			missing_resources_msg += ", "
+		}
+
+		missing_resources_msg += fmt.Sprintf(
+			"there are %d missing instructor(s) availability hours",
+			int(float64(missing_resources.InstructorTimeSlot)/Const.N_HOUR_TIME_SLOTS),
+		)
+	}
+
+	if missing_resources.RoomLecTimeSlot > 0 {
+
+		if len(missing_resources_msg) > 0 {
+			missing_resources_msg += ", "
+		}
+
+		missing_resources_msg += fmt.Sprintf(
+			"there are %d missing LEC room(s) availability hours",
+			int(float64(missing_resources.RoomLecTimeSlot)/Const.N_HOUR_TIME_SLOTS),
+		)
+	}
+
+	if missing_resources.RoomLabTimeSlot > 0 {
+
+		if len(missing_resources_msg) > 0 {
+			missing_resources_msg += ", "
+		}
+
+		missing_resources_msg += fmt.Sprintf(
+			"there are %d missing LAB room(s) availability hours",
+			int(float64(missing_resources.RoomLabTimeSlot)/Const.N_HOUR_TIME_SLOTS),
+		)
+	}
+
+	if missing_resources.RoomGymTimeSlot > 0 {
+
+		if len(missing_resources_msg) > 0 {
+			missing_resources_msg += ", "
+		}
+
+		missing_resources_msg += fmt.Sprintf(
+			"there are %d missing GYM room(s) availability hours",
+			int(float64(missing_resources.RoomGymTimeSlot)/Const.N_HOUR_TIME_SLOTS),
+		)
+	}
+
+	// possible solutions
+
+	if len(missing_resources_msg) > 0 {
+		missing_resources_msg +=
+			", we would recommend the department the following options to fix this limited resource problem; " +
+				"reduce assigned subject(s) contact hours in the curriculums of the department, " +
+				"reduce the number of sections in the curriculums of the department"
+	}
+
+	if missing_resources.InstructorTimeSlot > 0 {
+
+		if len(missing_resources_msg) > 0 {
+			missing_resources_msg += ", "
+		}
+
+		missing_resources_msg += fmt.Sprintf(
+			`add more instructor(s) with %d hour(s) of duty,
+			 or enable more available time slots for the existing instructor(s)`,
+			int(float64(missing_resources.InstructorTimeSlot)/Const.N_HOUR_TIME_SLOTS),
+		)
+	}
+
+	if missing_resources.RoomLecTimeSlot > 0 {
+
+		if len(missing_resources_msg) > 0 {
+			missing_resources_msg += ", "
+		}
+
+		missing_resources_msg += "add more LECTURE room(s), or increase one or more LECTURE room's class/section capacity"
+
+	}
+
+	if missing_resources.RoomLabTimeSlot > 0 {
+
+		if len(missing_resources_msg) > 0 {
+			missing_resources_msg += ", "
+		}
+
+		missing_resources_msg += "add more LAB room(s), or increase one or more LAB room's class/section capacity"
+	}
+
+	if missing_resources.RoomGymTimeSlot > 0 {
+
+		if len(missing_resources_msg) > 0 {
+			missing_resources_msg += ", "
+		}
+
+		missing_resources_msg += "add more GYM room(s), or increase one or more GYM room's class/section capacity"
+	}
+
+	if len(missing_resources_msg) > 0 {
+		missing_resources_msg = "the system estimated that, " + missing_resources_msg
+		ctx.String(http.StatusOK, missing_resources_msg)
+		return
+	}
+
+	ctx.String(http.StatusOK, "the system estimated that there are enough resources for this department semester")
 }

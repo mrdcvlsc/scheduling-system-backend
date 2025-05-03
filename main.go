@@ -173,6 +173,8 @@ func main() {
 
 	// ============= schedule routes and handlers =============
 
+	v2.GET("/estimate_resources", RoutesV2.GetEstimates)
+
 	v1.GET("/gen_status", RoutesV1.GetGenStatus)
 	v1.GET("/dept_gen_result", RoutesV1.GetDeptartmentGenerationResult)
 
