@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"reflect"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -14,9 +15,12 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 )
 
+const MAX_GENETIC_ALGORITHM_RETRY int = 7
 const DEFAULT_INITIAL_REQUEST_COUNT uint = 30
 const POPULATION_SIZE = 24
 const TOTAL_GENERATION = 12
+
+var request_gen_sched_mutex sync.Mutex
 
 /*
 POST:
@@ -25,9 +29,16 @@ POST:
 */
 func RequestGenerateSchedule(ctx *gin.Context) {
 
+	request_gen_sched_mutex.Lock()
+	defer request_gen_sched_mutex.Unlock()
+
+	is_already_generating_schedules := RouteGlobals.IsGeneratingSchedule.Load()
+	RouteGlobals.IsGeneratingSchedule.Store(true)
+
 	semester, is_valid_semester_idx := IsValidParameterSemesterIndex(ctx)
 
 	if !is_valid_semester_idx {
+		RouteGlobals.IsGeneratingSchedule.Store(false)
 		return
 	}
 
@@ -36,6 +47,7 @@ func RequestGenerateSchedule(ctx *gin.Context) {
 	if err_read_departments != nil {
 		log.Print("RequestGenerateSchedule: [read-departments-error] caused by ", err_read_departments)
 		ctx.String(http.StatusInternalServerError, "we're unable to retrieve the departments right now")
+		RouteGlobals.IsGeneratingSchedule.Store(false)
 		return
 	}
 
@@ -44,6 +56,7 @@ func RequestGenerateSchedule(ctx *gin.Context) {
 	department_id, is_valid_department_id := IsValidParameterDepartmentID(ctx)
 
 	if !is_valid_department_id {
+		RouteGlobals.IsGeneratingSchedule.Store(false)
 		return
 	}
 
@@ -77,7 +90,7 @@ func RequestGenerateSchedule(ctx *gin.Context) {
 		response_status = http.StatusContinue
 	}
 
-	if !RouteGlobals.IsGeneratingSchedule.Load() {
+	if !is_already_generating_schedules {
 		response_msg += " the schedule generation function has started"
 		go encode_schedule()
 	} else {
@@ -340,9 +353,8 @@ queue_pop_loop:
 			other_dept_to_validate := make(map[uint16]bool)
 			other_dept_to_validate[other_dept_id] = true
 
-			errs_hv := university_schedule.HorizontalValidation(
-				curriculums,
-				other_dept_to_validate, semester_to_encode,
+			errs_hv := GeneticAlgorithm.HorizontalValidation(
+				university_schedule, curriculums, other_dept_to_validate, semester_to_encode,
 			)
 
 			is_other_dept_valid_initial[other_dept_id] = len(errs_hv) == 0
@@ -357,7 +369,6 @@ queue_pop_loop:
 
 		// encode a new schedule in the obtained university schedule for the specific department
 
-		MAX_GENETIC_ALGORITHM_RETRY := 50
 		var retry int // incremented by the for loop
 
 		for retry = 0; retry < MAX_GENETIC_ALGORITHM_RETRY; retry++ {
@@ -440,23 +451,13 @@ queue_pop_loop:
 			if err_genetic_algorithm != nil {
 				if retry >= MAX_GENETIC_ALGORITHM_RETRY-1 {
 
-					if fittest_uni_sched == nil {
-						RouteGlobals.SetDeptSchedGenResult(
-							RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
-							RouteGlobals.SchedGenResult{
-								Status:  RouteGlobals.SchedGenStatusInternalError,
-								Message: err_genetic_algorithm.Error(),
-							},
-						)
-					} else {
-						RouteGlobals.SetDeptSchedGenResult(
-							RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
-							RouteGlobals.SchedGenResult{
-								Status:  RouteGlobals.SchedGenStatusFailed,
-								Message: err_genetic_algorithm.Error(),
-							},
-						)
-					}
+					RouteGlobals.SetDeptSchedGenResult(
+						RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
+						RouteGlobals.SchedGenResult{
+							Status:  RouteGlobals.SchedGenStatusFailed,
+							Message: err_genetic_algorithm.Error(),
+						},
+					)
 
 					log.Printf(
 						"encode_schedule: [failed] genetic algorithm was unable to generate schedules for %s %s after %d tries, caused by %s",
@@ -622,7 +623,11 @@ queue_pop_loop:
 
 			// check for missing subjects or missing subject time slot allocations
 
-			if err := fittest_uni_sched.HorizontalValidation(curriculums, department_to_encode, semester_to_encode); len(err) > 0 {
+			errs_horizontal_validation := GeneticAlgorithm.HorizontalValidation(
+				fittest_uni_sched, curriculums, department_to_encode, semester_to_encode,
+			)
+
+			if len(errs_horizontal_validation) > 0 {
 				if retry >= MAX_GENETIC_ALGORITHM_RETRY-1 {
 
 					RouteGlobals.SetDeptSchedGenResult(
@@ -637,7 +642,7 @@ queue_pop_loop:
 						"encode_schedule: [failed] error genetic algorithm output schedule has 'horizontal' validation problems for %s %s after %d tries.\n\n%v\n\n",
 						dept_id_to_department[department_id].Code,
 						Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
-						retry+1, err,
+						retry+1, errs_horizontal_validation,
 					)
 
 					continue queue_pop_loop
@@ -647,7 +652,7 @@ queue_pop_loop:
 					"encode_schedule: [retrying] error genetic algorithm output schedule has 'horizontal' validation problems for %s %s, retrying for %d times...\n\n%v\n\n",
 					dept_id_to_department[department_id].Code,
 					Curriculum.SEMESTER_INDEX_NAME[semester_to_encode],
-					retry+2, err,
+					retry+2, errs_horizontal_validation,
 				)
 
 				continue
@@ -709,9 +714,8 @@ queue_pop_loop:
 				other_dept_to_validate := make(map[uint16]bool)
 				other_dept_to_validate[other_dept_id] = true
 
-				errs_hv := fittest_uni_sched.HorizontalValidation(
-					curriculums,
-					other_dept_to_validate, semester_to_encode,
+				errs_hv := GeneticAlgorithm.HorizontalValidation(
+					fittest_uni_sched, curriculums, other_dept_to_validate, semester_to_encode,
 				)
 
 				is_other_dept_valid_final[other_dept_id] = len(errs_hv) == 0

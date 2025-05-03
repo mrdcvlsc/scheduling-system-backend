@@ -1,6 +1,7 @@
 package RoutesV2
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -85,30 +86,25 @@ func GetJsonClassSchedule(ctx *gin.Context) {
 
 	// parse schedule_idx parameter
 
-	schedule_idx := 0
+	schedule_idx := -1
 
-curriculum_loop:
-	for _, curriculum := range all_curriculums {
-		for year_level_idx, year_level := range curriculum.YearLevels {
-			if !year_level.IsActive {
-				continue
+	GeneticAlgorithm.IterateSectionsWeekSchedule(university_schedules, all_curriculums, selected_semester, nil, nil,
+		func(indicies GeneticAlgorithm.IterIndices, values GeneticAlgorithm.IterValues) GeneticAlgorithm.IterReturnType {
+			if curriculum_id == int(values.Curriculum.CurriculumID) && indicies.YearLevel == param_year_level_idx && indicies.Section == param_section_idx {
+				schedule_idx = indicies.Usi
+				return GeneticAlgorithm.IterBreakCurriculumLoop
 			}
 
-			for semester_idx, semester := range year_level.Semesters {
-				if semester_idx != selected_semester {
-					continue
-				}
+			return GeneticAlgorithm.IterProceed
+		},
+	)
 
-				for section_idx := 0; section_idx < semester.Sections; section_idx++ {
+	// check if section index was found
 
-					if curriculum_id == int(curriculum.CurriculumID) && year_level_idx == param_year_level_idx && section_idx == param_section_idx {
-						break curriculum_loop
-					}
-
-					schedule_idx++
-				}
-			}
-		}
+	if schedule_idx < 0 {
+		log.Print("unable to find the section")
+		ctx.String(http.StatusInternalServerError, "unable to find that section, the curriculum might have been edited, please refresh the page")
+		return
 	}
 
 	// extract selected schedule
@@ -306,7 +302,9 @@ func GetValidateSchedules(ctx *gin.Context) {
 		return
 	}
 
-	errs_horizontal_validation := university_schedules.HorizontalValidation(curriculums, department_to_horizontal_validate, selected_semester)
+	errs_horizontal_validation := GeneticAlgorithm.HorizontalValidation(
+		university_schedules, curriculums, department_to_horizontal_validate, selected_semester,
+	)
 
 	for _, err_horizontal_validation := range errs_horizontal_validation {
 		if err_horizontal_validation != nil {
@@ -320,4 +318,143 @@ func GetValidateSchedules(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, validation_results)
+}
+
+/*
+GET:
+
+	"/estimate_resources?department_id=[N>0]&semester=[0-N>=1]"
+*/
+func GetEstimates(ctx *gin.Context) {
+	selected_semester, is_valid_semester_param := RoutesV1.IsValidParameterSemesterIndex(ctx)
+
+	if !is_valid_semester_param {
+		return
+	}
+
+	department_id, is_valid_department_id_param := RoutesV1.IsValidParameterDepartmentID(ctx)
+
+	if !is_valid_department_id_param {
+		return
+	}
+
+	missing_resources, err := GeneticAlgorithm.EstimateResourceAvailability(RouteGlobals.ResourcesPersistence, selected_semester, department_id)
+
+	if err != nil {
+		log.Print("GetEstimates: [error-estimation]")
+		ctx.String(http.StatusInternalServerError, "error in resource estimation, caused by ", err.Error())
+		return
+	}
+
+	log.Printf("Missing Resources :\n\n%+v\n\n", missing_resources)
+
+	missing_resources_msg := ""
+
+	// problems
+
+	if missing_resources.InstructorTimeSlot > 0 {
+
+		if len(missing_resources_msg) > 0 {
+			missing_resources_msg += ", "
+		}
+
+		missing_resources_msg += fmt.Sprintf(
+			"there are %d missing instructor(s) availability hours",
+			int(float64(missing_resources.InstructorTimeSlot)/Const.N_HOUR_TIME_SLOTS),
+		)
+	}
+
+	if missing_resources.RoomLecTimeSlot > 0 {
+
+		if len(missing_resources_msg) > 0 {
+			missing_resources_msg += ", "
+		}
+
+		missing_resources_msg += fmt.Sprintf(
+			"there are %d missing LEC room(s) availability hours",
+			int(float64(missing_resources.RoomLecTimeSlot)/Const.N_HOUR_TIME_SLOTS),
+		)
+	}
+
+	if missing_resources.RoomLabTimeSlot > 0 {
+
+		if len(missing_resources_msg) > 0 {
+			missing_resources_msg += ", "
+		}
+
+		missing_resources_msg += fmt.Sprintf(
+			"there are %d missing LAB room(s) availability hours",
+			int(float64(missing_resources.RoomLabTimeSlot)/Const.N_HOUR_TIME_SLOTS),
+		)
+	}
+
+	if missing_resources.RoomGymTimeSlot > 0 {
+
+		if len(missing_resources_msg) > 0 {
+			missing_resources_msg += ", "
+		}
+
+		missing_resources_msg += fmt.Sprintf(
+			"there are %d missing GYM room(s) availability hours",
+			int(float64(missing_resources.RoomGymTimeSlot)/Const.N_HOUR_TIME_SLOTS),
+		)
+	}
+
+	// possible solutions
+
+	if len(missing_resources_msg) > 0 {
+		missing_resources_msg +=
+			", we would recommend the department the following options to fix this limited resource problem; " +
+				"reduce assigned subject(s) contact hours in the curriculums of the department, " +
+				"reduce the number of sections in the curriculums of the department"
+	}
+
+	if missing_resources.InstructorTimeSlot > 0 {
+
+		if len(missing_resources_msg) > 0 {
+			missing_resources_msg += ", "
+		}
+
+		missing_resources_msg += fmt.Sprintf(
+			`add more instructor(s) with %d hour(s) of duty,
+			 or enable more available time slots for the existing instructor(s)`,
+			int(float64(missing_resources.InstructorTimeSlot)/Const.N_HOUR_TIME_SLOTS),
+		)
+	}
+
+	if missing_resources.RoomLecTimeSlot > 0 {
+
+		if len(missing_resources_msg) > 0 {
+			missing_resources_msg += ", "
+		}
+
+		missing_resources_msg += "add more LECTURE room(s), or increase one or more LECTURE room's class/section capacity"
+
+	}
+
+	if missing_resources.RoomLabTimeSlot > 0 {
+
+		if len(missing_resources_msg) > 0 {
+			missing_resources_msg += ", "
+		}
+
+		missing_resources_msg += "add more LAB room(s), or increase one or more LAB room's class/section capacity"
+	}
+
+	if missing_resources.RoomGymTimeSlot > 0 {
+
+		if len(missing_resources_msg) > 0 {
+			missing_resources_msg += ", "
+		}
+
+		missing_resources_msg += "add more GYM room(s), or increase one or more GYM room's class/section capacity"
+	}
+
+	if len(missing_resources_msg) > 0 {
+		missing_resources_msg = "the system estimated that, " + missing_resources_msg
+		ctx.String(http.StatusOK, missing_resources_msg)
+		return
+	}
+
+	ctx.String(http.StatusOK, "the system estimated that there are enough resources for this department semester")
 }

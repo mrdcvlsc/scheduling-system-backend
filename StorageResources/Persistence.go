@@ -43,7 +43,7 @@ type writerRepository interface {
 	UpdateSubject(subject_to_update Curriculum.Subject) error
 	DeleteSubject(subject_id uint16) error
 
-	CreateCurriculum(new_curriculum Curriculum.Curriculum) error
+	CreateCurriculum(new_curriculum Curriculum.Curriculum) (uint16, error) // returns the CurriculumID and error result of the new curriculum
 	UpdateCurriculum(updated_curriculum Curriculum.Curriculum) error
 	DeleteCurriculum(curriculum_id uint16) error
 

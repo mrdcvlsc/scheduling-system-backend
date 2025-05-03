@@ -2,46 +2,127 @@ package GeneticAlgorithm_test
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 	"testing"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
+	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageSchedule"
+	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
 func TestEstimateResourceAvailabilityFirstSem(t *testing.T) {
 	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
 
-	err := GeneticAlgorithm.EstimateResourceAvailability(&persistence, GeneticAlgorithm.TERM_1ST_SEMESTER, 0)
+	departments, err_department := persistence.ReaderService.ReadAllDepartments()
 
-	for _, e := range err {
-		t.Error(e)
-		fmt.Println()
+	if err_department != nil {
+		t.Fatalf("error loading departments %s", err_department.Error())
+	}
+
+	departments = departments[1:]
+
+	log.Printf("Total Departments : %d", len(departments))
+
+	for _, department := range departments {
+		missing_resources, err := GeneticAlgorithm.EstimateResourceAvailability(&persistence, GeneticAlgorithm.TERM_1ST_SEMESTER, int(department.DepartmentID))
+
+		if err != nil {
+			t.Fatalf("error while estimating resources : %s", err.Error())
+		}
+
+		t.Log("Missing Resources :\n\n")
+
+		Utils.PrettyPrint(missing_resources)
+
+		t.Log("\n\n")
+
+		if missing_resources.InstructorTimeSlot > 0 {
+			t.Errorf("not enough instructors in %s", department.Name)
+		}
+
+		if missing_resources.RoomLecTimeSlot > 0 {
+			t.Errorf("not enough lecture rooms in %s", department.Name)
+		}
+
+		if missing_resources.RoomLabTimeSlot > 0 {
+			t.Errorf("not enough laboratory rooms in %s", department.Name)
+		}
+
+		if missing_resources.RoomGymTimeSlot > 0 {
+			t.Errorf("not enough gym rooms in %s", department.Name)
+		}
 	}
 }
 
 func TestEstimateResourceAvailabilitySecondSem(t *testing.T) {
 	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
 
-	err := GeneticAlgorithm.EstimateResourceAvailability(&persistence, GeneticAlgorithm.TERM_2ND_SEMESTER, 0)
+	departments, err_department := persistence.ReaderService.ReadAllDepartments()
 
-	for _, e := range err {
-		t.Error(e)
-		fmt.Println()
+	if err_department != nil {
+		t.Fatalf("error loading departments %s", err_department.Error())
+	}
+
+	departments = departments[1:]
+
+	log.Printf("Total Departments : %d", len(departments))
+
+	for _, department := range departments {
+		missing_resources, err := GeneticAlgorithm.EstimateResourceAvailability(&persistence, GeneticAlgorithm.TERM_2ND_SEMESTER, int(department.DepartmentID))
+
+		if err != nil {
+			t.Fatalf("error while estimating resources : %s", err.Error())
+		}
+
+		t.Log("Missing Resources :\n\n")
+
+		Utils.PrettyPrint(missing_resources)
+
+		t.Log("\n\n")
+
+		if missing_resources.InstructorTimeSlot > 0 {
+			t.Fatalf("not enough instructors in %s", department.Name)
+		}
+
+		if missing_resources.RoomLecTimeSlot > 0 {
+			t.Fatalf("not enough lecture rooms in %s", department.Name)
+		}
+
+		if missing_resources.RoomLabTimeSlot > 0 {
+			t.Fatalf("not enough laboratory rooms in %s", department.Name)
+		}
+
+		if missing_resources.RoomGymTimeSlot > 0 {
+			t.Fatalf("not enough gym rooms in %s", department.Name)
+		}
 	}
 }
 
 func TestNewPopulationFirstSem(t *testing.T) {
-	GeneratePopulations(t, GeneticAlgorithm.TERM_1ST_SEMESTER)
+	total_sections := GeneratePopulations(t, GeneticAlgorithm.TERM_1ST_SEMESTER)
+
+	if total_sections != 192 {
+		t.Fatal("total sections generated is not equal to the expected number of sections")
+	}
+
+	t.Log("Total Sections For First Semester : ", total_sections)
 }
 
 func TestNewPopulationSecondSem(t *testing.T) {
-	GeneratePopulations(t, GeneticAlgorithm.TERM_2ND_SEMESTER)
+	total_sections := GeneratePopulations(t, GeneticAlgorithm.TERM_2ND_SEMESTER)
+
+	if total_sections != 184 {
+		t.Fatal("total sections generated is not equal to the expected number of sections")
+	}
+
+	t.Log("Total Sections For Second Semester : ", total_sections)
 }
 
-func GeneratePopulations(t *testing.T, target_semester int) {
+func GeneratePopulations(t *testing.T, target_semester int) int {
 	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
 
 	t.Logf("Semester : %d\n\n", target_semester)
@@ -84,6 +165,8 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
+	var final_uni_sched Schedule.UniTimeTables
+
 	for i := 0; i < total_test_iterations; i++ {
 		if (i == 0) || (((i + 1) % 32) == 0) {
 			fmt.Printf("Generating schedules (%d)..................................\n", (i + 1))
@@ -108,6 +191,13 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 
 		if len(university_schedules) == 0 {
 			t.Fatal("No university schedules generated")
+		}
+
+		if len(university_schedules) != len(empty_university_schedule) {
+			t.Fatalf(
+				"the generated total sections for the semester index %d is %d, but the generated empty schedules only contains %d which is a mismatch",
+				target_semester, len(university_schedules), len(empty_university_schedule),
+			)
 		}
 
 		if err != nil {
@@ -153,7 +243,7 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 		/////////////////
 
 		if err == nil {
-			err_horizontal_validations := university_schedules.HorizontalValidation(curriculums, nil, target_semester)
+			err_horizontal_validations := GeneticAlgorithm.HorizontalValidation(university_schedules, curriculums, nil, target_semester)
 
 			for _, e := range err_horizontal_validations {
 				t.Fatal(e)
@@ -186,6 +276,8 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 				t.Fatal("Test No Changes : error encoding resource equal test failed")
 			}
 		}
+
+		final_uni_sched = university_schedules
 	}
 
 	failed_individuals := float64(len(err_list_generation))
@@ -208,6 +300,8 @@ func GeneratePopulations(t *testing.T, target_semester int) {
 	}
 
 	t.Logf("There are a total of %d validation errors detected when generating university schedules", len(err_list_validation))
+
+	return len(final_uni_sched)
 }
 
 //////////////////////////////////////
@@ -411,7 +505,7 @@ new_population_loop:
 
 				fmt.Printf("Generated schedules for all departments, the department %s\n", department.Name)
 
-				err_intentional_horizontal_validation := track_schedules.HorizontalValidation(curriculums, nil, target_semester)
+				err_intentional_horizontal_validation := GeneticAlgorithm.HorizontalValidation(track_schedules, curriculums, nil, target_semester)
 
 				if err_intentional_horizontal_validation == nil {
 					t.Fatal("there should be a missing subject error here since the university schedule is not complete yet")
@@ -422,7 +516,9 @@ new_population_loop:
 				department_to_validate := make(map[uint16]bool)
 				department_to_validate[department.DepartmentID] = true
 
-				err_department_horizontal_validations := track_schedules.HorizontalValidation(curriculums, department_to_validate, target_semester)
+				err_department_horizontal_validations := GeneticAlgorithm.HorizontalValidation(
+					track_schedules, curriculums, department_to_validate, target_semester,
+				)
 
 				for _, e := range err_department_horizontal_validations {
 					t.Fatal(e)
@@ -437,7 +533,9 @@ new_population_loop:
 					t.Fatalf("returned an empty university schedule : loop iteration %d\n", i)
 				}
 
-				err_horizontal_validations := track_schedules.HorizontalValidation(curriculums, nil, target_semester)
+				err_horizontal_validations := GeneticAlgorithm.HorizontalValidation(
+					track_schedules, curriculums, nil, target_semester,
+				)
 
 				for _, e := range err_horizontal_validations {
 					t.Fatal(e)

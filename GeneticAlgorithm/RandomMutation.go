@@ -222,7 +222,7 @@ func ApplyRandomSubjectDaySwap(
 	})
 
 	if os.Getenv("LOG_MODE") != "verbose" {
-		log.Printf("Random Mutation : [subject-day-swaps], from %d lec & lab subjects, there are %d/%d successful day swaps\n", total_lec_and_lab_subjects, successful_subject_day_swaps, total_tried_day_swaps)
+		log.Printf("Random Mutation : [subject-day-swaps] from %d lec & lab subjects, there are %d/%d successful day swaps\n", total_lec_and_lab_subjects, successful_subject_day_swaps, total_tried_day_swaps)
 	}
 }
 

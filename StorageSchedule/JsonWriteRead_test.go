@@ -3,6 +3,7 @@ package StorageSchedule_test
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
@@ -10,6 +11,7 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageSchedule"
+	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
 func Test_JsonReadWriteUniversitySchedules1stSem(t *testing.T) {
@@ -84,8 +86,10 @@ func Test_JsonReadWriteUniversitySchedules1stSem(t *testing.T) {
 
 		fmt.Print("Entering Loop\n")
 
-		tries := 128
+		tries := 1024
+
 		for range tries {
+			time.Sleep(time.Millisecond * time.Duration(Utils.RandomInRange(100, 500)))
 
 			empty_university_schedule := GeneticAlgorithm.NewEmptyIndividual(curriculums, GeneticAlgorithm.TERM_1ST_SEMESTER)
 
@@ -125,7 +129,9 @@ func Test_JsonReadWriteUniversitySchedules1stSem(t *testing.T) {
 			t.Fatal("loaded university schedules are empty")
 		}
 
-		err_horizontal_validation := first_university_schedule.HorizontalValidation(curriculums, nil, GeneticAlgorithm.TERM_1ST_SEMESTER)
+		err_horizontal_validation := GeneticAlgorithm.HorizontalValidation(
+			first_university_schedule, curriculums, nil, GeneticAlgorithm.TERM_1ST_SEMESTER,
+		)
 
 		for e := range err_horizontal_validation {
 			t.Fatal(e)
@@ -172,7 +178,10 @@ func Test_JsonReadWriteUniversitySchedules1stSem(t *testing.T) {
 		}
 
 		if err_load_schedules == nil {
-			err_horizontal_validation := load_university_schedules.HorizontalValidation(curriculums, nil, GeneticAlgorithm.TERM_1ST_SEMESTER)
+
+			err_horizontal_validation := GeneticAlgorithm.HorizontalValidation(
+				load_university_schedules, curriculums, nil, GeneticAlgorithm.TERM_1ST_SEMESTER,
+			)
 
 			for e := range err_horizontal_validation {
 				t.Fatal(e)
@@ -319,7 +328,9 @@ func Test_JsonReadWriteUniversitySchedules2ndSem(t *testing.T) {
 			t.Fatal("loaded university schedules are empty")
 		}
 
-		err_horizontal_validation := first_university_schedule.HorizontalValidation(curriculums, nil, GeneticAlgorithm.TERM_2ND_SEMESTER)
+		err_horizontal_validation := GeneticAlgorithm.HorizontalValidation(
+			first_university_schedule, curriculums, nil, GeneticAlgorithm.TERM_2ND_SEMESTER,
+		)
 
 		for e := range err_horizontal_validation {
 			t.Fatal(e)
@@ -367,7 +378,10 @@ func Test_JsonReadWriteUniversitySchedules2ndSem(t *testing.T) {
 		}
 
 		if err_load_schedules == nil {
-			err_horizontal_validation := load_university_schedules.HorizontalValidation(curriculums, nil, GeneticAlgorithm.TERM_2ND_SEMESTER)
+
+			err_horizontal_validation := GeneticAlgorithm.HorizontalValidation(
+				load_university_schedules, curriculums, nil, GeneticAlgorithm.TERM_2ND_SEMESTER,
+			)
 
 			for e := range err_horizontal_validation {
 				t.Fatal(e)

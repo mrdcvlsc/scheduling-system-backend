@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
@@ -63,7 +64,11 @@ func PostUniversitySchedule(ctx *gin.Context) {
 		}
 	}
 
-	for _, err_horizontal_validation := range university_schedules.HorizontalValidation(curriculums, nil, selected_semester) {
+	errs_horizontal_validation := GeneticAlgorithm.HorizontalValidation(
+		university_schedules, curriculums, nil, selected_semester,
+	)
+
+	for _, err_horizontal_validation := range errs_horizontal_validation {
 		if err_horizontal_validation != nil {
 			ctx.String(http.StatusConflict, "we detected an invalid schedule")
 			return

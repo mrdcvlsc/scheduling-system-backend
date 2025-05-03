@@ -102,7 +102,10 @@ func TestGeneratedScheduleFitness(t *testing.T) {
 		}
 
 		if err == nil {
-			err_horizontal_validations := university_schedules.HorizontalValidation(curriculums, nil, target_semester)
+			err_horizontal_validations := GeneticAlgorithm.HorizontalValidation(
+				university_schedules,
+				curriculums, nil, target_semester,
+			)
 
 			for _, e := range err_horizontal_validations {
 				t.Fatal(e)

@@ -37,9 +37,21 @@ func main() {
 
 		RouteGlobals.ResourcesPersistence = &StorageResources.Persistence{
 			ReaderService: &StorageResources.MongodbReader{
-				Mongo: &StorageResources.MongoDB{
-					Client: mongo_client,
-				},
+				Mongo: &StorageResources.MongoDB{Client: mongo_client},
+			},
+
+			WriterService: &StorageResources.MongodbWriter{
+				Mongo: &StorageResources.MongoDB{Client: mongo_client},
+			},
+		}
+
+		RouteGlobals.SchedulePersistence = &StorageSchedule.Persistence{
+			LoadService: &StorageSchedule.MongodbReader{
+				Mongo: &StorageSchedule.MongoDB{Client: mongo_client},
+			},
+
+			SaveService: &StorageSchedule.MongodbWriter{
+				Mongo: &StorageSchedule.MongoDB{Client: mongo_client},
 			},
 		}
 
@@ -160,6 +172,8 @@ func main() {
 	v1.DELETE("/curriculum_remove", RoutesV1.DeleteCurriculum)
 
 	// ============= schedule routes and handlers =============
+
+	v2.GET("/estimate_resources", RoutesV2.GetEstimates)
 
 	v1.GET("/gen_status", RoutesV1.GetGenStatus)
 	v1.GET("/dept_gen_result", RoutesV1.GetDeptartmentGenerationResult)

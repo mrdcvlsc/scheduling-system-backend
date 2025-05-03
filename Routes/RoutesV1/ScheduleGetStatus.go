@@ -14,10 +14,10 @@ GET:
 	"/gen_status"
 */
 func GetGenStatus(ctx *gin.Context) {
-	log.Print("GetGenStatus: call")
-
 	status := make(map[string]bool)
 	status["status"] = RouteGlobals.IsGeneratingSchedule.Load()
+
+	log.Printf("GetGenStatus: call result %t %t", status["status"], RouteGlobals.IsGeneratingSchedule.Load())
 
 	ctx.JSON(http.StatusOK, status)
 }

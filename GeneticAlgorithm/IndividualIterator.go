@@ -58,6 +58,9 @@ func IsDepartmentScheduleEmpty(
 	return is_empty
 }
 
+// Iterates over the sections of the week schedule.
+//
+// ERROR: This function can panic if the input `sched` length is not equal to the total number of sections for the selected semester in the curriculums.
 func IterateSectionsWeekSchedule(
 	sched Schedule.UniTimeTables,
 	curriculums []Curriculum.Curriculum,
@@ -99,71 +102,71 @@ curriculum_loop:
 				continue // skip inactive year levels
 			}
 
-			for semester_idx, semester := range year_level.Semesters {
+			if selected_semester < 0 || selected_semester >= len(year_level.Semesters) {
+				continue // skip invalid semester index
+			}
 
-				if selected_semester != semester_idx {
-					continue // skip not selected semesters
+			semester := &year_level.Semesters[selected_semester]
+			semester_idx := selected_semester
+
+			if fn_semester_block != nil {
+				irt_semester_block := fn_semester_block(
+					IterIndices{
+						Usi:        usi,
+						Curriculum: curriculum_idx,
+						YearLevel:  year_level_idx,
+						Semester:   semester_idx,
+					},
+					IterValues{
+						Sched:      sched,
+						Curriculum: &curriculum,
+						YearLevel:  &year_level,
+						Semester:   semester,
+					},
+				)
+
+				switch irt_semester_block {
+				case IterBreakCurriculumLoop:
+					break curriculum_loop
 				}
+			}
 
-				if fn_semester_block != nil {
-					irt_semester_block := fn_semester_block(
+			for section_idx := 0; section_idx < semester.Sections; section_idx++ {
+
+				if fn_section_block != nil {
+
+					var week_time_table *Schedule.WeekTimeTable
+
+					if len(sched) > 0 {
+						week_time_table = &sched[usi]
+					} else {
+						week_time_table = nil
+					}
+
+					irt_section_block := fn_section_block(
 						IterIndices{
 							Usi:        usi,
 							Curriculum: curriculum_idx,
 							YearLevel:  year_level_idx,
 							Semester:   semester_idx,
+							Section:    section_idx,
 						},
 						IterValues{
 							Sched:      sched,
+							WeekSched:  week_time_table,
 							Curriculum: &curriculum,
 							YearLevel:  &year_level,
-							Semester:   &semester,
+							Semester:   semester,
 						},
 					)
 
-					switch irt_semester_block {
+					switch irt_section_block {
 					case IterBreakCurriculumLoop:
 						break curriculum_loop
 					}
 				}
 
-				for section_idx := 0; section_idx < semester.Sections; section_idx++ {
-
-					if fn_section_block != nil {
-
-						var week_time_table *Schedule.WeekTimeTable
-
-						if len(sched) > 0 {
-							week_time_table = &sched[usi]
-						} else {
-							week_time_table = nil
-						}
-
-						irt_section_block := fn_section_block(
-							IterIndices{
-								Usi:        usi,
-								Curriculum: curriculum_idx,
-								YearLevel:  year_level_idx,
-								Semester:   semester_idx,
-								Section:    section_idx,
-							},
-							IterValues{
-								Sched:      sched,
-								WeekSched:  week_time_table,
-								Curriculum: &curriculum,
-								YearLevel:  &year_level,
-								Semester:   &semester,
-							},
-						)
-
-						switch irt_section_block {
-						case IterBreakCurriculumLoop:
-							break curriculum_loop
-						}
-					}
-
-					usi++
-				}
+				usi++
 			}
 		}
 	}

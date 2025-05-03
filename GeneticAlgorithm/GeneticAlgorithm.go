@@ -16,9 +16,9 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 )
 
-const MAX_GENESIS_INDIVIDUAL_GENERATION_TRIALS int = 64
-const MAX_CROSSOVER_TRIALS int = 64
-const MAX_RE_ENCODE_REPAIR_TRIALS int = 64
+const MAX_GENESIS_INDIVIDUAL_GENERATION_TRIALS int = 124
+const MAX_CROSSOVER_TRIALS int = 7
+const MAX_RE_ENCODE_REPAIR_TRIALS int = 7
 
 type SchedAndResources struct {
 	UniSched  Schedule.UniTimeTables
@@ -251,7 +251,7 @@ func RunGeneticAlgorithm(
 						g, MAX_CROSSOVER_TRIALS, err_crossover.Error(),
 					)
 
-					return offspring.UniSched, nil, fmt.Errorf(
+					return nil, nil, fmt.Errorf(
 						"GA-ERROR [Crossover]: unable to produce offspring at generation %d after %d tries, cause by error : %s",
 						g, MAX_CROSSOVER_TRIALS, err_crossover.Error(),
 					)
@@ -414,7 +414,9 @@ func RunGeneticAlgorithm(
 		}
 	}
 
-	if len(genesis_population[0].UniSched.HorizontalValidation(curriculums, department_to_encode, selected_semester)) > 0 {
+	errs_horizontal_validation := HorizontalValidation(genesis_population[0].UniSched, curriculums, department_to_encode, selected_semester)
+
+	if len(errs_horizontal_validation) > 0 {
 		log.Printf("GA-ERROR: fittest university schedule is empty")
 		return nil, nil, errors.New("fittest university schedule is empty")
 	} else {
