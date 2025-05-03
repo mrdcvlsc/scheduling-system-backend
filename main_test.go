@@ -412,7 +412,7 @@ test_loop:
 						t.Fatalf("Failed to generation schedule in %s, %s - %s", department.Code, response_body.Status, response_body.Message)
 					}
 
-					t.Logf("Validation result %s : %s", response_body.Status, response_body.Message)
+					t.Logf("Validation %s result %s : %s", department.Code, response_body.Status, response_body.Message)
 				}
 			}
 		}
@@ -543,38 +543,38 @@ test_loop:
 
 					t.Logf(">>>>>>>>>>>>> CURRICULUM %s[%d]", values.Curriculum.CurriculumCode, values.Curriculum.DepartmentID)
 
-					subject_from_schedule := make(map[uint16]int)
+					subject_id_to_timeslots_from_schedule := make(map[uint16]int)
 					for _, subject := range university_schedule[indicies.Usi].GetWeekSubjectsJSON() {
 
 						if subject.SubjectID != 0 && subject.TimeSlotSize == 0 {
 							t.Fatal("Get Week Subjects JSON has a bug")
 						}
 
-						_, has_id := subject_from_schedule[subject.SubjectID]
+						_, has_id := subject_id_to_timeslots_from_schedule[subject.SubjectID]
 						if !has_id {
-							subject_from_schedule[subject.SubjectID] = subject.TimeSlotSize
+							subject_id_to_timeslots_from_schedule[subject.SubjectID] = subject.TimeSlotSize
 						} else {
-							subject_from_schedule[subject.SubjectID] += subject.TimeSlotSize
+							subject_id_to_timeslots_from_schedule[subject.SubjectID] += subject.TimeSlotSize
 						}
 					}
 
-					subject_from_curriculum := make(map[uint16]int)
+					subject_id_to_timeslots_from_curriculum := make(map[uint16]int)
 					for _, subject := range values.Semester.Subjects {
-						subject_from_curriculum[subject.ID] = int(subject.LecHours+subject.LabHours) * Const.N_HOUR_TIME_SLOTS
+						subject_id_to_timeslots_from_curriculum[subject.ID] = int(subject.LecHours+subject.LabHours) * Const.N_HOUR_TIME_SLOTS
 					}
 
 					old_curriculum_sections := old_curriculums[indicies.Curriculum].YearLevels[indicies.YearLevel].Semesters[indicies.Semester].Sections
 					new_curriculum_sections := new_curriculums[indicies.Curriculum].YearLevels[indicies.YearLevel].Semesters[indicies.Semester].Sections
 
-					if (len(subject_from_schedule) != len(subject_from_curriculum)) && indicies.Section < old_curriculum_sections {
+					if (len(subject_id_to_timeslots_from_schedule) != len(subject_id_to_timeslots_from_curriculum)) && indicies.Section < old_curriculum_sections {
 
 						log.Print("from schedule :\n\n")
 
-						Utils.PrettyPrint(subject_from_schedule)
+						Utils.PrettyPrint(subject_id_to_timeslots_from_schedule)
 
 						log.Print("\n\nfrom curriculum :\n\n")
 
-						Utils.PrettyPrint(subject_from_curriculum)
+						Utils.PrettyPrint(subject_id_to_timeslots_from_curriculum)
 
 						log.Print("\n\n")
 
@@ -589,7 +589,12 @@ test_loop:
 						}
 
 						if has_subject {
-							t.Fatal("week schedule has subject but subject from schedule has length of 0")
+							t.Fatalf(
+								"week schedule has subject but subject from schedule has length of 0, %s, %s, section %s",
+								values.Curriculum.CurriculumCode,
+								Curriculum.SEMESTER_INDEX_NAME[indicies.Semester],
+								Curriculum.SECTION[indicies.Section],
+							)
 						}
 
 						t.Fatalf(
@@ -598,37 +603,37 @@ test_loop:
 							values.Curriculum.CurriculumCode,
 							values.YearLevel.Name, Curriculum.SEMESTER_INDEX_NAME[indicies.Semester],
 							Curriculum.SECTION[indicies.Section],
-							len(subject_from_schedule),
-							len(subject_from_curriculum),
+							len(subject_id_to_timeslots_from_schedule),
+							len(subject_id_to_timeslots_from_curriculum),
 							old_curriculum_sections, new_curriculum_sections,
 						)
 					}
 
-					for k, v := range subject_from_schedule {
-						if subject_from_schedule[k] != subject_from_curriculum[k] && indicies.Section < old_curriculum_sections {
+					for k, v := range subject_id_to_timeslots_from_schedule {
+						if subject_id_to_timeslots_from_schedule[k] != subject_id_to_timeslots_from_curriculum[k] && indicies.Section < old_curriculum_sections {
 							t.Fatalf(
-								"[test-iteration=%d] : Mismatch in %s, %s, %s, section %s, subject id %d: schedule has %d time slots, while curriculum has %d time slots, old curriculum sections %d, new curriculum sections %d",
+								"[test-iteration=%d-nsdyi] : Mismatch in %s, %s, %s, section %s, subject id %d, schedule has %d time slots, while curriculum has %d time slots, old curriculum sections %d, new curriculum sections %d",
 								test_iteration,
 								values.Curriculum.CurriculumCode,
 								values.YearLevel.Name, Curriculum.SEMESTER_INDEX_NAME[indicies.Semester],
-								Curriculum.SEMESTER_INDEX_NAME[indicies.Section],
-								k, v, subject_from_curriculum[k],
+								Curriculum.SECTION[indicies.Section],
+								k, v, subject_id_to_timeslots_from_curriculum[k],
 								old_curriculum_sections, new_curriculum_sections,
 							)
 						}
 					}
 
-					if indicies.Section >= old_curriculum_sections && len(subject_from_schedule) != 0 {
+					if indicies.Section >= old_curriculum_sections && len(subject_id_to_timeslots_from_schedule) != 0 {
 						t.Fatalf(
 							"[test-iteration=%d] : %s, %s, %s, section %s has %d subjects even though it should not contain any because it is a new section, old curriculum sections %d, new curriculum sections %d",
 							test_iteration,
 							values.Curriculum.CurriculumCode,
 							values.YearLevel.Name, Curriculum.SEMESTER_INDEX_NAME[indicies.Semester],
 							Curriculum.SECTION[indicies.Section],
-							subject_from_schedule,
+							subject_id_to_timeslots_from_schedule,
 							old_curriculum_sections, new_curriculum_sections,
 						)
-					} else if indicies.Section < old_curriculum_sections && len(subject_from_schedule) == 0 {
+					} else if indicies.Section < old_curriculum_sections && len(subject_id_to_timeslots_from_schedule) == 0 {
 						t.Fatalf(
 							"[test-iteration=%d] : %s, %s, %s, section %s has 0 subjects even though it should contain at least one, old curriculum sections %d, new curriculum sections %d",
 							test_iteration,
