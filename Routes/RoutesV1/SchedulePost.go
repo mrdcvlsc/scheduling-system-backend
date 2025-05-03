@@ -15,6 +15,7 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 )
 
+const MAX_GENETIC_ALGORITHM_RETRY int = 7
 const DEFAULT_INITIAL_REQUEST_COUNT uint = 30
 const POPULATION_SIZE = 24
 const TOTAL_GENERATION = 12
@@ -369,7 +370,6 @@ queue_pop_loop:
 
 		// encode a new schedule in the obtained university schedule for the specific department
 
-		MAX_GENETIC_ALGORITHM_RETRY := 50
 		var retry int // incremented by the for loop
 
 		for retry = 0; retry < MAX_GENETIC_ALGORITHM_RETRY; retry++ {
@@ -452,23 +452,13 @@ queue_pop_loop:
 			if err_genetic_algorithm != nil {
 				if retry >= MAX_GENETIC_ALGORITHM_RETRY-1 {
 
-					if fittest_uni_sched == nil {
-						RouteGlobals.SetDeptSchedGenResult(
-							RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
-							RouteGlobals.SchedGenResult{
-								Status:  RouteGlobals.SchedGenStatusInternalError,
-								Message: err_genetic_algorithm.Error(),
-							},
-						)
-					} else {
-						RouteGlobals.SetDeptSchedGenResult(
-							RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
-							RouteGlobals.SchedGenResult{
-								Status:  RouteGlobals.SchedGenStatusFailed,
-								Message: err_genetic_algorithm.Error(),
-							},
-						)
-					}
+					RouteGlobals.SetDeptSchedGenResult(
+						RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
+						RouteGlobals.SchedGenResult{
+							Status:  RouteGlobals.SchedGenStatusFailed,
+							Message: err_genetic_algorithm.Error(),
+						},
+					)
 
 					log.Printf(
 						"encode_schedule: [failed] genetic algorithm was unable to generate schedules for %s %s after %d tries, caused by %s",
