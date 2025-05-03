@@ -1,15 +1,14 @@
 package GeneticAlgorithm
 
 import (
+	"errors"
 	"fmt"
-	"math"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Departments"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
-	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
 func GenerateMapDeptIdToRoomTypeToRooms(rooms []Rooms.Room) map[uint16]map[uint16][]Rooms.Room {
@@ -79,12 +78,12 @@ func GenerateMapDeptIdToDepartment(departments []Departments.Department) map[uin
 // * MIN_SUBJECT_ROOM_HOUR_BUFFER = 200, MIN_SUBJECT_INSTRUCTOR_HOUR_BUFFER = 300
 //
 // : 1024 generations => 65% - 68% valid schedules.
-const MIN_SUBJECT_ROOM_HOUR_BUFFER int = 200
+const MIN_SUBJECT_ROOM_HOUR_BUFFER int = 160
 
 // The minimum recommended difference between the total available instructor hours in a department
 // and the total lecture and laboratory hours combined for all subjects in the department.
 // This ensures that schedules can be generated with minimal risk of resource shortages.
-const MIN_SUBJECT_INSTRUCTOR_HOUR_BUFFER int = 302
+const MIN_SUBJECT_INSTRUCTOR_HOUR_BUFFER int = 264
 
 type Totals struct {
 	DepartmentID uint16
@@ -112,245 +111,184 @@ type Totals struct {
 	LabSubjectCount int
 }
 
-func EstimateResourceAvailability(persistence *StorageResources.Persistence, selected_semester, distribution_type int) []error {
+type MissingResources struct {
+	InstructorTimeSlot int
+	RoomLecTimeSlot    int
+	RoomLabTimeSlot    int
+	RoomGymTimeSlot    int
+}
 
-	err_list := make([]error, 0)
+func EstimateResourceAvailability(persistence *StorageResources.Persistence, selected_semester, department_id int) (*MissingResources, error) {
+
+	if department_id == 0 {
+		return nil, errors.New("estimating general department is not allowed")
+	}
+
+	if department_id < 0 {
+		return nil, errors.New("invalid department ID")
+	}
 
 	departments, err_department := persistence.ReaderService.ReadAllDepartments()
 
 	if err_department != nil {
-		err_list = append(err_list, err_department)
-		return err_list
+		return nil, err_department
 	}
+
+	// don't include general department
+	departments = departments[1:]
 
 	department_id_to_department := GenerateMapDeptIdToDepartment(departments)
 
 	curriculums, err_curriculum := persistence.ReaderService.ReadAllCurriculum()
 
 	if err_curriculum != nil {
-		err_list = append(err_list, err_curriculum)
-		return err_list
+		return nil, err_curriculum
 	}
 
 	instructors, err_instructors := persistence.ReaderService.ReadAllInstructors()
 
 	if err_instructors != nil {
-		err_list = append(err_list, err_instructors)
-		return err_list
+		return nil, err_instructors
 	}
 
 	rooms, err_rooms := persistence.ReaderService.ReadAllRooms()
 
 	if err_rooms != nil {
-		err_list = append(err_list, err_rooms)
-		return err_list
+		return nil, err_rooms
 	}
 
-	totals := make(map[uint16]*Totals)
+	total_lec_room_time_slots := 0
+	total_lab_room_time_slots := 0
+	total_gym_room_time_slots := 0
 
 	for _, room := range rooms {
-		_, has_department_id := totals[room.DepartmentID]
 
-		if !has_department_id {
-			if room.RoomType == Rooms.ROOM_TYPE_LEC {
-				totals[room.DepartmentID] = &Totals{
-					LecRoomHours: Const.N_WEEKLY_SCHOOL_DAYS * Const.N_DAILY_SCHOOL_HOURS * int(room.Capacity),
-					RoomCapacity: int(room.Capacity),
-					RoomLecCount: 1,
-				}
-			} else if room.RoomType == Rooms.ROOM_TYPE_LAB {
-				totals[room.DepartmentID] = &Totals{
-					LabRoomHours: Const.N_WEEKLY_SCHOOL_DAYS * Const.N_DAILY_SCHOOL_HOURS * int(room.Capacity),
-					RoomCapacity: int(room.Capacity),
-					RoomLabCount: 1,
-				}
-			} else if room.RoomType == Rooms.ROOM_TYPE_GYM {
-				totals[room.DepartmentID] = &Totals{
-					GymRoomHours: Const.N_WEEKLY_SCHOOL_DAYS * Const.N_DAILY_SCHOOL_HOURS * int(room.Capacity),
-					RoomCapacity: int(room.Capacity),
-				}
-			}
-		} else {
-			if room.RoomType == Rooms.ROOM_TYPE_LEC {
-				totals[room.DepartmentID].LecRoomHours += (Const.N_WEEKLY_SCHOOL_DAYS * Const.N_DAILY_SCHOOL_HOURS * int(room.Capacity))
-				totals[room.DepartmentID].RoomLecCount += int(room.Capacity)
-			} else if room.RoomType == Rooms.ROOM_TYPE_LAB {
-				totals[room.DepartmentID].LabRoomHours += (Const.N_WEEKLY_SCHOOL_DAYS * Const.N_DAILY_SCHOOL_HOURS * int(room.Capacity))
-				totals[room.DepartmentID].RoomLabCount += int(room.Capacity)
-			} else if room.RoomType == Rooms.ROOM_TYPE_GYM {
-				totals[room.DepartmentID].GymRoomHours += (Const.N_WEEKLY_SCHOOL_DAYS * Const.N_DAILY_SCHOOL_HOURS * int(room.Capacity))
-			}
+		is_department_room := room.DepartmentID == uint16(department_id)
+		is_general_room := room.DepartmentID == 0
 
-			totals[room.DepartmentID].RoomCapacity += int(room.Capacity)
+		if !(is_department_room || is_general_room) {
+			continue
+		}
+
+		total_room_time_slot := int(room.Capacity) * Const.N_WEEKLY_SCHOOL_DAYS * Const.N_DAILY_TIME_SLOTS
+
+		if is_general_room {
+			total_room_time_slot = total_room_time_slot / (len(departments) - 1)
+		}
+
+		switch room.RoomType {
+		case Rooms.ROOM_TYPE_LEC:
+			total_lec_room_time_slots += total_room_time_slot
+		case Rooms.ROOM_TYPE_LAB:
+			total_lab_room_time_slots += total_room_time_slot
+		case Rooms.ROOM_TYPE_GYM:
+			total_gym_room_time_slots += total_room_time_slot
+		default:
+			return nil, fmt.Errorf(
+				"detected an invalid room type in the rooms of %s",
+				department_id_to_department[room.DepartmentID].Name,
+			)
 		}
 	}
 
-	for _, instructor := range instructors {
-		_, has_department_id := totals[instructor.DepartmentID]
+	total_instructor_time_slots := 0
 
-		if !has_department_id {
-			totals[instructor.DepartmentID] = &Totals{
-				InstructorCount: 1,
-			}
-		} else {
-			totals[instructor.DepartmentID].InstructorCount++
+	for _, instructor := range instructors {
+
+		is_department_instructor := instructor.DepartmentID == uint16(department_id)
+		is_general_instructor := instructor.DepartmentID == 0
+
+		if !(is_department_instructor || is_general_instructor) {
+			continue
 		}
+
+		current_instructor_time_slots := 0
 
 		for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
 			for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
 				if instructor.Time.GetAvailability(day, time_slot) {
-					_, ok := totals[instructor.DepartmentID]
-
-					if !ok {
-						totals[instructor.DepartmentID] = &Totals{
-							InstructorHours: 1.0 / Const.N_HOUR_TIME_SLOTS,
-						}
-					} else {
-						totals[instructor.DepartmentID].InstructorHours += (1.0 / Const.N_HOUR_TIME_SLOTS)
-					}
+					current_instructor_time_slots++
 				}
 			}
 		}
-	}
 
-	for _, curriculum := range curriculums {
-		_, has_department_id := totals[curriculum.DepartmentID]
-
-		if !has_department_id {
-			totals[curriculum.DepartmentID] = &Totals{
-				DepartmentID: curriculum.DepartmentID,
-				Courses:      1,
-			}
+		if is_general_instructor {
+			total_instructor_time_slots += current_instructor_time_slots / (len(departments) - 1)
 		} else {
-			totals[curriculum.DepartmentID].DepartmentID = curriculum.DepartmentID
-			totals[curriculum.DepartmentID].Courses++
-
-			if len(totals[curriculum.DepartmentID].DepartmentName) == 0 {
-				totals[curriculum.DepartmentID].DepartmentName = department_id_to_department[curriculum.DepartmentID].Name
-			}
-		}
-
-		for _, year_level := range curriculum.YearLevels {
-			for semester_idx, semester := range year_level.Semesters {
-				if semester_idx == selected_semester {
-					total_lec_hours_for_course_level := 0
-					total_lab_hours_for_course_level := 0
-					total_gym_hours_for_course_level := 0
-
-					for _, subject := range semester.Subjects {
-						if !subject.IsGymType() {
-							total_lec_hours_for_course_level += int(subject.LecHours)
-						} else {
-							total_gym_hours_for_course_level += int(subject.LecHours)
-						}
-
-						total_lab_hours_for_course_level += int(subject.LabHours)
-
-						if subject.LecHours > 0 {
-							totals[curriculum.DepartmentID].LecSubjectCount++
-						}
-
-						if subject.LabHours > 0 {
-							totals[curriculum.DepartmentID].LabSubjectCount++
-						}
-
-					}
-
-					total_lec_hours_for_course_level *= semester.Sections
-					total_lab_hours_for_course_level *= semester.Sections
-					total_gym_hours_for_course_level *= semester.Sections
-
-					totals[curriculum.DepartmentID].Semester = semester_idx
-					totals[curriculum.DepartmentID].SubjectLecHours += total_lec_hours_for_course_level
-					totals[curriculum.DepartmentID].SubjectLabHours += total_lab_hours_for_course_level
-					totals[curriculum.DepartmentID].SubjectGymHours += total_gym_hours_for_course_level
-					totals[curriculum.DepartmentID].SectionCount += semester.Sections
-				}
-			}
+			total_instructor_time_slots += current_instructor_time_slots
 		}
 	}
 
-	Utils.PrettyPrint(totals)
+	total_sub_lec_time_slots := 0
+	total_sub_lab_time_slots := 0
+	total_sub_gym_time_slots := 0
 
-	for k, v := range totals {
-		if k != 0 && (v.SubjectLecHours > 0 || v.SubjectLabHours > 0 || v.SubjectGymHours > 0) {
-			if (v.SubjectLecHours + MIN_SUBJECT_ROOM_HOUR_BUFFER) > v.LecRoomHours {
-				recommended_room_hours := v.SubjectLecHours + MIN_SUBJECT_ROOM_HOUR_BUFFER
-				needed_hours := (recommended_room_hours - v.LecRoomHours)
+	IterateSectionsWeekSchedule(nil, curriculums, selected_semester, nil, func(indicies IterIndices, values IterValues) IterReturnType {
+		if values.Curriculum.DepartmentID != uint16(department_id) {
+			return IterProceed
+		}
 
-				rooms_to_add := needed_hours / (Const.N_DAILY_SCHOOL_HOURS * Const.N_WEEKLY_SCHOOL_DAYS)
-
-				if (needed_hours % (Const.N_DAILY_SCHOOL_HOURS * Const.N_WEEKLY_SCHOOL_DAYS)) > 0 {
-					rooms_to_add++
-				}
-
-				err_list = append(err_list,
-					fmt.Errorf(`{"Msg":`+
-						`"not enough lecture rooms for the '%s', need %d more capacity for lecture subjects"}`,
-						v.DepartmentName, rooms_to_add,
-					),
-				)
-			}
-
-			if (v.SubjectLabHours + MIN_SUBJECT_ROOM_HOUR_BUFFER) > v.LabRoomHours {
-				recommended_room_hours := v.SubjectLabHours + MIN_SUBJECT_ROOM_HOUR_BUFFER
-				needed_hours := (recommended_room_hours - v.LabRoomHours)
-
-				rooms_to_add := needed_hours / (Const.N_DAILY_SCHOOL_HOURS * Const.N_WEEKLY_SCHOOL_DAYS)
-
-				if (needed_hours % (Const.N_DAILY_SCHOOL_HOURS * Const.N_WEEKLY_SCHOOL_DAYS)) > 0 {
-					rooms_to_add++
-				}
-
-				err_list = append(err_list,
-					fmt.Errorf(`{"Msg":`+
-						`"not enough laboratory rooms for the '%s', need %d more capacity for laboratory subjects"}`,
-						v.DepartmentName, rooms_to_add,
-					),
-				)
-			}
-
-			if (v.SubjectGymHours + MIN_SUBJECT_ROOM_HOUR_BUFFER) > totals[0].GymRoomHours {
-				recommended_room_hours := v.SubjectGymHours + MIN_SUBJECT_ROOM_HOUR_BUFFER
-				needed_hours := (recommended_room_hours - totals[0].GymRoomHours)
-
-				rooms_to_add := needed_hours / (Const.N_DAILY_SCHOOL_HOURS * Const.N_WEEKLY_SCHOOL_DAYS)
-
-				if (needed_hours % (Const.N_DAILY_SCHOOL_HOURS * Const.N_WEEKLY_SCHOOL_DAYS)) > 0 {
-					rooms_to_add++
-				}
-
-				err_list = append(err_list,
-					fmt.Errorf(`{"Msg":`+
-						`"not enough gym capacity, need %d more capacity for gym subjects"}`,
-						rooms_to_add,
-					),
-				)
-			}
-
-			if (v.SubjectLecHours + v.SubjectLabHours + MIN_SUBJECT_INSTRUCTOR_HOUR_BUFFER) > int(math.Round(v.InstructorHours)) {
-				recommended_instructor_hours := v.SubjectLecHours + v.SubjectLabHours + MIN_SUBJECT_INSTRUCTOR_HOUR_BUFFER
-				needed_hours := (recommended_instructor_hours - int(math.Floor(v.InstructorHours)))
-
-				needed_full_time_instructor := needed_hours / (Const.N_DAILY_SCHOOL_HOURS * Const.N_WEEKLY_SCHOOL_DAYS)
-
-				if (needed_hours % (Const.N_DAILY_SCHOOL_HOURS * Const.N_WEEKLY_SCHOOL_DAYS)) > 0 {
-					needed_full_time_instructor++
-				}
-
-				err_list = append(err_list,
-					fmt.Errorf(`{"Msg":`+
-						`"not enough instructors for the '%s', need %d more full time instructors, `+
-						`to fill up the missing %d hours of duty, or encourage existing multiple `+
-						`instructors to extend their work time"`,
-						v.DepartmentName, needed_full_time_instructor, needed_hours,
-					),
-				)
+		for _, subject := range values.Semester.Subjects {
+			if subject.IsGymType() {
+				total_sub_gym_time_slots += (int(subject.LabHours+subject.LecHours) * Const.N_HOUR_TIME_SLOTS * values.Semester.Sections)
+			} else {
+				total_sub_lec_time_slots += (int(subject.LecHours) * Const.N_HOUR_TIME_SLOTS * values.Semester.Sections)
+				total_sub_lab_time_slots += (int(subject.LabHours) * Const.N_HOUR_TIME_SLOTS * values.Semester.Sections)
 			}
 		}
+
+		return IterProceed
+	}, nil)
+
+	missing_resources := &MissingResources{}
+
+	// calculate total subject time slots + buffer
+
+	total_subject_time_slots := total_sub_lec_time_slots + total_sub_lab_time_slots + total_sub_gym_time_slots
+
+	// estimate missing instructor time slots
+
+	total_subject_time_slots_with_buffer := (total_subject_time_slots + (MIN_SUBJECT_INSTRUCTOR_HOUR_BUFFER * Const.N_HOUR_TIME_SLOTS))
+
+	if total_instructor_time_slots < total_subject_time_slots_with_buffer {
+		missing_resources.InstructorTimeSlot = total_subject_time_slots_with_buffer - total_instructor_time_slots
 	}
 
-	return err_list
+	// estimate missing lec rooms time slots
+
+	total_sub_lec_time_slots_with_buffer := (total_sub_lec_time_slots + (MIN_SUBJECT_ROOM_HOUR_BUFFER * Const.N_HOUR_TIME_SLOTS))
+
+	if total_lec_room_time_slots < total_sub_lec_time_slots_with_buffer {
+		missing_resources.RoomLecTimeSlot = total_sub_lec_time_slots_with_buffer - total_lec_room_time_slots
+	}
+
+	// estimate missing lab rooms time slots
+
+	total_sub_lab_time_slots_with_buffer := (total_sub_lab_time_slots + (MIN_SUBJECT_ROOM_HOUR_BUFFER * Const.N_HOUR_TIME_SLOTS))
+
+	if total_lab_room_time_slots < total_sub_lab_time_slots_with_buffer {
+		missing_resources.RoomLabTimeSlot = total_sub_lab_time_slots_with_buffer - total_lab_room_time_slots
+	}
+
+	// estimate missing gym rooms time slots
+
+	total_sub_gym_time_slots_with_buffer := (total_sub_gym_time_slots + (MIN_SUBJECT_ROOM_HOUR_BUFFER * Const.N_HOUR_TIME_SLOTS))
+
+	if total_gym_room_time_slots < total_sub_gym_time_slots_with_buffer {
+		missing_resources.RoomGymTimeSlot = total_sub_gym_time_slots_with_buffer - total_gym_room_time_slots
+	}
+
+	fmt.Printf("=========== DEPARTMENT : %s =========== \n", department_id_to_department[uint16(department_id)].Name)
+	fmt.Printf("total            SUBJECT   time slots = %d\n", total_subject_time_slots)
+	fmt.Printf("total    Lecture SUBJECT   time slots = %d\n", total_sub_lec_time_slots)
+	fmt.Printf("total Laboratory SUBJECT   time slots = %d\n", total_sub_lab_time_slots)
+	fmt.Printf("total        Gym SUBJECT   time slots = %d\n", total_sub_gym_time_slots)
+	fmt.Printf("total         INSTRUCTOR   time slots = %d\n", total_instructor_time_slots)
+	fmt.Printf("total       Lecture ROOM   time slots = %d\n", total_lec_room_time_slots)
+	fmt.Printf("total           Lab ROOM   time slots = %d\n", total_lab_room_time_slots)
+	fmt.Printf("total           Gym ROOM   time slots = %d\n", total_gym_room_time_slots)
+
+	return missing_resources, nil
 }
 
 func GenerateMapInstructorIdToInstructor(persistence *StorageResources.Persistence) (map[uint16]*Instructors.Instructor, error) {
