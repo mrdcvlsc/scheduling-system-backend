@@ -2,6 +2,7 @@ package GeneticAlgorithm_test
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 	"testing"
 
@@ -10,27 +11,94 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageSchedule"
+	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
 func TestEstimateResourceAvailabilityFirstSem(t *testing.T) {
 	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
 
-	err := GeneticAlgorithm.EstimateResourceAvailability(&persistence, GeneticAlgorithm.TERM_1ST_SEMESTER, 0)
+	departments, err_department := persistence.ReaderService.ReadAllDepartments()
 
-	for _, e := range err {
-		t.Error(e)
-		fmt.Println()
+	if err_department != nil {
+		t.Fatalf("error loading departments %s", err_department.Error())
+	}
+
+	departments = departments[1:]
+
+	log.Printf("Total Departments : %d", len(departments))
+
+	for _, department := range departments {
+		missing_resources, err := GeneticAlgorithm.EstimateResourceAvailability(&persistence, GeneticAlgorithm.TERM_1ST_SEMESTER, int(department.DepartmentID))
+
+		if err != nil {
+			t.Fatalf("error while estimating resources : %s", err.Error())
+		}
+
+		t.Log("Missing Resources :\n\n")
+
+		Utils.PrettyPrint(missing_resources)
+
+		t.Log("\n\n")
+
+		if missing_resources.InstructorTimeSlot > 0 {
+			t.Errorf("not enough instructors in %s", department.Name)
+		}
+
+		if missing_resources.RoomLecTimeSlot > 0 {
+			t.Errorf("not enough lecture rooms in %s", department.Name)
+		}
+
+		if missing_resources.RoomLabTimeSlot > 0 {
+			t.Errorf("not enough laboratory rooms in %s", department.Name)
+		}
+
+		if missing_resources.RoomGymTimeSlot > 0 {
+			t.Errorf("not enough gym rooms in %s", department.Name)
+		}
 	}
 }
 
 func TestEstimateResourceAvailabilitySecondSem(t *testing.T) {
 	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
 
-	err := GeneticAlgorithm.EstimateResourceAvailability(&persistence, GeneticAlgorithm.TERM_2ND_SEMESTER, 0)
+	departments, err_department := persistence.ReaderService.ReadAllDepartments()
 
-	for _, e := range err {
-		t.Error(e)
-		fmt.Println()
+	if err_department != nil {
+		t.Fatalf("error loading departments %s", err_department.Error())
+	}
+
+	departments = departments[1:]
+
+	log.Printf("Total Departments : %d", len(departments))
+
+	for _, department := range departments {
+		missing_resources, err := GeneticAlgorithm.EstimateResourceAvailability(&persistence, GeneticAlgorithm.TERM_2ND_SEMESTER, int(department.DepartmentID))
+
+		if err != nil {
+			t.Fatalf("error while estimating resources : %s", err.Error())
+		}
+
+		t.Log("Missing Resources :\n\n")
+
+		Utils.PrettyPrint(missing_resources)
+
+		t.Log("\n\n")
+
+		if missing_resources.InstructorTimeSlot > 0 {
+			t.Fatalf("not enough instructors in %s", department.Name)
+		}
+
+		if missing_resources.RoomLecTimeSlot > 0 {
+			t.Fatalf("not enough lecture rooms in %s", department.Name)
+		}
+
+		if missing_resources.RoomLabTimeSlot > 0 {
+			t.Fatalf("not enough laboratory rooms in %s", department.Name)
+		}
+
+		if missing_resources.RoomGymTimeSlot > 0 {
+			t.Fatalf("not enough gym rooms in %s", department.Name)
+		}
 	}
 }
 
