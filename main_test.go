@@ -184,7 +184,7 @@ func TestIntegrationEditCurriculumSectionV1(t *testing.T) {
 	for c, curriculum := range curriculums {
 		for y, year_level := range curriculum.YearLevels {
 			for s := range year_level.Semesters {
-				curriculums[c].YearLevels[y].Semesters[s].Sections = Utils.RandomInRange(0, 6)
+				curriculums[c].YearLevels[y].Semesters[s].Sections = Utils.RandomInRange(1, 6)
 			}
 		}
 	}
@@ -325,6 +325,8 @@ test_loop:
 		}
 
 		departments = departments_without_gen
+
+		// generate schedules
 
 		for semester := range Curriculum.SUPPORTED_SEMESTERS {
 			for _, department := range departments {
@@ -479,24 +481,14 @@ test_loop:
 		}
 
 		for c, curriculum := range set_new_curriculums {
-
-			if curriculum.DepartmentID != 1 {
-				continue
-			}
-
 			for y, year_level := range curriculum.YearLevels {
 				for s := range year_level.Semesters {
-					set_new_curriculums[c].YearLevels[y].Semesters[s].Sections = Utils.RandomInRange(0, 5)
+					set_new_curriculums[c].YearLevels[y].Semesters[s].Sections = Utils.RandomInRange(1, 5)
 				}
 			}
 		}
 
 		for _, curriculum := range set_new_curriculums {
-
-			if curriculum.DepartmentID != 1 {
-				continue
-			}
-
 			json_curriculum, err := json.Marshal(curriculum)
 
 			if err != nil {
@@ -515,6 +507,8 @@ test_loop:
 				t.Fatalf("Failed to edit curriculum sections: status code %d, body: %s", response.Code, response.Body.String())
 			}
 		}
+
+		time.Sleep(30 * time.Second)
 
 		// validate the schedule
 
@@ -541,7 +535,12 @@ test_loop:
 			GeneticAlgorithm.IterateSectionsWeekSchedule(university_schedule, new_curriculums, semester, nil, nil,
 				func(indicies GeneticAlgorithm.IterIndices, values GeneticAlgorithm.IterValues) GeneticAlgorithm.IterReturnType {
 
-					t.Logf(">>>>>>>>>>>>> CURRICULUM %s[%d]", values.Curriculum.CurriculumCode, values.Curriculum.DepartmentID)
+					if !reflect.DeepEqual(
+						university_schedule[indicies.Usi].GetWeekSubjectsJSON(),
+						values.WeekSched.GetWeekSubjectsJSON(),
+					) {
+						t.Fatal("university index schedule subject json not equal to the values.week schedule subject json")
+					}
 
 					subject_id_to_timeslots_from_schedule := make(map[uint16]int)
 					for _, subject := range university_schedule[indicies.Usi].GetWeekSubjectsJSON() {
@@ -588,9 +587,11 @@ test_loop:
 							}
 						}
 
-						if has_subject {
+						if has_subject && (len(subject_id_to_timeslots_from_schedule) == 0) {
+							t.Logf("")
+
 							t.Fatalf(
-								"week schedule has subject but subject from schedule has length of 0, %s, %s, section %s",
+								"week schedule has subject but subject from json schedule has length of 0, %s, %s, section %s",
 								values.Curriculum.CurriculumCode,
 								Curriculum.SEMESTER_INDEX_NAME[indicies.Semester],
 								Curriculum.SECTION[indicies.Section],
