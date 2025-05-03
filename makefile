@@ -48,6 +48,8 @@ frontend_local:
 
 clean:
 	go clean -testcache
+	go clean -cache
+	go clean -modcache
 
 test:
 	go clean -testcache
