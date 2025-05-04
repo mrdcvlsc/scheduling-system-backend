@@ -58,9 +58,7 @@ jobs:
         run: grep -nr "1000 \* 60 \*" ./Tests
 
       - name: Integration Test - generate schedule using node.js fetch calls
-        run: |
-            ./app & sleep 1 && node Tests/schedule-serialization.js
-            make devr && ./app & sleep 1 && node Tests/schedule-serialization.js
+        run: make devr && ./app & sleep 1 && node Tests/schedule-serialization.js
         env:
           PORT: 3000
           GIN_MODE: debug

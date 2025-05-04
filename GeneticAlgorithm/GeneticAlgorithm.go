@@ -16,9 +16,9 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 )
 
-const MAX_GENESIS_INDIVIDUAL_GENERATION_TRIALS int = 124
-const MAX_CROSSOVER_TRIALS int = 7
-const MAX_RE_ENCODE_REPAIR_TRIALS int = 7
+const MAX_GENESIS_INDIVIDUAL_GENERATION_TRIALS int = 128
+const MAX_CROSSOVER_TRIALS int = 128
+const MAX_RE_ENCODE_REPAIR_TRIALS int = 128
 
 type SchedAndResources struct {
 	UniSched  Schedule.UniTimeTables
@@ -380,7 +380,7 @@ func RunGeneticAlgorithm(
 			cb_fn_generation(g, genesis_population[0].UniSched, fittest_individual_fitness)
 		}
 
-		if os.Getenv("LOG_MODE") != "verbose" {
+		if os.Getenv("LOG_MODE") == "verbose" {
 			for i, uni_gen_sched := range genesis_population {
 				fmt.Printf("generation %d, individual %d -> fitness : %f\n", g, i+1, MeasureCompleteUniSchedBasicFitness(
 					uni_gen_sched.UniSched, curriculums, department_to_encode, selected_semester,
