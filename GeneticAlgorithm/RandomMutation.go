@@ -110,7 +110,7 @@ func ApplyRandomDaySwapTimeSlots(
 		})
 	}
 
-	if os.Getenv("LOG_MODE") != "verbose" && has_attempted {
+	if os.Getenv("LOG_MODE") == "verbose" && has_attempted {
 		log.Printf(
 			"Random Mutation : [section-swap-days] %d attempts and, %d successful day swaps. (%d/%d)\n",
 			day_swap_attempts, day_swap_success,
@@ -223,7 +223,7 @@ func ApplyRandomSubjectDaySwap(
 		return IterProceed
 	})
 
-	if os.Getenv("LOG_MODE") != "verbose" {
+	if os.Getenv("LOG_MODE") == "verbose" {
 		log.Printf("Random Mutation : [subject-day-swaps] from %d lec & lab subjects, there are %d/%d successful day swaps\n", total_lec_and_lab_subjects, successful_subject_day_swaps, total_tried_day_swaps)
 	}
 }
@@ -353,7 +353,7 @@ func ApplyRandomSubjectTimeSlotNudge(
 		return IterProceed
 	})
 
-	if os.Getenv("LOG_MODE") != "verbose" {
+	if os.Getenv("LOG_MODE") == "verbose" {
 		log.Printf(
 			"Random Mutation : [time-slot-nudge] from %d lec and lab subjects, there are %d/%d successful subjects nudge on different time slot\n",
 			total_lec_and_lab_subjects, successful_subject_time_slot_nudge, total_tried_time_slot_nudge,
@@ -431,7 +431,7 @@ func ApplyRandomSubjectErasure(
 		return IterProceed
 	})
 
-	if os.Getenv("LOG_MODE") != "verbose" {
+	if os.Getenv("LOG_MODE") == "verbose" {
 		log.Printf("Random Mutation : [subject-clear] from %d lec and lab subjects, there are %d/%d successful subjects cleared\n",
 			total_lec_and_lab_subjects, successful_subject_erased, total_tried_subject_erased,
 		)
@@ -564,7 +564,7 @@ func ApplyRandomSubjectTimeSlotAndDayNudge(
 		return IterProceed
 	})
 
-	if os.Getenv("LOG_MODE") != "verbose" {
+	if os.Getenv("LOG_MODE") == "verbose" {
 		log.Printf(
 			"Random Mutation : [day-time-slot-nudge] from %d lec and lab subjects, there are %d/%d successful subjects nudge on different day & time slot\n",
 			total_lec_and_lab_subjects, successful_subject_nudge, total_tried_nudge,

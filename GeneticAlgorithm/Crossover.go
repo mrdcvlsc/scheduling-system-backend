@@ -246,7 +246,7 @@ func Crossover(
 		return IterProceed
 	})
 
-	if os.Getenv("LOG_MODE") != "verbose" {
+	if os.Getenv("LOG_MODE") == "verbose" {
 		log.Printf(
 			"Crossover: total encoding tries: %d, successful base parent encoded: %d, successful fallback parent encoded: %d, failed parents encoding: %d",
 			total_encoding_tries, successful_base_parent_encoded, successful_fallback_parent_encoded, failed_parents_encoding,

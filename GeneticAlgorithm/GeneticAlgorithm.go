@@ -380,7 +380,7 @@ func RunGeneticAlgorithm(
 			cb_fn_generation(g, genesis_population[0].UniSched, fittest_individual_fitness)
 		}
 
-		if os.Getenv("LOG_MODE") != "verbose" {
+		if os.Getenv("LOG_MODE") == "verbose" {
 			for i, uni_gen_sched := range genesis_population {
 				fmt.Printf("generation %d, individual %d -> fitness : %f\n", g, i+1, MeasureCompleteUniSchedBasicFitness(
 					uni_gen_sched.UniSched, curriculums, department_to_encode, selected_semester,
