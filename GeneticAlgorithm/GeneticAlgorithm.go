@@ -16,9 +16,9 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 )
 
-const MAX_GENESIS_INDIVIDUAL_GENERATION_TRIALS int = 124
-const MAX_CROSSOVER_TRIALS int = 7
-const MAX_RE_ENCODE_REPAIR_TRIALS int = 7
+const MAX_GENESIS_INDIVIDUAL_GENERATION_TRIALS int = 128
+const MAX_CROSSOVER_TRIALS int = 128
+const MAX_RE_ENCODE_REPAIR_TRIALS int = 128
 
 type SchedAndResources struct {
 	UniSched  Schedule.UniTimeTables
