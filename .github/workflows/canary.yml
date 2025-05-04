@@ -36,7 +36,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
 
       - name: run Tests
-        run: make test
+        run: make gh_test
+        env:
+          GITHUB_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
   
       - name: run Build
         run: make build
