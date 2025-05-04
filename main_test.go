@@ -297,13 +297,7 @@ func TestIntegrationEditCurriculumSectionV1(t *testing.T) {
 }
 
 func TestIntegrationEditCurriculumSectionV2(t *testing.T) {
-
-	const MIN_SUCCESS_COUNT int = 3
-
-	success_count := 0
-
-test_loop:
-	for test_iteration := range 5 {
+	for test_iteration := range 10 {
 		router := setup_router()
 
 		// generate university schedules for all semesters
@@ -399,10 +393,6 @@ test_loop:
 				router.ServeHTTP(response, request)
 
 				if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
-					if success_count >= MIN_SUCCESS_COUNT {
-						continue test_loop
-					}
-
 					t.Fatalf("Unexpected status code %d for department %d: body: %s", response.Code, department.DepartmentID, response.Body.String())
 				} else {
 					response_body := &RouteGlobals.SchedGenResult{}
@@ -440,26 +430,14 @@ test_loop:
 				case http.StatusNotFound, http.StatusConflict:
 					var validationResponse []string
 					if err := json.Unmarshal(response.Body.Bytes(), &validationResponse); err != nil {
-						if success_count >= MIN_SUCCESS_COUNT {
-							continue test_loop
-						}
-
 						t.Fatalf("Failed to parse validation response for department %d: %v", department.DepartmentID, err)
 					}
 
 					if len(validationResponse) > 0 {
-						if success_count >= MIN_SUCCESS_COUNT {
-							continue test_loop
-						}
-
 						t.Fatalf("Validation errors for department %d: %v", department.DepartmentID, validationResponse)
 					}
 				default:
 					if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
-						if success_count >= MIN_SUCCESS_COUNT {
-							continue test_loop
-						}
-
 						t.Fatalf("Unexpected status code %d for department %d: body: %s", response.Code, department.DepartmentID, response.Body.String())
 					}
 				}
@@ -649,12 +627,6 @@ test_loop:
 				},
 			)
 		}
-
-		success_count++
-	}
-
-	if success_count < MIN_SUCCESS_COUNT {
-		t.Fatal("not enough success during test")
 	}
 }
 
