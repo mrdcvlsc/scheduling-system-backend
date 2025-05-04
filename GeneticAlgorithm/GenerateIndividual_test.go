@@ -105,21 +105,23 @@ func TestEstimateResourceAvailabilitySecondSem(t *testing.T) {
 func TestNewPopulationFirstSem(t *testing.T) {
 	total_sections := GeneratePopulations(t, GeneticAlgorithm.TERM_1ST_SEMESTER)
 
+	t.Log("Total Sections For First Semester : ", total_sections)
+
 	if total_sections != 192 {
 		t.Fatal("total sections generated is not equal to the expected number of sections")
 	}
 
-	t.Log("Total Sections For First Semester : ", total_sections)
 }
 
 func TestNewPopulationSecondSem(t *testing.T) {
 	total_sections := GeneratePopulations(t, GeneticAlgorithm.TERM_2ND_SEMESTER)
 
+	t.Log("Total Sections For Second Semester : ", total_sections)
+
 	if total_sections != 184 {
 		t.Fatal("total sections generated is not equal to the expected number of sections")
 	}
 
-	t.Log("Total Sections For Second Semester : ", total_sections)
 }
 
 func GeneratePopulations(t *testing.T, target_semester int) int {
