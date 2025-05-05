@@ -44,6 +44,7 @@ jobs:
         run: make gh_test
         env:
           GITHUB_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
+          LOG_MODE: verbose
 
       - name: Run Benchmarks
         run: make bench
@@ -61,6 +62,7 @@ jobs:
         run: make devr && ./app & sleep 1 && node Tests/schedule-serialization.js
         env:
           PORT: 3000
+          LOG_MODE: verbose
           GIN_MODE: debug
           PROTOCOL: tcp
           NODE_VERSION: lts
@@ -69,4 +71,5 @@ jobs:
       - name: Integration Tests - edit curriculum sections
         run: make gh_i_test
         env:
+          LOG_MODE: verbose
           GITHUB_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}

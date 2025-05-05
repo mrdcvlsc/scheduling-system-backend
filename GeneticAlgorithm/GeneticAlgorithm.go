@@ -300,12 +300,12 @@ func RunGeneticAlgorithm(
 
 				if err_generate_encoding_resource != nil {
 					log.Printf(
-						"GA-ERROR [Random Mutation]: unable to generate encoding resource from an individual on generation %d, casued by %s",
+						"GA-ERROR [Random Mutation]: unable to generate encoding resource from an individual on generation %d, caused by %s",
 						g, err_generate_encoding_resource.Error(),
 					)
 
 					return nil, nil, fmt.Errorf(
-						"GA-ERROR [Random Mutation]: unable to generate encoding resource from an individual on generation %d, casued by %s",
+						"GA-ERROR [Random Mutation]: unable to generate encoding resource from an individual on generation %d, caused by %s",
 						g, err_generate_encoding_resource.Error(),
 					)
 				}

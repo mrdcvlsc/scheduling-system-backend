@@ -39,7 +39,8 @@ jobs:
         run: make gh_test
         env:
           GITHUB_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
-  
+          LOG_MODE: verbose
+        
       - name: run Build
         run: make build
 
@@ -48,7 +49,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: deply to canary
+      - name: deploy to canary
         if: github.ref == 'refs/heads/canary'
         env:
           deploy_url: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
