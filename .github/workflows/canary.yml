@@ -39,7 +39,8 @@ jobs:
         run: make gh_test
         env:
           GITHUB_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
-  
+          LOG_MODE: verbose
+        
       - name: run Build
         run: make build
 
