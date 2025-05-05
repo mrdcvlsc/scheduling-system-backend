@@ -213,6 +213,15 @@ func main() {
 		})
 	}
 
+	switch os.Getenv("USE_DATABASE") {
+	case "MongoDB":
+		router.GET("/using_database_persistence", func(ctx *gin.Context) { ctx.String(http.StatusAccepted, "m") })
+	default:
+		router.GET("/using_database_persistence", func(ctx *gin.Context) { ctx.String(http.StatusAccepted, "j") })
+	}
+
+	////////////////////////////////////////////////////////////////////////
+
 	Utils.DisplayOutboundIP(os.Getenv("PORT"))
 	router.Run(fmt.Sprintf(":%s", os.Getenv("PORT")))
 

@@ -48,7 +48,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: deply to canary
+      - name: deploy to canary
         if: github.ref == 'refs/heads/canary'
         env:
           deploy_url: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
