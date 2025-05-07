@@ -196,3 +196,9 @@ find:
 
 test_api:
 	./app & sleep 1 && node Tests/schedule-serialization.js
+
+update:
+	go get -u ./
+
+update_global:
+	go get -u all
