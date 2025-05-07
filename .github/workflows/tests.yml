@@ -2,9 +2,10 @@ name: tests
 
 on:
   push:
-    branches: [ "master", "main", "development", "api_test" ]
+    branches:
+      - "**"
   pull_request:
-    branches: [ "master", "main", "development", "api_test" ]
+    branches: [ "canary", "main", "development" ]
 
 jobs:
   run_tests:
