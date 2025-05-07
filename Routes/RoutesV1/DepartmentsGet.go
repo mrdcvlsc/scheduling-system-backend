@@ -36,17 +36,7 @@ func GetAllDepartments(ctx *gin.Context) {
 		return
 	}
 
-	departments_json := make([]Departments.Department, 0)
-
-	for _, department := range all_departments {
-		departments_json = append(departments_json, Departments.Department{
-			DepartmentID: department.DepartmentID,
-			Name:         department.Name,
-			Code:         department.Code,
-		})
-	}
-
-	ctx.JSON(http.StatusOK, departments_json)
+	ctx.JSON(http.StatusOK, all_departments)
 }
 
 /*
