@@ -26,6 +26,18 @@ func PostCurriculum(ctx *gin.Context) {
 		return
 	}
 
+	// check if the new updated curriculum have at least 1 section
+
+	add_total_sections := add_curriculum.GetTotalSections()
+
+	if add_total_sections <= 0 {
+		log.Print("PostCurriculum: add a curriculum without any sections are not allowed")
+		ctx.String(http.StatusBadRequest, "add a curriculum without any sections are not allowed, a curriculum should have at least 1 section")
+		return
+	}
+
+	// check if a schedule is still being generated
+
 	if RouteGlobals.IsGeneratingSchedule.Load() {
 		log.Print("PostCurriculum: [busy] you or other department(s) are still generating a schedule, please wait until the process is finished")
 		ctx.String(http.StatusForbidden, "we're unable to add a curriculum right now, you or other department(s) are still generating a schedule, please wait a little while until those process are done")

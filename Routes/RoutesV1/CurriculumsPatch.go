@@ -22,6 +22,9 @@ type CurriculumSectionKey struct {
 PATCH:
 
 	"/curriculum_update"
+
+this route will always fail if the curriculum being edited has no section by default,
+so the system should always add a curriculum that has at least one section.
 */
 func PatchCurriculum(ctx *gin.Context) {
 	update_curriculum := Curriculum.Curriculum{}
