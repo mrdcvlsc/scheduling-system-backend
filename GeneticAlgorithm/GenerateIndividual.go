@@ -128,6 +128,38 @@ func EncodeIndividualGenome(
 
 			week_time_table := university_schedules[usi]
 
+			// list all time slots
+
+			distribution_type := int(rng.Int31n(2))
+
+			m := Const.N_DAILY_TIME_SLOTS
+			n := Const.N_WEEKLY_SCHOOL_DAYS
+			total_iterations := n * m
+
+			type AvailableTimeSlot struct {
+				Day      int
+				TimeSlot int
+			}
+
+			available_time_slots := list.New()
+
+			for i := range total_iterations {
+				var day, time_slot int
+
+				if distribution_type == 0 {
+					day = i / m
+					time_slot = i % m
+				} else {
+					time_slot = i / n
+					day = i % n
+				}
+
+				available_time_slots.PushBack(AvailableTimeSlot{
+					Day:      day,
+					TimeSlot: time_slot,
+				})
+			}
+
 			/////////////////////////////////////////////////////////////////////////////////////////////////////////
 			//                                    SHUFFLE ROOMS AND SUBJECT
 			/////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -274,40 +306,6 @@ func EncodeIndividualGenome(
 					//                                ITERATE THROUGH THE WEEKLY TIME SLOTS
 					/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-					distribution_type := int(rng.Int31n(2))
-
-					m := Const.N_DAILY_TIME_SLOTS - subject_total_time_slots + 1
-					n := Const.N_WEEKLY_SCHOOL_DAYS
-					total_iterations := n * m
-
-					type AvailableTimeSlot struct {
-						Day      int
-						TimeSlot int
-					}
-
-					available_time_slots := list.New()
-
-					for i := range total_iterations {
-						var day, time_slot int
-
-						if distribution_type == 0 {
-							day = i / m
-							time_slot = i % m
-						} else {
-							time_slot = i / n
-							day = i % n
-						}
-
-						if (day - subject_total_time_slots) >= Const.N_DAILY_TIME_SLOTS {
-							continue
-						}
-
-						available_time_slots.PushBack(AvailableTimeSlot{
-							Day:      day,
-							TimeSlot: time_slot,
-						})
-					}
-
 					var prev_time_slot_element *list.Element
 
 					no_department_instructor_found := 0
@@ -326,6 +324,11 @@ func EncodeIndividualGenome(
 
 						day = time_slot_element.Value.(AvailableTimeSlot).Day
 						time_slot = time_slot_element.Value.(AvailableTimeSlot).TimeSlot
+
+						if (time_slot + subject_total_time_slots - 1) >= Const.N_DAILY_TIME_SLOTS {
+							prev_time_slot_element = nil
+							continue
+						}
 
 						day_sched := week_time_table.GetDayTimeTable(day)
 
