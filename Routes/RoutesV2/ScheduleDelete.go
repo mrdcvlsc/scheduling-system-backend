@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrdcvlsc/scheduling-system-backend/Auth"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 	"github.com/mrdcvlsc/scheduling-system-backend/Routes/RoutesV1"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
@@ -16,6 +17,10 @@ GET:
 	"/v2/clear_class_schedule?department_id=[N>0]&semester=[0-N>=1]&curriculum_id=[N>0]&year_level_idx=[0-N>=1]&section_idx=[0-N>=1]"
 */
 func DeleteClearClassSchedule(ctx *gin.Context) {
+
+	if is_success := Auth.IsAuthSuccess(ctx); !is_success {
+		return
+	}
 
 	if RouteGlobals.IsGeneratingSchedule.Load() {
 		log.Print("v2.DeleteClearClassSchedule: [busy] you or other department(s) are still generating a schedule, please wait until the process is finished")

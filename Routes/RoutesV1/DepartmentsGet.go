@@ -36,6 +36,12 @@ func GetAllDepartments(ctx *gin.Context) {
 		return
 	}
 
+	// empty salted hashed password
+
+	for i := range all_departments {
+		all_departments[i].SaltedHashedPassword = ""
+	}
+
 	ctx.JSON(http.StatusOK, all_departments)
 }
 
@@ -133,6 +139,14 @@ func GetDepartmentsPaginated(ctx *gin.Context) {
 		ctx.String(http.StatusInternalServerError, "we're currently unable to get the departments")
 		return
 	}
+
+	// empty salted hashed password
+
+	for i := range all_departments {
+		all_departments[i].SaltedHashedPassword = ""
+	}
+
+	// match
 
 	departments_page := make([]Departments.Department, 0)
 

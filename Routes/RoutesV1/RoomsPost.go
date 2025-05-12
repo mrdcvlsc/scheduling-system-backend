@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrdcvlsc/scheduling-system-backend/Auth"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 )
@@ -15,6 +16,11 @@ POST:
 	"/room_add"
 */
 func PostRoom(ctx *gin.Context) {
+
+	if is_success := Auth.IsAuthSuccess(ctx); !is_success {
+		return
+	}
+
 	add_room := Rooms.Room{}
 
 	if err := ctx.BindJSON(&add_room); err != nil {
