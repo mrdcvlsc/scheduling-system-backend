@@ -590,7 +590,7 @@ func EncodeIndividualGenome(
 					}
 
 					if selected_instructor == nil || selected_room == nil {
-						max_failure_count := -1
+						max_failure_count := 0
 						most_failure_type := 0
 
 						if no_specialized_instructor_found > max_failure_count {
@@ -611,13 +611,21 @@ func EncodeIndividualGenome(
 
 						switch most_failure_type {
 						case 0:
-						case 1:
-
 							return_uni_time_table = university_schedules
 							return_encoding_resource = nil
 							return_error = fmt.Errorf(
-								"not enough specialized_instructors (%d) in %s for %s, %s, %s, section %s, after generating schedules for the previous %d other sections",
-								len(specialized_instructors), ro_dept_id_to_department[curriculum.DepartmentID].Name,
+								"no time slot found in %s for %s, %s, %s, section %s, after generating schedules for the previous %d other sections",
+								ro_dept_id_to_department[curriculum.DepartmentID].Name,
+								curriculum.CurriculumCode, semester.Name, year_level.Name, Curriculum.SECTION[section_idx], successful_generated_section_schedules,
+							)
+
+							return IterBreakCurriculumLoop
+						case 1:
+							return_uni_time_table = university_schedules
+							return_encoding_resource = nil
+							return_error = fmt.Errorf(
+								"no time slot found in %s for %s, %s, %s, section %s, after generating schedules for the previous %d other sections",
+								ro_dept_id_to_department[curriculum.DepartmentID].Name,
 								curriculum.CurriculumCode, semester.Name, year_level.Name, Curriculum.SECTION[section_idx], successful_generated_section_schedules,
 							)
 
