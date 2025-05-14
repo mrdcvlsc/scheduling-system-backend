@@ -8,9 +8,9 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
+	"github.com/mrdcvlsc/scheduling-system-backend/Auth"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 	"github.com/mrdcvlsc/scheduling-system-backend/Routes/RoutesV1"
 	"github.com/mrdcvlsc/scheduling-system-backend/Routes/RoutesV2"
@@ -18,8 +18,6 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageSchedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
-
-var SessionStore = cookie.NewStore([]byte(os.Getenv("SESSION_SECRET")))
 
 func main() {
 	fmt.Println("Starting backend service")
@@ -82,14 +80,14 @@ func main() {
 	//////////////////////////////////////////////////////////////////////////
 
 	use_secure_cookie := false
-	same_site := http.SameSiteDefaultMode
+	same_site := http.SameSiteNoneMode
 
 	if os.Getenv("GIN_MODE") == "release" {
 		use_secure_cookie = true
 		same_site = http.SameSiteNoneMode
 	}
 
-	SessionStore.Options(sessions.Options{
+	Auth.SessionStore.Options(sessions.Options{
 		// MaxAge:   259200, // 3 days
 		// MaxAge:   60, // 1 minute
 		MaxAge:   60 * 15, // 15 minute
@@ -106,7 +104,7 @@ func main() {
 	router.MaxMultipartMemory = 5 << 20 // 5 MiB
 
 	router.Use(static.Serve("/", static.LocalFile("./dist", true)))
-	router.Use(sessions.Sessions("session_id", SessionStore))
+	router.Use(sessions.Sessions("session_id", Auth.SessionStore))
 
 	if gin.Mode() != gin.ReleaseMode {
 		router.Use(cors.New(cors.Config{
@@ -116,6 +114,7 @@ func main() {
 			ExposeHeaders:    []string{"Content-Length"},
 			AllowCredentials: true,
 			AllowWildcard:    true, // Enable wildcard support for 192.168.1.*
+
 		}))
 	}
 
@@ -128,12 +127,19 @@ func main() {
 
 	v1.GET("/const", RoutesV1.GetConst)
 
+	// ============= auth =============
+
+	router.POST("/login", Auth.Login)
+	v1.POST("/department_add", RoutesV1.PostDepartment)
+
+	router.POST("/logout", Auth.LogOut)
+	router.GET("/who", Auth.Who)
+
 	// ============= department routes and handlers =============
 
 	v1.GET("/all_departments", RoutesV1.GetAllDepartments)
 	v1.GET("/departments", RoutesV1.GetDepartmentsPaginated)
 	v1.GET("/department_data", RoutesV1.GetCurriculumsDataInDepartment)
-	v1.POST("/department_add", RoutesV1.PostDepartment)
 	v1.PATCH("/department_update", RoutesV1.PatchDepartment)
 	v1.DELETE("/department_remove", RoutesV1.DeleteDepartment)
 

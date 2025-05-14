@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrdcvlsc/scheduling-system-backend/Auth"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 )
@@ -12,89 +13,13 @@ import (
 /*
 GET:
 
-	"/v1/clear_class_schedule?department_id=D&semester=S&schedule_idx=I"
-
-the `schedule_idx` for a section can be fetch from
-`GetDepartmentData` function using rest api GET request:
-
-	"/v1/department_data?department_id=[N>0]&semester=[0-1]"
-*/
-func DeleteClearClassSchedule(ctx *gin.Context) {
-
-	// parse semester parameter
-
-	semester, is_valid_semester_param := IsValidParameterSemesterIndex(ctx)
-
-	if !is_valid_semester_param {
-		return
-	}
-
-	if RouteGlobals.IsGeneratingSchedule.Load() {
-		log.Print("DeleteClearClassSchedule: [busy] you or other department(s) are still generating a schedule, please wait until the process is finished")
-		ctx.String(http.StatusForbidden, "we're unable to clear the class schedule right now, you or other department(s) are still generating a schedule, please wait a little while until those process are done")
-		return
-	}
-
-	// parse department_id parameter
-
-	// TODO: use department_id for authentication later on.
-
-	// department_id, is_valid_department_id_param := IsValidParameterDepartmentID(ctx)
-
-	// if !is_valid_department_id_param {
-	// 	return
-	// }
-
-	RouteGlobals.ReindexUniSchedMutex.Lock()
-	defer RouteGlobals.ReindexUniSchedMutex.Unlock()
-
-	// load university schedules
-
-	university_schedules, has_obtained := ObtainUniversityScheduleNoHorizontalValidation(ctx, semester)
-
-	if !has_obtained {
-		return
-	}
-
-	// cache the found university schedule for the semester
-
-	err_set_cache := RouteGlobals.SetCachedUniversitySchedule(semester, university_schedules)
-
-	if err_set_cache != nil {
-		log.Println(err_set_cache.Error())
-	}
-
-	// parse schedule_idx parameter
-
-	schedule_idx, is_valid_idx := IsValidUniversityScheduleIndex(ctx, university_schedules)
-
-	if !is_valid_idx {
-		return
-	}
-
-	// clear class schedule
-
-	university_schedules[schedule_idx] = Schedule.WeekTimeTable{}
-
-	// save schedule
-
-	err_save_schedules := RouteGlobals.SchedulePersistence.SaveService.SaveSchedules(university_schedules, semester)
-
-	if err_save_schedules != nil {
-		log.Print("DeleteClearClassSchedule: (save error) ", err_save_schedules.Error())
-		ctx.String(http.StatusOK, "we're unable to clear that schedule's week time table")
-		return
-	}
-
-	ctx.String(http.StatusOK, "weekly time table schedule was successfully cleared")
-}
-
-/*
-GET:
-
 	"/v1/clear_department_schedules?department_id=[N>0]&semester=[0-1]"
 */
 func DeleteClearDepartmentSchedule(ctx *gin.Context) {
+
+	if is_success := Auth.IsAuthSuccess(ctx); !is_success {
+		return
+	}
 
 	// parse semester parameter
 

@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrdcvlsc/scheduling-system-backend/Auth"
 	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
@@ -19,12 +20,29 @@ POST:
 	"/curriculum_add"
 */
 func PostCurriculum(ctx *gin.Context) {
+
+	if is_success := Auth.IsAuthSuccess(ctx); !is_success {
+		return
+	}
+
 	add_curriculum := Curriculum.Curriculum{}
 
 	if err := ctx.BindJSON(&add_curriculum); err != nil {
 		ctx.String(http.StatusBadRequest, "we are unable to properly read the curriculum to be added")
 		return
 	}
+
+	// check if the new updated curriculum have at least 1 section
+
+	add_total_sections := add_curriculum.GetTotalSections()
+
+	if add_total_sections <= 0 {
+		log.Print("PostCurriculum: add a curriculum without any sections are not allowed")
+		ctx.String(http.StatusBadRequest, "add a curriculum without any sections are not allowed, a curriculum should have at least 1 section")
+		return
+	}
+
+	// check if a schedule is still being generated
 
 	if RouteGlobals.IsGeneratingSchedule.Load() {
 		log.Print("PostCurriculum: [busy] you or other department(s) are still generating a schedule, please wait until the process is finished")

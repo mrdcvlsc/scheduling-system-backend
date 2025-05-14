@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrdcvlsc/scheduling-system-backend/Auth"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 )
@@ -14,6 +15,11 @@ POST:
 	"/instructor_add"
 */
 func PostInstructor(ctx *gin.Context) {
+
+	if is_success := Auth.IsAuthSuccess(ctx); !is_success {
+		return
+	}
+
 	add_instructor_with_time_str := Instructors.InstructorWithTimeString{}
 
 	if err := ctx.BindJSON(&add_instructor_with_time_str); err != nil {

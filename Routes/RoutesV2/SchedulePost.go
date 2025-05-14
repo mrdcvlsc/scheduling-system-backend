@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrdcvlsc/scheduling-system-backend/Auth"
 	"github.com/mrdcvlsc/scheduling-system-backend/Routes/RoutesV1"
 	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
@@ -20,6 +21,11 @@ POST:
 	"/add_schedule_preference"
 */
 func PostWeekTimeTableSurvery(ctx *gin.Context) {
+
+	if is_success := Auth.IsAuthSuccess(ctx); !is_success {
+		return
+	}
+
 	var configured_week_time_table []RoutesV1.SubjectAssignmentInfo
 
 	if err := ctx.BindJSON(&configured_week_time_table); err != nil {

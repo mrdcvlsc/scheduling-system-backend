@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrdcvlsc/scheduling-system-backend/Auth"
 	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
@@ -28,6 +29,10 @@ POST:
 	"/generate_schedule?semester=[0-1]&department_id=[N>0]"
 */
 func RequestGenerateSchedule(ctx *gin.Context) {
+
+	if is_success := Auth.IsAuthSuccess(ctx); !is_success {
+		return
+	}
 
 	request_gen_sched_mutex.Lock()
 	defer request_gen_sched_mutex.Unlock()

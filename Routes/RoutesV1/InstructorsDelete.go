@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrdcvlsc/scheduling-system-backend/Auth"
 	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
@@ -16,6 +17,11 @@ DELETE:
 	"/instructor_remove?instructor_id=[N>0]"
 */
 func DeleteInstructor(ctx *gin.Context) {
+
+	if is_success := Auth.IsAuthSuccess(ctx); !is_success {
+		return
+	}
+
 	instructor_id, is_valid_instructor_id_param := IsValidInstructorID(ctx)
 
 	if !is_valid_instructor_id_param {

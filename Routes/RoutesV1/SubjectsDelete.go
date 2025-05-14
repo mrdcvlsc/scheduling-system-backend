@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrdcvlsc/scheduling-system-backend/Auth"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
@@ -16,6 +17,11 @@ DELETE:
 	"/subject_remove?subject_id=[N>0]"
 */
 func DeleteSubject(ctx *gin.Context) {
+
+	if is_success := Auth.IsAuthSuccess(ctx); !is_success {
+		return
+	}
+
 	subject_id, is_valid_subject_id_param := IsValidSubjectID(ctx)
 
 	if !is_valid_subject_id_param {

@@ -129,6 +129,21 @@ func TestJsonFilePersistence_GetDepartments(t *testing.T) {
 
 	empty_strings := Utils.CheckForEmptyStrings(departments, "departments")
 
+	// salted hash password at first is empty so there should be an error here
+
+	if len(empty_strings) != 5 {
+		for _, err := range empty_strings {
+			t.Error("there should be 5 errors here for empty string :", err)
+			fmt.Println()
+		}
+	}
+
+	for i := range departments {
+		departments[i].SaltedHashedPassword = "xyz"
+	}
+
+	empty_strings = Utils.CheckForEmptyStrings(departments, "departments")
+
 	if len(empty_strings) > 0 {
 		for _, err := range empty_strings {
 			t.Error("empty string :", err)

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrdcvlsc/scheduling-system-backend/Auth"
 	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
@@ -16,6 +17,11 @@ DELETE:
 	"/room_remove?room_id=[N>0]"
 */
 func DeleteRoom(ctx *gin.Context) {
+
+	if is_success := Auth.IsAuthSuccess(ctx); !is_success {
+		return
+	}
+
 	room_id, is_valid_room_id_param := IsValidRoomID(ctx)
 
 	if !is_valid_room_id_param {

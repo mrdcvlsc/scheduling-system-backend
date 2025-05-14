@@ -27,9 +27,10 @@ func (s *JsonWriter) CreateDepartment(new_department Departments.Department) err
 	}
 
 	all_departments = append(all_departments, Departments.Department{
-		DepartmentID: all_departments[len(all_departments)-1].DepartmentID + 1,
-		Code:         new_department.Code,
-		Name:         new_department.Name,
+		DepartmentID:         all_departments[len(all_departments)-1].DepartmentID + 1,
+		Code:                 new_department.Code,
+		Name:                 new_department.Name,
+		SaltedHashedPassword: new_department.SaltedHashedPassword,
 	})
 
 	err_save_departments := json_save_all_departments(all_departments)

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrdcvlsc/scheduling-system-backend/Auth"
 	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
@@ -22,8 +23,16 @@ type CurriculumSectionKey struct {
 PATCH:
 
 	"/curriculum_update"
+
+this route will always fail if the curriculum being edited has no section by default,
+so the system should always add a curriculum that has at least one section.
 */
 func PatchCurriculum(ctx *gin.Context) {
+
+	if is_success := Auth.IsAuthSuccess(ctx); !is_success {
+		return
+	}
+
 	update_curriculum := Curriculum.Curriculum{}
 
 	if err := ctx.BindJSON(&update_curriculum); err != nil {
