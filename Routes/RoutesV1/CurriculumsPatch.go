@@ -83,6 +83,8 @@ func PatchCurriculum(ctx *gin.Context) {
 
 		semester_total_sections := update_curriculum.GetTotalSectionsBySemester(selected_semester)
 
+		log.Printf("PatchCurriculum: total sections to be added in %s is %d", Curriculum.SEMESTER_INDEX_NAME[selected_semester], semester_total_sections)
+
 		if semester_total_sections <= 0 {
 			continue
 		}
@@ -95,6 +97,8 @@ func PatchCurriculum(ctx *gin.Context) {
 		if !has_obtain {
 			return
 		}
+
+		log.Printf("PatchCurriculum: [read-not-modified] university schedule length for the %s : %d", Curriculum.SEMESTER_INDEX_NAME[selected_semester], len(university_schedule))
 
 		// determine all the indices of the old untouched to be update curriculum
 
@@ -131,7 +135,7 @@ func PatchCurriculum(ctx *gin.Context) {
 		)
 
 		if err_midsection_split != nil {
-			log.Print("PatchCurriculum:", err_midsection_split)
+			log.Print("PatchCurriculum: [mid-section-err]", err_midsection_split)
 			ctx.String(http.StatusInternalServerError, "we're unable to update the curriculum right now")
 			return
 		}
@@ -182,6 +186,8 @@ func PatchCurriculum(ctx *gin.Context) {
 			ctx.String(http.StatusInternalServerError, "we're unable to save the deletion of the curriculum from the university schedules right now")
 			return
 		}
+
+		log.Printf("PatchCurriculum: [saved-modified] university schedule length for the %s : %d", Curriculum.SEMESTER_INDEX_NAME[selected_semester], len(updated_university_schedule))
 
 		err_set_cache := RouteGlobals.SetCachedUniversitySchedule(selected_semester, updated_university_schedule)
 
