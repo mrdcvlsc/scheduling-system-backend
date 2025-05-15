@@ -115,14 +115,16 @@ func Login(ctx *gin.Context) {
 func Who(c *gin.Context) {
 	session := sessions.Default(c)
 
-	fmt.Printf("\nTest Session : %+v", session)
+	fmt.Printf("\nTest Session : %+v\n", session)
 
 	user := session.Get("department_user")
 
 	if user == nil {
-		c.String(http.StatusUnauthorized, "no one is logged in")
+		c.String(http.StatusOK, "no one is logged in")
 		return
 	}
+
+	log.Print("who? : ", user)
 
 	c.JSON(http.StatusOK, user)
 }
