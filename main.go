@@ -82,15 +82,22 @@ func main() {
 	use_secure_cookie := false
 	same_site := http.SameSiteNoneMode
 
+	if (os.Getenv("GIN_MODE") == "release") && (os.Getenv("DEV_MODE") == "local_release") {
+		panic("those two modes are not allowed to be together")
+	}
+
 	if os.Getenv("GIN_MODE") == "release" {
 		use_secure_cookie = true
-		same_site = http.SameSiteNoneMode
+		same_site = http.SameSiteStrictMode
+	} else if os.Getenv("DEV_MODE") == "local_release" {
+		use_secure_cookie = false
+		same_site = http.SameSiteLaxMode
 	}
 
 	Auth.SessionStore.Options(sessions.Options{
 		// MaxAge:   259200, // 3 days
 		// MaxAge:   60, // 1 minute
-		MaxAge:   60 * 15, // 15 minute
+		MaxAge:   60 * 15, // 15 minutes
 		Secure:   use_secure_cookie,
 		HttpOnly: true,
 		SameSite: same_site,
@@ -106,7 +113,7 @@ func main() {
 	router.Use(static.Serve("/", static.LocalFile("./dist", true)))
 	router.Use(sessions.Sessions("session_id", Auth.SessionStore))
 
-	if gin.Mode() != gin.ReleaseMode {
+	if (os.Getenv("GIN_MODE") != "release") && (os.Getenv("DEV_MODE") != "local_release") {
 		router.Use(cors.New(cors.Config{
 			AllowOrigins:     []string{"http://localhost:5173", "http://127.0.0.1:5173", "http://192.168.1.*:5173", "http://192.168.0.*:5173"},
 			AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
@@ -114,7 +121,6 @@ func main() {
 			ExposeHeaders:    []string{"Content-Length"},
 			AllowCredentials: true,
 			AllowWildcard:    true, // Enable wildcard support for 192.168.1.*
-
 		}))
 	}
 
@@ -129,7 +135,7 @@ func main() {
 
 	// ============= auth =============
 
-	router.POST("/login", Auth.Login)
+	router.POST("/auth", Auth.Login)
 	v1.POST("/department_add", RoutesV1.PostDepartment)
 
 	router.POST("/logout", Auth.LogOut)

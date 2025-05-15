@@ -32,7 +32,7 @@ func PatchDepartment(ctx *gin.Context) {
 
 	/////////////////////// hash the raw password ///////////////////////
 
-	if len(update_department.SaltedHashedPassword) != 0 {
+	if len(update_department.SaltedHashedPassword) >= 8 {
 		raw_passwrd_byte := []byte(update_department.SaltedHashedPassword)
 
 		hash, hashErr := bcrypt.GenerateFromPassword(raw_passwrd_byte, bcrypt.DefaultCost)
@@ -46,6 +46,9 @@ func PatchDepartment(ctx *gin.Context) {
 		bcrypt_hashed_passwrd_string := string(hash)
 
 		update_department.SaltedHashedPassword = bcrypt_hashed_passwrd_string
+	} else {
+		ctx.String(http.StatusUnprocessableEntity, "password length should be equal or above 8 characters")
+		return
 	}
 
 	/////////////////////// save the user ///////////////////////

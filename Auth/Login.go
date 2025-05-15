@@ -21,6 +21,8 @@ type DepartmentLoginForm struct {
 }
 
 func Login(ctx *gin.Context) {
+	log.Print("user login attempt")
+
 	login_department := &DepartmentLoginForm{}
 
 	Utils.PrettyPrint(login_department)
@@ -59,7 +61,10 @@ func Login(ctx *gin.Context) {
 		return
 	}
 
+	log.Print("department found")
 	Utils.PrettyPrint(department_found)
+
+	log.Print("department login")
 	Utils.PrettyPrint(login_department)
 
 	/////////////////////// validate user password ///////////////////////
@@ -80,7 +85,7 @@ func Login(ctx *gin.Context) {
 	log.Printf("department ID to login : %d", department_found.DepartmentID)
 
 	if department_logged_in == nil {
-		session.Set("department_user", department_found.DepartmentID)
+		session.Set("department_user", &department_found.DepartmentID)
 
 		err_save_session := session.Save()
 
