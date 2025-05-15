@@ -27,6 +27,17 @@ func PatchInstructor(ctx *gin.Context) {
 		return
 	}
 
+	selected_instructor, err_read_instructor := RouteGlobals.ResourcesPersistence.ReaderService.ReadInstructor(update_instructor_with_time_str.InstructorID)
+
+	if err_read_instructor != nil {
+		ctx.String(http.StatusInternalServerError, "we're unable to find that instructor right now")
+		return
+	}
+
+	if is_allowed := Auth.IsDepartmentAllowed(ctx, selected_instructor.DepartmentID); !is_allowed {
+		return
+	}
+
 	update_instructor := Instructors.Instructor{
 		InstructorID:  update_instructor_with_time_str.InstructorID,
 		DepartmentID:  update_instructor_with_time_str.DepartmentID,

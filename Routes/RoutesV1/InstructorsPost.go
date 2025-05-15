@@ -27,6 +27,10 @@ func PostInstructor(ctx *gin.Context) {
 		return
 	}
 
+	if is_allowed := Auth.IsDepartmentAllowed(ctx, add_instructor_with_time_str.DepartmentID); !is_allowed {
+		return
+	}
+
 	add_instructor := Instructors.Instructor{
 		DepartmentID:  add_instructor_with_time_str.DepartmentID,
 		FirstName:     add_instructor_with_time_str.FirstName,

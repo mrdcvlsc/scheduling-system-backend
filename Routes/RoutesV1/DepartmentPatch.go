@@ -30,6 +30,10 @@ func PatchDepartment(ctx *gin.Context) {
 		return
 	}
 
+	if is_allowed := Auth.IsDepartmentAllowed(ctx, update_department.DepartmentID); !is_allowed {
+		return
+	}
+
 	/////////////////////// hash the raw password ///////////////////////
 
 	if len(update_department.SaltedHashedPassword) >= 8 {

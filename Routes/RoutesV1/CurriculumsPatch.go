@@ -71,6 +71,14 @@ func PatchCurriculum(ctx *gin.Context) {
 		return
 	}
 
+	for _, curriculum := range all_curriculums {
+		if update_curriculum.CurriculumID == curriculum.CurriculumID {
+			if is_allowed := Auth.IsDepartmentAllowed(ctx, curriculum.DepartmentID); !is_allowed {
+				return
+			}
+		}
+	}
+
 	for selected_semester := range Curriculum.SUPPORTED_SEMESTERS {
 
 		semester_total_sections := update_curriculum.GetTotalSectionsBySemester(selected_semester)

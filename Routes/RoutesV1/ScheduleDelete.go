@@ -37,11 +37,13 @@ func DeleteClearDepartmentSchedule(ctx *gin.Context) {
 
 	// parse department_id parameter
 
-	// TODO: use department_id for authentication later on.
-
 	department_id, is_valid_department_id_param := IsValidParameterDepartmentID(ctx)
 
 	if !is_valid_department_id_param {
+		return
+	}
+
+	if is_allowed := Auth.IsDepartmentAllowed(ctx, uint16(department_id)); !is_allowed {
 		return
 	}
 

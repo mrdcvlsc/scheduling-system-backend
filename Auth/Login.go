@@ -33,6 +33,12 @@ func Login(ctx *gin.Context) {
 		return
 	}
 
+	if login_department.ID == 0 {
+		log.Print("general department login rejected")
+		ctx.String(http.StatusBadRequest, "we are unable to properly read the department to be added")
+		return
+	}
+
 	// find
 
 	departments, err_read_all_departments := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllDepartments()

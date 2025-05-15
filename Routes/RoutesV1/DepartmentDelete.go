@@ -25,6 +25,15 @@ func DeleteDepartment(ctx *gin.Context) {
 		return
 	}
 
+	if department_id == 0 {
+		ctx.String(http.StatusForbidden, "deleting the general department is now allowed")
+		return
+	}
+
+	if is_allowed := Auth.IsDepartmentAllowed(ctx, uint16(department_id)); !is_allowed {
+		return
+	}
+
 	err := RouteGlobals.ResourcesPersistence.WriterService.DeleteDepartment(uint16(department_id))
 
 	if err != nil {

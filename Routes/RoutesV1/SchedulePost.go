@@ -65,6 +65,10 @@ func RequestGenerateSchedule(ctx *gin.Context) {
 		return
 	}
 
+	if is_allowed := Auth.IsDepartmentAllowed(ctx, uint16(department_id)); !is_allowed {
+		return
+	}
+
 	response_msg := ""
 	response_status := http.StatusAccepted
 

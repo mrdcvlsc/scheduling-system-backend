@@ -44,6 +44,16 @@ func DeleteCurriculum(ctx *gin.Context) {
 		return
 	}
 
+	// auth department
+
+	for _, curriculum := range all_curriculums {
+		if curriculum_id == int(curriculum.CurriculumID) {
+			if is_allowed := Auth.IsDepartmentAllowed(ctx, curriculum.DepartmentID); !is_allowed {
+				return
+			}
+		}
+	}
+
 	for selected_semester := range Curriculum.SUPPORTED_SEMESTERS {
 
 		// obtain univesity schedules for each semester

@@ -62,6 +62,10 @@ func PostCurriculum(ctx *gin.Context) {
 		return
 	}
 
+	if is_allowed := Auth.IsDepartmentAllowed(ctx, add_curriculum.DepartmentID); !is_allowed {
+		return
+	}
+
 	// obtain current university schedules for each semester
 
 	schedules_for_each_semester := make([]Schedule.UniTimeTables, 0, Curriculum.SUPPORTED_SEMESTERS)
