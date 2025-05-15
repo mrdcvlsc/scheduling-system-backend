@@ -447,6 +447,7 @@ func EncodeIndividualGenome(
 							// search available gym for physical education subjects
 
 							gym := encoding_resource.DeptIdToRoomtypeToRooms[0][2]
+							gym = append(gym, encoding_resource.DeptIdToRoomtypeToRooms[curriculum.DepartmentID][2]...)
 
 							for room_idx := range gym {
 
