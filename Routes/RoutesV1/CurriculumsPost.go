@@ -77,6 +77,8 @@ func PostCurriculum(ctx *gin.Context) {
 			return
 		}
 
+		log.Printf("PostCurriculum: [read-not-modified] university schedule length for the %s : %d", Curriculum.SEMESTER_INDEX_NAME[selected_semester], len(university_schedule))
+
 		schedules_for_each_semester = append(schedules_for_each_semester, university_schedule)
 	}
 
@@ -145,7 +147,7 @@ func PostCurriculum(ctx *gin.Context) {
 			},
 		)
 
-		if insert_idx >= len(university_schedule) {
+		if insert_idx > len(university_schedule) {
 			log.Printf(
 				"PostCurriculum: [fatal-error] insert_idx %d exceeds university_schedule length %d, the iteration function might be broken",
 				insert_idx, len(university_schedule),
@@ -164,12 +166,20 @@ func PostCurriculum(ctx *gin.Context) {
 
 		new_university_schedule := make(Schedule.UniTimeTables, 0, len(university_schedule))
 
-		if insert_idx < 0 {
+		if insert_idx == len(university_schedule) {
 			new_university_schedule = append(new_university_schedule, university_schedule...)
 			new_university_schedule = append(new_university_schedule, make(Schedule.UniTimeTables, new_sections)...)
 
 			log.Printf(
 				"PostCurriculum: [rebuilt-index-last-append] new %d section(s) are added to the university schedule %s",
+				new_sections, Curriculum.SEMESTER_INDEX_NAME[selected_semester],
+			)
+		} else if insert_idx < 0 {
+			new_university_schedule = append(new_university_schedule, university_schedule...)
+			new_university_schedule = append(new_university_schedule, make(Schedule.UniTimeTables, new_sections)...)
+
+			log.Printf(
+				"PostCurriculum: [rebuilt-index-last-append???????????????????????] new %d section(s) are added to the university schedule %s",
 				new_sections, Curriculum.SEMESTER_INDEX_NAME[selected_semester],
 			)
 		} else {
@@ -202,6 +212,7 @@ func PostCurriculum(ctx *gin.Context) {
 		// save the new university schedules
 
 		err_save_schedules := RouteGlobals.SchedulePersistence.SaveService.SaveSchedules(new_university_schedule, selected_semester)
+		log.Printf("PostCurriculum: [save-modified] university schedule length for the %s : %d", Curriculum.SEMESTER_INDEX_NAME[selected_semester], len(new_university_schedule))
 
 		if err_save_schedules != nil {
 			log.Print("PostCurriculum: [uni-sched-save-error] caused by ", err_save_schedules.Error())
