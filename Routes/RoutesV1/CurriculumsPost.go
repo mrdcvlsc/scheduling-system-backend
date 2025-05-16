@@ -38,7 +38,7 @@ func PostCurriculum(ctx *gin.Context) {
 
 	if add_total_sections <= 0 {
 		log.Print("PostCurriculum: add a curriculum without any sections are not allowed")
-		ctx.String(http.StatusBadRequest, "add a curriculum without any sections are not allowed, a curriculum should have at least 1 section")
+		ctx.String(http.StatusBadRequest, "adding a curriculum without any sections are not allowed, a curriculum should have at least 1 section")
 		return
 	}
 
