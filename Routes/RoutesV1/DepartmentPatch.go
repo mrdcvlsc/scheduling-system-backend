@@ -34,25 +34,38 @@ func PatchDepartment(ctx *gin.Context) {
 		return
 	}
 
-	/////////////////////// hash the raw password ///////////////////////
+	old_department, err_read_department := RouteGlobals.ResourcesPersistence.ReaderService.ReadDepartment(update_department.DepartmentID)
 
-	if len(update_department.SaltedHashedPassword) >= 8 {
-		raw_passwrd_byte := []byte(update_department.SaltedHashedPassword)
+	if err_read_department != nil {
+		log.Print("PatchDepartment: we're unable to retrieve the old curriculum information for comparison")
+		ctx.String(http.StatusInternalServerError, "we're unable to retrieve the old curriculum information for comparison")
+		return
+	}
 
-		hash, hashErr := bcrypt.GenerateFromPassword(raw_passwrd_byte, bcrypt.DefaultCost)
+	if len(update_department.SaltedHashedPassword) != 0 {
 
-		if hashErr != nil {
-			fmt.Println(hashErr)
-			ctx.String(http.StatusInternalServerError, "we're unable to process your request right now")
+		/////////////////////// hash the raw password ///////////////////////
+
+		if len(update_department.SaltedHashedPassword) >= 8 {
+			raw_passwrd_byte := []byte(update_department.SaltedHashedPassword)
+
+			hash, hashErr := bcrypt.GenerateFromPassword(raw_passwrd_byte, bcrypt.DefaultCost)
+
+			if hashErr != nil {
+				fmt.Println(hashErr)
+				ctx.String(http.StatusInternalServerError, "we're unable to process your request right now")
+				return
+			}
+
+			bcrypt_hashed_passwrd_string := string(hash)
+
+			update_department.SaltedHashedPassword = bcrypt_hashed_passwrd_string
+		} else {
+			ctx.String(http.StatusUnprocessableEntity, "password length should be equal or above 8 characters")
 			return
 		}
-
-		bcrypt_hashed_passwrd_string := string(hash)
-
-		update_department.SaltedHashedPassword = bcrypt_hashed_passwrd_string
 	} else {
-		ctx.String(http.StatusUnprocessableEntity, "password length should be equal or above 8 characters")
-		return
+		update_department.SaltedHashedPassword = old_department.SaltedHashedPassword
 	}
 
 	/////////////////////// save the user ///////////////////////
