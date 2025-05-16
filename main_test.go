@@ -109,6 +109,7 @@ func TestIntegrationEditCurriculumSectionV1(t *testing.T) {
 
 	for semester := range Curriculum.SUPPORTED_SEMESTERS {
 		for _, department := range departments {
+			t.Logf("validating department %s %s", department.Name, Curriculum.SEMESTER_INDEX_NAME[semester])
 
 			///////////////////////////////////////////////// lies here a memory you don't want to remember... ///////////////////
 
