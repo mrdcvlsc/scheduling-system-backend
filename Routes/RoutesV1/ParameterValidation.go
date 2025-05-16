@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 )
 
@@ -25,7 +26,7 @@ func IsValidParameterSemesterIndex(ctx *gin.Context) (int, bool) {
 		return -1, false
 	}
 
-	if semester < 0 || semester >= 2 {
+	if semester < 0 || semester >= Curriculum.SUPPORTED_SEMESTERS {
 		ctx.String(http.StatusBadRequest, "invalid 'semester' index value")
 		return -1, false
 	}

@@ -1,8 +1,10 @@
 package StorageSchedule
 
 import (
+	"fmt"
 	"path"
 
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
@@ -19,10 +21,11 @@ func (s *JsonWriter) SaveSchedules(university_schedule Schedule.UniTimeTables, s
 
 	var saved_file string
 
-	if semester == first_semester {
-		saved_file = path.Join(project_root, "scheduling-system-temporary-data", "univ-1st-sem.sched")
-	} else if semester == second_semester {
-		saved_file = path.Join(project_root, "scheduling-system-temporary-data", "univ-2nd-sem.sched")
+	for semester_idx := range len(Curriculum.SEMESTER_INDEX_NAME) {
+		if semester_idx == semester {
+			saved_file = path.Join(project_root, "scheduling-system-temporary-data", fmt.Sprintf("univ-sem-%d.sched", semester_idx+1))
+			break
+		}
 	}
 
 	UniSchedPersistenceMutex.Lock()

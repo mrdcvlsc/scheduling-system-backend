@@ -1,12 +1,13 @@
 package RoutesV1
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mrdcvlsc/scheduling-system-backend/Auth"
-	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 )
@@ -39,32 +40,20 @@ func DeleteInstructor(ctx *gin.Context) {
 		return
 	}
 
-	{ // check if instructor is assign in the first semester subjects
-		university_schedules, _ := ObtainUniversityScheduleNoContext(nil, GeneticAlgorithm.TERM_1ST_SEMESTER)
+	for selected_semester := range Curriculum.SUPPORTED_SEMESTERS {
+		university_schedules, _ := ObtainUniversityScheduleNoContext(nil, selected_semester)
 
-		err_set_cache := RouteGlobals.SetCachedUniversitySchedule(GeneticAlgorithm.TERM_1ST_SEMESTER, university_schedules)
-
-		if err_set_cache != nil {
-			log.Println(err_set_cache.Error())
-		}
-
-		if is_instructor_assigned(university_schedules, uint16(instructor_id)) {
-			ctx.String(http.StatusConflict, "can not delete an instructor assigned to a schedule")
-			return
-		}
-	}
-
-	{ // check if instructor is assign in the second semester subjects
-		university_schedules, _ := ObtainUniversityScheduleNoContext(nil, GeneticAlgorithm.TERM_2ND_SEMESTER)
-
-		err_set_cache := RouteGlobals.SetCachedUniversitySchedule(GeneticAlgorithm.TERM_2ND_SEMESTER, university_schedules)
+		err_set_cache := RouteGlobals.SetCachedUniversitySchedule(selected_semester, university_schedules)
 
 		if err_set_cache != nil {
 			log.Println(err_set_cache.Error())
 		}
 
 		if is_instructor_assigned(university_schedules, uint16(instructor_id)) {
-			ctx.String(http.StatusConflict, "can not delete an instructor assigned to a schedule")
+			ctx.String(
+				http.StatusConflict,
+				fmt.Sprintf("can not delete an instructor assigned to a schedule in %s", Curriculum.SEMESTER_INDEX_NAME[selected_semester]),
+			)
 			return
 		}
 	}
