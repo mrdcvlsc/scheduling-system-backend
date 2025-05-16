@@ -42,9 +42,11 @@ frontend:
 	mkdir dist
 	unzip dist.zip
 
-frontend_local:
+frontend_local_release:
 	rm -rf dist
+	sed -i 's/const DEV = true/const DEV = false/' ../scheduling-system-frontend/src/js/basics.js
 	cd ../scheduling-system-frontend && npm run build && cp -R dist ../scheduling-system-backend
+	sed -i 's/const DEV = false/const DEV = true/' ../scheduling-system-frontend/src/js/basics.js
 
 clean:
 	go clean -testcache
