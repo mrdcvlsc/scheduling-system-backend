@@ -66,6 +66,7 @@ func RequestGenerateSchedule(ctx *gin.Context) {
 	}
 
 	if is_allowed := Auth.IsDepartmentAllowed(ctx, uint16(department_id)); !is_allowed {
+		RouteGlobals.IsGeneratingSchedule.Store(false)
 		return
 	}
 
