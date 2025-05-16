@@ -90,6 +90,8 @@ func EncodeIndividualGenome(
 	var room_type_to_rooms map[uint16][]Rooms.Room
 	var instructors []Instructors.Instructor
 
+	room_type_to_general_rooms := encoding_resource.DeptIdToRoomtypeToRooms[0]
+
 	is_to_return := false
 	var return_uni_time_table Schedule.UniTimeTables
 	var return_encoding_resource *EncodingResource
@@ -144,18 +146,6 @@ func EncodeIndividualGenome(
 			})
 
 			/////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-			// TODO: implement distribution types
-			//
-			// front compressed distribution : start
-			//
-			// for now the this is a brute force implementation, yet it is still enough
-			// considering the current low numbers of courses, instructors, rooms and sections.
-			// but I believe this still can be optimize in the future if we wanted to.
-			//
-			// or just create another implementation for inidividual generation.
-
-			// iterate over the subjects
 
 			// TODO: the map below was added for debugging purposes only, remove when the code becomes stable and optimized.
 
@@ -489,7 +479,26 @@ func EncodeIndividualGenome(
 								break
 							}
 
-							// TODO: [implement below] search for general rooms that are available (consult first)
+							// search for general rooms that are available
+
+							if selected_room == nil || !has_available_room {
+								for room_idx := range room_type_to_general_rooms[room_type] {
+
+									has_available_room = true
+
+									for room_time_slot := time_slot; room_time_slot < (time_slot + subject_total_time_slots); room_time_slot++ {
+										has_available_room = has_available_room && room_type_to_general_rooms[room_type][room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(room_type_to_general_rooms[room_type][room_idx].Capacity)
+									}
+
+									if !has_available_room {
+										continue
+									}
+
+									// fmt.Printf("selecting the available room[type:%d] for the time slot [d:%d, ts:%d]...\n", room_type, day, time_slot) // DEBUG PRINTS
+									selected_room = &room_type_to_general_rooms[room_type][room_idx]
+									break
+								}
+							}
 
 							// TODO: [implement below] search available lab room for lecture subjects (consult first)
 						}
