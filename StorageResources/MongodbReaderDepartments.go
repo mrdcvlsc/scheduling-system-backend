@@ -60,7 +60,7 @@ func (s *MongodbReader) ReadDepartment(department_id uint16) (*Departments.Depar
 
 	department_collection := s.Mongo.Departments
 
-	var department *Departments.Department
+	department := &Departments.Department{}
 
 	filter := bson.D{{Key: "DepartmentID", Value: department_id}}
 	opts := options.FindOne().SetProjection(bson.D{{Key: "_id", Value: 0}})

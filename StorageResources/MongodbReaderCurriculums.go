@@ -60,7 +60,7 @@ func (s *MongodbReader) ReadCurriculum(curriculum_id uint16) (*Curriculum.Curric
 
 	curriculum_collection := s.Mongo.Curriculums
 
-	var curriculum *Curriculum.Curriculum
+	curriculum := &Curriculum.Curriculum{}
 
 	filter := bson.D{{Key: "CurriculumID", Value: curriculum_id}}
 	opts := options.FindOne().SetProjection(bson.D{{Key: "_id", Value: 0}})

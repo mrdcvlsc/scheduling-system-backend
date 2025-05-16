@@ -60,7 +60,7 @@ func (s *MongodbReader) ReadRoom(room_id uint16) (*Rooms.Room, error) {
 
 	room_collection := s.Mongo.Rooms
 
-	var room *Rooms.Room
+	room := &Rooms.Room{}
 
 	filter := bson.D{{Key: "RoomID", Value: room_id}}
 	opts := options.FindOne().SetProjection(bson.D{{Key: "_id", Value: 0}})
