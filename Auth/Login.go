@@ -21,12 +21,20 @@ type DepartmentLoginForm struct {
 }
 
 func Login(ctx *gin.Context) {
+	log.Print("user login attempt")
+
 	login_department := &DepartmentLoginForm{}
 
 	Utils.PrettyPrint(login_department)
 
 	if err := ctx.BindJSON(&login_department); err != nil {
 		log.Print("error binding form data")
+		ctx.String(http.StatusBadRequest, "we are unable to properly read the department to be added")
+		return
+	}
+
+	if login_department.ID == 0 {
+		log.Print("general department login rejected")
 		ctx.String(http.StatusBadRequest, "we are unable to properly read the department to be added")
 		return
 	}
@@ -59,7 +67,10 @@ func Login(ctx *gin.Context) {
 		return
 	}
 
+	log.Print("department found")
 	Utils.PrettyPrint(department_found)
+
+	log.Print("department login")
 	Utils.PrettyPrint(login_department)
 
 	/////////////////////// validate user password ///////////////////////
@@ -80,7 +91,7 @@ func Login(ctx *gin.Context) {
 	log.Printf("department ID to login : %d", department_found.DepartmentID)
 
 	if department_logged_in == nil {
-		session.Set("department_user", department_found.DepartmentID)
+		session.Set("department_user", &department_found.DepartmentID)
 
 		err_save_session := session.Save()
 
@@ -104,14 +115,16 @@ func Login(ctx *gin.Context) {
 func Who(c *gin.Context) {
 	session := sessions.Default(c)
 
-	fmt.Printf("\nTest Session : %+v", session)
+	fmt.Printf("\nTest Session : %+v\n", session)
 
 	user := session.Get("department_user")
 
 	if user == nil {
-		c.String(http.StatusUnauthorized, "no one is logged in")
+		c.String(http.StatusOK, "no one is logged in")
 		return
 	}
+
+	log.Print("who? : ", user)
 
 	c.JSON(http.StatusOK, user)
 }

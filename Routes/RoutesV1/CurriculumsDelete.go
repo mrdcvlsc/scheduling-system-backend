@@ -40,11 +40,24 @@ func DeleteCurriculum(ctx *gin.Context) {
 	all_curriculums, err_read_all_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
 
 	if err_read_all_curriculums != nil {
+		log.Print("DeleteCurriculum: [error curriculum reads] error reading all curriculums")
 		ctx.String(http.StatusInternalServerError, "we are unable retrieve the curriculums right now")
 		return
 	}
 
+	// auth department
+
+	for _, curriculum := range all_curriculums {
+		if curriculum_id == int(curriculum.CurriculumID) {
+			if is_allowed := Auth.IsDepartmentAllowed(ctx, curriculum.DepartmentID); !is_allowed {
+				log.Print("DeleteCurriculum: [department not allowed] error reading all curriculums")
+				return
+			}
+		}
+	}
+
 	for selected_semester := range Curriculum.SUPPORTED_SEMESTERS {
+		log.Printf("DeleteCurriculum: [re-index-semester] rebuilding university schedule index for the %s", Curriculum.SEMESTER_INDEX_NAME[selected_semester])
 
 		// obtain univesity schedules for each semester
 
@@ -53,6 +66,8 @@ func DeleteCurriculum(ctx *gin.Context) {
 		if !has_obtain {
 			return
 		}
+
+		log.Printf("DeleteCurriculum: [read-not-modified] university schedule length for the %s : %d", Curriculum.SEMESTER_INDEX_NAME[selected_semester], len(university_schedule))
 
 		// determine which schedule indices should be removed from the current university schedules
 
@@ -89,6 +104,10 @@ func DeleteCurriculum(ctx *gin.Context) {
 			}
 		}
 
+		if remove_chunk_length == 0 {
+			continue
+		}
+
 		// remove the to be deleted schedule indices from the university schedules
 
 		log.Printf("DeleteCurriculum: removing university schedule index %d to %d (of size %d)", remove_starting_index, remove_starting_index+remove_chunk_length, remove_chunk_length)
@@ -96,6 +115,7 @@ func DeleteCurriculum(ctx *gin.Context) {
 		new_university_schedule, err_remove_chunk_in_slice := Utils.RemoveChunkInSlice(university_schedule, remove_starting_index, remove_chunk_length)
 
 		if err_remove_chunk_in_slice != nil {
+			log.Print("DeleteCurriculum: error remove chunk in slice, caused by : ", err_remove_chunk_in_slice.Error())
 			ctx.String(http.StatusInternalServerError, "we're unable to remove the curriculum to the university schedules right now")
 			return
 		}
@@ -105,9 +125,12 @@ func DeleteCurriculum(ctx *gin.Context) {
 		err_save_schedules := RouteGlobals.SchedulePersistence.SaveService.SaveSchedules(new_university_schedule, selected_semester)
 
 		if err_save_schedules != nil {
+			log.Print("DeleteCurriculum: error save schedule")
 			ctx.String(http.StatusInternalServerError, "we're unable to save the deletion of the curriculum from the university schedules right now")
 			return
 		}
+
+		log.Printf("DeleteCurriculum: [saved-modified] university schedule length for the %s : %d", Curriculum.SEMESTER_INDEX_NAME[selected_semester], len(new_university_schedule))
 
 		err_set_cache := RouteGlobals.SetCachedUniversitySchedule(selected_semester, new_university_schedule)
 
@@ -119,6 +142,7 @@ func DeleteCurriculum(ctx *gin.Context) {
 	err := RouteGlobals.ResourcesPersistence.WriterService.DeleteCurriculum(uint16(curriculum_id))
 
 	if err != nil {
+		log.Print("DeleteCurriculum: error delete curriculum")
 		ctx.String(http.StatusBadRequest, "we are unable to properly remove the curriculum from the persistence")
 		return
 	}

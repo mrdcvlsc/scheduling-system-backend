@@ -28,6 +28,10 @@ func PostRoom(ctx *gin.Context) {
 		return
 	}
 
+	if is_allowed := Auth.IsDepartmentAllowed(ctx, add_room.DepartmentID); !is_allowed {
+		return
+	}
+
 	err := RouteGlobals.ResourcesPersistence.WriterService.CreateRoom(add_room)
 
 	if err != nil {

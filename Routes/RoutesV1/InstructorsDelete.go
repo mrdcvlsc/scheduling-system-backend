@@ -28,6 +28,17 @@ func DeleteInstructor(ctx *gin.Context) {
 		return
 	}
 
+	selected_instructor, err_read_instructor := RouteGlobals.ResourcesPersistence.ReaderService.ReadInstructor(uint16(instructor_id))
+
+	if err_read_instructor != nil {
+		ctx.String(http.StatusInternalServerError, "we're unable to find that instructor right now")
+		return
+	}
+
+	if is_allowed := Auth.IsDepartmentAllowed(ctx, selected_instructor.DepartmentID); !is_allowed {
+		return
+	}
+
 	{ // check if instructor is assign in the first semester subjects
 		university_schedules, _ := ObtainUniversityScheduleNoContext(nil, GeneticAlgorithm.TERM_1ST_SEMESTER)
 
