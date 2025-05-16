@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"reflect"
 
 	"github.com/gin-contrib/sessions"
@@ -75,10 +76,18 @@ func Login(ctx *gin.Context) {
 
 	/////////////////////// validate user password ///////////////////////
 
-	if err := bcrypt.CompareHashAndPassword([]byte(department_found.SaltedHashedPassword), []byte(login_department.Password)); err != nil {
-		log.Print("password did not match")
-		ctx.String(http.StatusUnauthorized, "incorrect credentials")
-		return
+	if len(os.Getenv("MASTER_KEY")) >= 32 {
+		if os.Getenv("MASTER_KEY") != login_department.Password {
+			log.Print("master key did not match")
+			ctx.String(http.StatusUnauthorized, "incorrect credentials")
+			return
+		}
+	} else {
+		if err := bcrypt.CompareHashAndPassword([]byte(department_found.SaltedHashedPassword), []byte(login_department.Password)); err != nil {
+			log.Print("password did not match")
+			ctx.String(http.StatusUnauthorized, "incorrect credentials")
+			return
+		}
 	}
 
 	/////////////////////// create user session ///////////////////////
