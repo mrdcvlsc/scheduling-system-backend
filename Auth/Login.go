@@ -26,8 +26,6 @@ func Login(ctx *gin.Context) {
 
 	login_department := &DepartmentLoginForm{}
 
-	Utils.PrettyPrint(login_department)
-
 	if err := ctx.BindJSON(&login_department); err != nil {
 		log.Print("error binding form data")
 		ctx.String(http.StatusBadRequest, "we are unable to properly read the department to be added")
@@ -58,7 +56,8 @@ func Login(ctx *gin.Context) {
 		is_equal_code := Utils.IsEqualStrCaseInsensitiveIgnoreWhiteSpace(department.Code, login_department.Code)
 
 		if is_equal_id && is_equal_code {
-			department_found = &department
+			dept := department
+			department_found = &dept
 		}
 	}
 
@@ -102,23 +101,27 @@ func Login(ctx *gin.Context) {
 	if department_logged_in == nil {
 		session.Set("department_user", &department_found.DepartmentID)
 
+		log.Print("Login: [saving session]")
 		err_save_session := session.Save()
 
 		if err_save_session != nil {
-			log.Print("session save error ", err_save_session.Error())
+			log.Print("Login [session-save-error] : ", err_save_session.Error())
 			ctx.String(http.StatusInternalServerError, "login failed")
 			return
+		} else {
+			log.Print("Login [session-save-success] ")
 		}
 
-		log.Print("session saved:")
-		log.Print(session.Get("department_user"))
-		log.Print(reflect.TypeOf(session.Get("department_user")))
+		log.Print("Login [session-got] : ", session.Get("department_user"))
+		log.Print("Login [session-reflected] : ", reflect.TypeOf(session.Get("department_user")))
 
 		ctx.String(http.StatusOK, "login successful")
 		return
+	} else {
+		log.Print("Login: [already-logged-in]")
+		ctx.String(http.StatusAlreadyReported, "you are already logged in")
 	}
 
-	ctx.String(http.StatusAlreadyReported, "you are already logged in")
 }
 
 func Who(c *gin.Context) {
@@ -129,6 +132,7 @@ func Who(c *gin.Context) {
 	user := session.Get("department_user")
 
 	if user == nil {
+		log.Print("who? NONE : ", user)
 		c.String(http.StatusOK, "no one is logged in")
 		return
 	}
