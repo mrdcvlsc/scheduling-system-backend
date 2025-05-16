@@ -113,7 +113,7 @@ func PostCurriculum(ctx *gin.Context) {
 
 		new_sections := add_curriculum.GetTotalSectionsBySemester(selected_semester)
 
-		if new_sections == 0 {
+		if new_sections <= 0 {
 			continue
 		}
 
