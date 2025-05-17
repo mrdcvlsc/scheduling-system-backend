@@ -16,8 +16,16 @@ func RemoveChunkInSlice[T any](slice []T, start, size int) ([]T, error) {
 func MidSectionSplitInSlice[T any](slice []T, start, size int) ([]T, []T, []T, error) {
 	end := start + size
 
-	if start < 0 || size < 0 || end > len(slice) {
-		return nil, nil, nil, fmt.Errorf("SliceMidSectionSplit invalid parameters: start=%d, size=%d, len=%d", start, size, len(slice))
+	if start < 0 {
+		return nil, nil, nil, fmt.Errorf("SliceMidSectionSplit invalid parameter [start less than zero] : start=%d, size=%d, len=%d", start, size, len(slice))
+	}
+
+	if size < 0 {
+		return nil, nil, nil, fmt.Errorf("SliceMidSectionSplit invalid parameter [size less than zero] : start=%d, size=%d, len=%d", start, size, len(slice))
+	}
+
+	if end > len(slice) {
+		return nil, nil, nil, fmt.Errorf("SliceMidSectionSplit invalid parameter [end is greater than slice length] : start=%d, size=%d, len=%d", start, size, len(slice))
 	}
 
 	return slice[:start], slice[start:end], slice[end:], nil

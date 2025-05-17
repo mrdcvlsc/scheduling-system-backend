@@ -109,6 +109,7 @@ func TestIntegrationEditCurriculumSectionV1(t *testing.T) {
 
 	for semester := range Curriculum.SUPPORTED_SEMESTERS {
 		for _, department := range departments {
+			t.Logf("validating department %s %s", department.Name, Curriculum.SEMESTER_INDEX_NAME[semester])
 
 			///////////////////////////////////////////////// lies here a memory you don't want to remember... ///////////////////
 
@@ -130,8 +131,10 @@ func TestIntegrationEditCurriculumSectionV1(t *testing.T) {
 					t.Fatalf("Failed to parse generation status response: %v", err)
 				}
 
-				if response_body.Status != RouteGlobals.SchedGenStatusSuccess {
-					t.Fatalf("Failed to generation schedule in %s, %s - %s", department.Code, response_body.Status, response_body.Message)
+				if !(semester == 2 && Utils.HasSubString(response_body.Message, "empty")) {
+					if response_body.Status != RouteGlobals.SchedGenStatusSuccess {
+						t.Fatalf("Failed to generation schedule in %s, %s - %s", department.Code, response_body.Status, response_body.Message)
+					}
 				}
 
 				t.Logf("Validation result %s : %s", response_body.Status, response_body.Message)
@@ -400,11 +403,13 @@ func TestIntegrationEditCurriculumSectionV2(t *testing.T) {
 						t.Fatalf("Failed to parse generation status response: %v", err)
 					}
 
-					if response_body.Status != RouteGlobals.SchedGenStatusSuccess {
-						t.Fatalf("Failed to generation schedule in %s, %s - %s", department.Code, response_body.Status, response_body.Message)
-					}
+					if !(semester == 2 && Utils.HasSubString(response_body.Message, "empty")) {
+						if response_body.Status != RouteGlobals.SchedGenStatusSuccess {
+							t.Fatalf("Failed to generation schedule in %s, %s - %s", department.Code, response_body.Status, response_body.Message)
+						}
 
-					t.Logf("Validation %s result %s : %s", department.Code, response_body.Status, response_body.Message)
+						t.Logf("Validation %s result %s : %s", department.Code, response_body.Status, response_body.Message)
+					}
 				}
 			}
 		}

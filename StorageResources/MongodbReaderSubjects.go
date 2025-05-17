@@ -60,7 +60,7 @@ func (s *MongodbReader) ReadSubject(subject_id uint16) (*Curriculum.Subject, err
 
 	subject_collection := s.Mongo.Subjects
 
-	var subject *Curriculum.Subject
+	subject := &Curriculum.Subject{}
 
 	filter := bson.D{{Key: "ID", Value: subject_id}}
 	opts := options.FindOne().SetProjection(bson.D{{Key: "_id", Value: 0}})

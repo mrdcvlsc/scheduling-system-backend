@@ -128,55 +128,64 @@ func PatchCurriculum(ctx *gin.Context) {
 			},
 		)
 
-		// partition university schedules
+		if mid_length == 0 && mid_starting_index == -1 {
+			log.Print("PatchCurriculum : [append-to-slice]")
 
-		uni_sched_left_part, uni_sched_mid_part, uni_sched_right_part, err_midsection_split := Utils.MidSectionSplitInSlice(
-			university_schedule, mid_starting_index, mid_length,
-		)
+			updated_university_schedule = append(updated_university_schedule, university_schedule...)
+			updated_university_schedule = append(updated_university_schedule, make([]Schedule.WeekTimeTable, semester_total_sections)...)
+		} else {
+			log.Print("PatchCurriculum : [insert-to-slice]")
 
-		if err_midsection_split != nil {
-			log.Print("PatchCurriculum: [mid-section-err]", err_midsection_split)
-			ctx.String(http.StatusInternalServerError, "we're unable to update the curriculum right now")
-			return
-		}
+			// partition university schedules
 
-		// rebuild updated curriculum's schedule chunk
+			uni_sched_left_part, uni_sched_mid_part, uni_sched_right_part, err_midsection_split := Utils.MidSectionSplitInSlice(
+				university_schedule, mid_starting_index, mid_length,
+			)
 
-		updated_curriculum_schedules := make([]Schedule.WeekTimeTable, 0, len(uni_sched_mid_part))
-
-		for yl_idx, year_level := range update_curriculum.YearLevels {
-
-			if !year_level.IsActive {
-				continue
+			if err_midsection_split != nil {
+				log.Print("PatchCurriculum: [mid-section-err]", err_midsection_split)
+				ctx.String(http.StatusInternalServerError, "we're unable to update the curriculum right now")
+				return
 			}
 
-			if selected_semester < 0 || selected_semester >= len(year_level.Semesters) {
-				continue // skip invalid semester index
-			}
+			// rebuild updated curriculum's schedule chunk
 
-			semester := year_level.Semesters[selected_semester]
+			updated_curriculum_schedules := make([]Schedule.WeekTimeTable, 0, len(uni_sched_mid_part))
 
-			for section_idx := range semester.Sections {
+			for yl_idx, year_level := range update_curriculum.YearLevels {
 
-				week_section_sched, has_key := curriculum_key_to_weekly_section_sched[CurriculumSectionKey{
-					YearLevelIndex: yl_idx,
-					SemesterIndex:  selected_semester,
-					SectionIndex:   section_idx,
-				}]
+				if !year_level.IsActive {
+					continue
+				}
 
-				if has_key {
-					updated_curriculum_schedules = append(updated_curriculum_schedules, week_section_sched)
-				} else {
-					updated_curriculum_schedules = append(updated_curriculum_schedules, Schedule.WeekTimeTable{})
+				if selected_semester < 0 || selected_semester >= len(year_level.Semesters) {
+					continue // skip invalid semester index
+				}
+
+				semester := year_level.Semesters[selected_semester]
+
+				for section_idx := range semester.Sections {
+
+					week_section_sched, has_key := curriculum_key_to_weekly_section_sched[CurriculumSectionKey{
+						YearLevelIndex: yl_idx,
+						SemesterIndex:  selected_semester,
+						SectionIndex:   section_idx,
+					}]
+
+					if has_key {
+						updated_curriculum_schedules = append(updated_curriculum_schedules, week_section_sched)
+					} else {
+						updated_curriculum_schedules = append(updated_curriculum_schedules, Schedule.WeekTimeTable{})
+					}
 				}
 			}
+
+			// rebuild the university schedules
+
+			updated_university_schedule = append(updated_university_schedule, uni_sched_left_part...)
+			updated_university_schedule = append(updated_university_schedule, updated_curriculum_schedules...)
+			updated_university_schedule = append(updated_university_schedule, uni_sched_right_part...)
 		}
-
-		// rebuild the university schedules
-
-		updated_university_schedule = append(updated_university_schedule, uni_sched_left_part...)
-		updated_university_schedule = append(updated_university_schedule, updated_curriculum_schedules...)
-		updated_university_schedule = append(updated_university_schedule, uni_sched_right_part...)
 
 		// save the new university schedules
 

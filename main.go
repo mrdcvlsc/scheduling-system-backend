@@ -135,10 +135,10 @@ func main() {
 
 	// ============= auth =============
 
-	router.POST("/auth", Auth.Login)
+	router.POST("/auth_gasss_login", Auth.Login)
 	v1.POST("/department_add", RoutesV1.PostDepartment)
 
-	router.POST("/logout", Auth.LogOut)
+	router.DELETE("/auth_gasss_logout", Auth.LogOut)
 	router.GET("/who", Auth.Who)
 
 	// ============= department routes and handlers =============

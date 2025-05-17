@@ -6,10 +6,9 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 )
-
-const NUM_OF_SEMESTERS int = 2
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -21,7 +20,7 @@ var ReindexUniSchedMutex sync.Mutex
 
 type scheduleCache struct {
 	rw_mutex          sync.RWMutex
-	semester_schedule [NUM_OF_SEMESTERS]Schedule.UniTimeTables
+	semester_schedule [Curriculum.SUPPORTED_SEMESTERS]Schedule.UniTimeTables
 }
 
 var schedule_cache *scheduleCache
@@ -64,7 +63,7 @@ func GetCachedUniversitySchedule(semester int) (Schedule.UniTimeTables, bool, er
 		return nil, false, errors.New("cached schedule semester index underflow")
 	}
 
-	if semester >= NUM_OF_SEMESTERS {
+	if semester >= Curriculum.SUPPORTED_SEMESTERS {
 		return nil, false, errors.New("cached schedule semester index overflow")
 	}
 
@@ -95,7 +94,7 @@ func SetCachedUniversitySchedule(semester int, university_schedule Schedule.UniT
 		return errors.New("cached schedule semester index underflow")
 	}
 
-	if semester >= NUM_OF_SEMESTERS {
+	if semester >= Curriculum.SUPPORTED_SEMESTERS {
 		return errors.New("cached schedule semester index overflow")
 	}
 
@@ -106,5 +105,3 @@ func SetCachedUniversitySchedule(semester int, university_schedule Schedule.UniT
 
 	return nil
 }
-
-var Test int
