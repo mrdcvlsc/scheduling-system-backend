@@ -64,7 +64,7 @@ func EncodeIndividualGenome(
 	copied_curriculums := copy(curriculums, rc_curriculums)
 
 	if copied_curriculums != len(rc_curriculums) {
-		return nil, nil, fmt.Errorf("slice elements copied %d, internal curriculum copy operation failed in generate new individual function", copied_curriculums)
+		return nil, nil, fmt.Errorf("error encode individual genome, slice elements copied %d, internal curriculum copy operation failed in generate new individual function", copied_curriculums)
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -74,7 +74,7 @@ func EncodeIndividualGenome(
 	copied_week_time_table := copy(university_schedules, rc_university_schedules)
 
 	if copied_week_time_table != len(rc_university_schedules) {
-		return nil, nil, fmt.Errorf("slice elements copied %d, internal university schedule copy operation failed in generate new individual function", copied_week_time_table)
+		return nil, nil, fmt.Errorf("error encode individual genome, slice elements copied %d, internal university schedule copy operation failed in generate new individual function", copied_week_time_table)
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -82,7 +82,7 @@ func EncodeIndividualGenome(
 	encoding_resource, err_make_copy := rc_encoding_resource.MakeCopy()
 
 	if err_make_copy != nil {
-		return nil, nil, err_make_copy
+		return nil, nil, fmt.Errorf("error encode individual genome, caused by: %s", err_make_copy.Error())
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
@@ -202,7 +202,7 @@ func EncodeIndividualGenome(
 						return_uni_time_table = nil
 						return_encoding_resource = nil
 						return_error = fmt.Errorf(
-							"the specialized instructor(s) added in %s, %s, %s, section %s, subject %s, are not found in the department instructors and general instructors list",
+							"error encode individual genome, the specialized instructor(s) added in %s, %s, %s, section %s, subject %s, are not found in the department instructors and general instructors list",
 							curriculum.CurriculumCode, year_level.Name, semester.Name, Curriculum.SECTION[section_idx], subject.Code,
 						)
 
@@ -295,7 +295,7 @@ func EncodeIndividualGenome(
 							return_uni_time_table = university_schedules
 							return_encoding_resource = nil
 							return_error = fmt.Errorf(
-								"no time slot found for %s in %s for %s, %s, %s, section %s, after generating schedules for the previous %d other sections",
+								"error encode individual genome, no time slot found for %s in %s for %s, %s, %s, section %s, after generating schedules for the previous %d other sections",
 								subject.Code, ro_dept_id_to_department[curriculum.DepartmentID].Name,
 								curriculum.CurriculumCode, semester.Name, year_level.Name, Curriculum.SECTION[section_idx], successful_generated_section_schedules,
 							)
@@ -346,7 +346,7 @@ func EncodeIndividualGenome(
 									return_uni_time_table = university_schedules
 									return_encoding_resource = nil
 									return_error = fmt.Errorf(
-										"not enough specialized_instructors (%d) in %s for %s, %s, %s, section %s, after generating schedules for the previous %d other sections",
+										"error encode individual genome, not enough specialized_instructors (%d) in %s for %s, %s, %s, section %s, after generating schedules for the previous %d other sections",
 										len(specialized_instructors), ro_dept_id_to_department[curriculum.DepartmentID].Name,
 										curriculum.CurriculumCode, semester.Name, year_level.Name, Curriculum.SECTION[section_idx], successful_generated_section_schedules,
 									)
@@ -393,7 +393,7 @@ func EncodeIndividualGenome(
 									return_uni_time_table = university_schedules
 									return_encoding_resource = nil
 									return_error = fmt.Errorf(
-										"not enough instructors (%d) in %s for %s, %s, %s, section %s, after generating schedules for the previous %d other sections",
+										"error encode individual genome, not enough instructors (%d) in %s for %s, %s, %s, section %s, after generating schedules for the previous %d other sections",
 										len(instructors), ro_dept_id_to_department[curriculum.DepartmentID].Name,
 										curriculum.CurriculumCode, semester.Name, year_level.Name, Curriculum.SECTION[section_idx], successful_generated_section_schedules,
 									)
@@ -511,7 +511,7 @@ func EncodeIndividualGenome(
 							return_uni_time_table = university_schedules
 							return_encoding_resource = nil
 							return_error = fmt.Errorf(
-								"not enough %s rooms (%d) in %s for %s, %s, %s, section %s, after generating schedules for the previous %d other sections",
+								"error encode individual genome, not enough %s rooms (%d) in %s for %s, %s, %s, section %s, after generating schedules for the previous %d other sections",
 								Rooms.ROOM_TYPE_NAMES[room_type], len(room_type_to_rooms[room_type]), ro_dept_id_to_department[curriculum.DepartmentID].Name,
 								curriculum.CurriculumCode, semester.Name, year_level.Name, Curriculum.SECTION[section_idx], successful_generated_section_schedules,
 							)
@@ -635,7 +635,7 @@ func EncodeIndividualGenome(
 				return_uni_time_table = university_schedules
 				return_encoding_resource = nil
 				return_error = fmt.Errorf(
-					"there are some subjects in %s, %s, %s, %s, that was not assigned for some reason s(%d/%d), i(%d), r(%d), IvsR(%d/%d)",
+					"error encode individual genome, there are some subjects in %s, %s, %s, %s, that was not assigned for some reason s(%d/%d), i(%d), r(%d), IvsR(%d/%d)",
 					ro_dept_id_to_department[curriculum.DepartmentID].Code,
 					curriculum.CurriculumCode,
 					year_level.Name,
