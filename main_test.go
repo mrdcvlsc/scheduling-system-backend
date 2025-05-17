@@ -101,7 +101,7 @@ func TestIntegrationEditCurriculumSectionV1(t *testing.T) {
 			break
 		}
 
-		time.Sleep(1 * time.Second)
+		time.Sleep(15 * time.Second)
 		t.Log("Waiting for schedule generation to finish...")
 	}
 
@@ -374,7 +374,7 @@ func TestIntegrationEditCurriculumSectionV2(t *testing.T) {
 				break
 			}
 
-			time.Sleep(1 * time.Second)
+			time.Sleep(15 * time.Second)
 			t.Log("Waiting for schedule generation to finish...")
 		}
 

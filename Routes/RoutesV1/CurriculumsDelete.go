@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/mrdcvlsc/scheduling-system-backend/Auth"
+	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
@@ -71,38 +72,23 @@ func DeleteCurriculum(ctx *gin.Context) {
 
 		// determine which schedule indices should be removed from the current university schedules
 
-		schedule_idx := 0
 		remove_starting_index := -1
 		remove_chunk_length := 0
 
-		for _, curriculum := range all_curriculums {
-			for _, year_level := range curriculum.YearLevels {
+		GeneticAlgorithm.IterateSectionsWeekSchedule(university_schedule, all_curriculums, selected_semester, nil, nil,
+			func(indicies GeneticAlgorithm.IterIndices, values GeneticAlgorithm.IterValues) GeneticAlgorithm.IterReturnType {
+				if values.Curriculum.CurriculumID == uint16(curriculum_id) {
 
-				if !year_level.IsActive {
-					continue
-				}
-
-				for semester_idx, semester := range year_level.Semesters {
-					if semester_idx != selected_semester {
-						continue
+					if remove_starting_index == -1 {
+						remove_starting_index = indicies.Usi
 					}
 
-					for section_idx := 0; section_idx < semester.Sections; section_idx++ {
-
-						if curriculum.CurriculumID == uint16(curriculum_id) {
-
-							if remove_starting_index == -1 {
-								remove_starting_index = schedule_idx
-							}
-
-							remove_chunk_length++
-						}
-
-						schedule_idx++
-					}
+					remove_chunk_length++
 				}
-			}
-		}
+
+				return GeneticAlgorithm.IterProceed
+			},
+		)
 
 		if remove_chunk_length == 0 {
 			continue

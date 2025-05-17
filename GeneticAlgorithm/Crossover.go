@@ -31,8 +31,13 @@ func Crossover(
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 
 	if len(parent1) != len(parent2) {
+		log.Printf(
+			"Crossover [parent-length-error]: parents must have the same length, parent 1 length: %d, parent 2 length: %d",
+			len(parent1), len(parent2),
+		)
+
 		return nil, fmt.Errorf(
-			"parents must have the same length, parent 1 length: %d, parent 2 length: %d",
+			"crossover error, parents must have the same length, parent 1 length: %d, parent 2 length: %d",
 			len(parent1), len(parent2),
 		)
 	}
@@ -50,14 +55,18 @@ func Crossover(
 	copied_week_time_table := copy(offspring, parent1)
 
 	if copied_week_time_table != len(parent1) {
+		log.Printf("Crossover [copy-error-uni-sched]: unable to copy other department subjects to the offspring")
+
 		return nil, errors.New(
-			"unable to copy other department subjects to the offspring",
+			"crossover error, unable to copy other department subjects to the offspring",
 		)
 	}
 
 	if len(department_to_encode) != 1 {
+		log.Printf("Crossover [copy-error-encoding-resource]: multiple department to encode is not supported yet by the crossover function")
+
 		return nil, errors.New(
-			"multiple department to encode is not supported yet by the crossover function",
+			"crossover error, multiple department to encode is not supported yet by the crossover function",
 		)
 	}
 
@@ -85,6 +94,12 @@ func Crossover(
 
 		if len(parent_1_subjects) != len(parent_2_subjects) {
 			is_err_to_return = true
+
+			log.Printf(
+				"Crossover [error-subjects-different-time-slot-block-counts] : parent 1 subjects: %d, parent 2 subjects: %d, possible cause by wrong university schedule indexing order",
+				len(parent_1_subjects), len(parent_2_subjects),
+			)
+
 			return_err = fmt.Errorf(
 				"error parent subjects have different subject time slot block counts, parent 1 subjects: %d, parent 2 subjects: %d, possible cause by wrong university schedule indexing order",
 				len(parent_1_subjects), len(parent_2_subjects),
@@ -126,6 +141,8 @@ func Crossover(
 			is_equal_time_slot_size := parent_1_subjects[i].TimeSlotSize == parent_2_subjects[i].TimeSlotSize
 
 			if !is_equal_subject_id {
+				log.Print("Crossover: [unexpected-error-different-subjects]: parents have contain different subjects")
+
 				is_err_to_return = true
 				return_err = errors.New("crossover unexpected error, parents have contain different subjects")
 
@@ -133,6 +150,8 @@ func Crossover(
 			}
 
 			if !is_equal_time_slot_size {
+				log.Print("Crossover: [unexpected-error-not-equal-time-slots]: parent subjects have different time slot sizes")
+
 				is_err_to_return = true
 				return_err = errors.New("crossover unexpected error, parent subjects have different time slot sizes")
 
@@ -146,6 +165,12 @@ func Crossover(
 			is_equal_subject_time_slot_size := (parent_1_subjects[i].TimeSlotSize == parent_2_subjects[i].TimeSlotSize)
 
 			if !is_equal_subject_id {
+
+				log.Printf(
+					"Crossover: [error-different-subjects] parents must have the same subject IDs, parent 1 subject ID: %d, parent 2 subject ID: %d",
+					parent_1_subjects[i].SubjectID, parent_2_subjects[i].SubjectID,
+				)
+
 				is_err_to_return = true
 				return_err = fmt.Errorf(
 					"parents must have the same subject IDs, parent 1 subject ID: %d, parent 2 subject ID: %d",
@@ -156,6 +181,12 @@ func Crossover(
 			}
 
 			if !is_equal_subject_time_slot_size {
+
+				log.Printf(
+					"Crossover: [error-not-equal-time-slots] parents must have the same subject time slot size, parent 1 subject time slot size: %d, parent 2 subject time slot size: %d",
+					parent_1_subjects[i].TimeSlotSize, parent_2_subjects[i].TimeSlotSize,
+				)
+
 				is_err_to_return = true
 				return_err = fmt.Errorf(
 					"parents must have the same subject time slot size, parent 1 subject time slot size: %d, parent 2 subject time slot size: %d",
@@ -254,7 +285,7 @@ func Crossover(
 	}
 
 	if is_err_to_return {
-		return nil, return_err
+		return nil, fmt.Errorf("crossover error, caused by : %s", return_err.Error())
 	}
 
 	encoding_resource, err_gen_encoding_resource := GenerateEncodingResourceFromUniTimeTable(
@@ -262,7 +293,7 @@ func Crossover(
 	)
 
 	if err_gen_encoding_resource != nil {
-		return nil, err_gen_encoding_resource
+		return nil, fmt.Errorf("crossover error, caused by : %s", err_gen_encoding_resource.Error())
 	}
 
 	if failed_parents_encoding > 0 {
@@ -275,7 +306,7 @@ func Crossover(
 		)
 
 		if err_repair_encoding != nil {
-			return nil, err_repair_encoding
+			return nil, fmt.Errorf("crossover error, caused by : %s", err_repair_encoding.Error())
 		}
 
 		return &SchedAndResources{

@@ -16,10 +16,9 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 )
 
-const MAX_GENETIC_ALGORITHM_RETRY int = 7
-const DEFAULT_INITIAL_REQUEST_COUNT uint = 30
-const POPULATION_SIZE = 24
-const TOTAL_GENERATION = 12
+const MAX_GENETIC_ALGORITHM_RETRY int = 10
+const POPULATION_SIZE = 32
+const TOTAL_GENERATION = 16
 
 var request_gen_sched_mutex sync.Mutex
 

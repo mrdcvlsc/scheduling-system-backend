@@ -16,9 +16,10 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 )
 
-const MAX_GENESIS_INDIVIDUAL_GENERATION_TRIALS int = 128
-const MAX_CROSSOVER_TRIALS int = 128
-const MAX_RE_ENCODE_REPAIR_TRIALS int = 128
+const MAX_BASE_SCHEDULE_REPAIR_TRAIALS int = 512
+const MAX_GENESIS_INDIVIDUAL_GENERATION_TRIALS int = 512
+const MAX_CROSSOVER_TRIALS int = 384
+const MAX_RE_ENCODE_REPAIR_TRIALS int = 384
 
 type SchedAndResources struct {
 	UniSched  Schedule.UniTimeTables
@@ -61,28 +62,48 @@ func RunGeneticAlgorithm(
 	//             PUT THE BASE SCHEDULE AT THE TOP OF GENESIS POPULATION
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	new_base_sched, new_base_sched_resource, err_encoding_new_base_sched := EncodeIndividualGenome(
-		base_uni_sched,
-		curriculums,
-		dept_id_to_department,
-		base_encoding_resource,
-		department_to_encode,
-		selected_semester, 0,
-	)
-
-	if err_encoding_new_base_sched != nil {
-		return new_base_sched, new_base_sched_resource, err_encoding_new_base_sched
-	}
-
-	log.Printf("university schedule fitness : %f", MeasureCompleteUniSchedBasicFitness(base_uni_sched, curriculums, nil, selected_semester))
-	log.Printf("department schedule fitness : %f", MeasureCompleteUniSchedBasicFitness(base_uni_sched, curriculums, department_to_encode, selected_semester))
-
 	genesis_population := make([]SchedAndResources, 0)
+	base_schedule_repair_tries := 0
 
-	genesis_population = append(genesis_population, SchedAndResources{
-		UniSched:  new_base_sched,
-		Resources: new_base_sched_resource,
-	})
+	for {
+		new_base_sched, new_base_sched_resource, err_encoding_new_base_sched := EncodeIndividualGenome(
+			base_uni_sched,
+			curriculums,
+			dept_id_to_department,
+			base_encoding_resource,
+			department_to_encode,
+			selected_semester, 0,
+		)
+
+		base_schedule_repair_tries++
+
+		if err_encoding_new_base_sched != nil {
+
+			if base_schedule_repair_tries < MAX_BASE_SCHEDULE_REPAIR_TRAIALS {
+				continue
+			}
+
+			fmt.Printf(
+				"RunGeneticAlgorithm [base-schedule-repair-error], caused by: %s",
+				err_encoding_new_base_sched.Error(),
+			)
+
+			return new_base_sched, new_base_sched_resource, fmt.Errorf(
+				"base schedule repair error, caused by: %s",
+				err_encoding_new_base_sched.Error(),
+			)
+		}
+
+		log.Printf("university schedule fitness : %f", MeasureCompleteUniSchedBasicFitness(base_uni_sched, curriculums, nil, selected_semester))
+		log.Printf("department schedule fitness : %f", MeasureCompleteUniSchedBasicFitness(base_uni_sched, curriculums, department_to_encode, selected_semester))
+
+		genesis_population = append(genesis_population, SchedAndResources{
+			UniSched:  new_base_sched,
+			Resources: new_base_sched_resource,
+		})
+
+		break
+	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
 	//               POPULATE THE GENESIS POPULATION WITH RANDOM INDIVIDUALS
@@ -101,7 +122,9 @@ func RunGeneticAlgorithm(
 		copied_week_time_table := copy(copy_uni_sched, base_uni_sched)
 
 		if copied_week_time_table != len(base_uni_sched) {
-			return nil, nil, fmt.Errorf("slice elements copied %d, internal university schedule copy operation failed in generate new individual function", copied_week_time_table)
+			log.Printf("RunGeneticAlgorithm [copy-uni-sched-error]: slice elements copied %d, internal university schedule copy operation failed in generate new individual function", copied_week_time_table)
+
+			return nil, nil, fmt.Errorf("genetic algorithm run error: slice elements copied %d, internal university schedule copy operation failed in generate new individual function", copied_week_time_table)
 		}
 
 		ApplyClearDepartmentSchedule(copy_uni_sched, curriculums, department_id, selected_semester)
@@ -109,7 +132,9 @@ func RunGeneticAlgorithm(
 		copy_encoding_resource, err_gen_copy_encoding_resource := GenerateEncodingResourceFromUniTimeTable(copy_uni_sched, curriculums, selected_semester, default_empty_encoding_resource)
 
 		if err_gen_copy_encoding_resource != nil {
-			return nil, nil, fmt.Errorf("unable to generate encoding resource from individual during genesis generation")
+			log.Printf("RunGeneticAlgorithm [copy-encoding-resource-error]: unable to generate encoding resource from individual during genesis generation")
+
+			return nil, nil, fmt.Errorf("genetic algorithm run error: unable to generate encoding resource from individual during genesis generation")
 		}
 
 		initial_sched, initial_encoding_resource, err_encode_initial := EncodeIndividualGenome(
@@ -127,17 +152,17 @@ func RunGeneticAlgorithm(
 			if genesis_generation_tries >= MAX_GENESIS_INDIVIDUAL_GENERATION_TRIALS {
 				if initial_sched == nil {
 					log.Printf(
-						"GA-ERROR [Genesis Population]: unable to generate new a individual after %d tries, cause by error: %s",
+						"RunGeneticAlgorithm [Genesis Population]: unable to generate new a individual for genesis generation after %d tries, cause by error: %s",
 						MAX_GENESIS_INDIVIDUAL_GENERATION_TRIALS, err_encode_initial.Error(),
 					)
 
 					return nil, nil, fmt.Errorf(
-						"GA-ERROR [Genesis Population]: unable to generate new a individual after %d tries, cause by error: %s",
+						"unable to generate new a individual for genesis generation after %d tries, cause by error: %s",
 						MAX_GENESIS_INDIVIDUAL_GENERATION_TRIALS, err_encode_initial.Error(),
 					)
 				} else {
 					return initial_sched, nil, fmt.Errorf(
-						"GA-ERROR [Genesis Population]: unable to generate new a individual after %d tries, cause by error: %s",
+						"unable to generate new a individual for genesis generation after %d tries, cause by error: %s",
 						MAX_GENESIS_INDIVIDUAL_GENERATION_TRIALS, err_encode_initial.Error(),
 					)
 				}
@@ -247,12 +272,12 @@ func RunGeneticAlgorithm(
 
 				if crossover_tries >= MAX_CROSSOVER_TRIALS {
 					log.Printf(
-						"GA-ERROR [Crossover]: unable to produce offspring at generation %d after %d tries, cause by error : %s",
+						"RunGeneticAlgorithm [Crossover]: unable to produce offspring at generation %d after %d tries during crossovers, cause by error : %s",
 						g, MAX_CROSSOVER_TRIALS, err_crossover.Error(),
 					)
 
 					return nil, nil, fmt.Errorf(
-						"GA-ERROR [Crossover]: unable to produce offspring at generation %d after %d tries, cause by error : %s",
+						"unable to produce offspring at generation %d after %d tries during crossovers, cause by error : %s",
 						g, MAX_CROSSOVER_TRIALS, err_crossover.Error(),
 					)
 				}
@@ -300,12 +325,12 @@ func RunGeneticAlgorithm(
 
 				if err_generate_encoding_resource != nil {
 					log.Printf(
-						"GA-ERROR [Random Mutation]: unable to generate encoding resource from an individual on generation %d, caused by %s",
+						"RunGeneticAlgorithm [Random Mutation]: unable to generate encoding resource needed to repair a mutated individual on generation %d, caused by %s",
 						g, err_generate_encoding_resource.Error(),
 					)
 
 					return nil, nil, fmt.Errorf(
-						"GA-ERROR [Random Mutation]: unable to generate encoding resource from an individual on generation %d, caused by %s",
+						"unable to generate encoding resource needed to repair a mutated individual on generation %d, caused by %s",
 						g, err_generate_encoding_resource.Error(),
 					)
 				}
@@ -321,12 +346,12 @@ func RunGeneticAlgorithm(
 
 					if re_encode_tries >= MAX_RE_ENCODE_REPAIR_TRIALS {
 						log.Printf(
-							"GA-ERROR [Random Mutation]: unable to repair an individual on generation %d after %d tries : caused by error %s",
+							"RunGeneticAlgorithm [Random Mutation]: unable to repair an individual on generation %d after %d tries : caused by error %s",
 							g, MAX_RE_ENCODE_REPAIR_TRIALS, err_repair_schedule.Error(),
 						)
 
 						return nil, nil, fmt.Errorf(
-							"GA-ERROR [Random Mutation]: unable to repair an individual on generation %d after %d tries : caused by error %s",
+							"unable to repair an individual on generation %d after %d tries : caused by error %s",
 							g, MAX_RE_ENCODE_REPAIR_TRIALS, err_repair_schedule.Error(),
 						)
 					} else {
