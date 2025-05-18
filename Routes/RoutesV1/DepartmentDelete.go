@@ -96,5 +96,24 @@ func DeleteDepartment(ctx *gin.Context) {
 		return
 	}
 
+	// delete all curriculums for that department
+
+	for _, curriculum := range all_curriculums {
+		if curriculum.DepartmentID == uint16(department_id) {
+			err_delete_curriculum := RouteGlobals.ResourcesPersistence.WriterService.DeleteCurriculum(curriculum.CurriculumID)
+
+			if err_delete_curriculum != nil {
+				log.Printf("DeleteDepartment: error deleting curriculum %s", curriculum.CurriculumName)
+
+				ctx.String(
+					http.StatusInternalServerError,
+					"fatal error, we're unable to delete the associated curriculum of that department, the developer an email to fix this error mrdcvlsc@gmail.com",
+				)
+
+				return
+			}
+		}
+	}
+
 	ctx.String(http.StatusOK, "department deleted successfully")
 }
