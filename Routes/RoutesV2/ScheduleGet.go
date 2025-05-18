@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 	"github.com/mrdcvlsc/scheduling-system-backend/Routes/RoutesV1"
 )
@@ -83,6 +84,20 @@ func GetJsonClassSchedule(ctx *gin.Context) {
 		ctx.String(http.StatusInternalServerError, "unable to read curriculums for that department")
 		return
 	}
+
+	total_number_of_sections := 0
+
+	for _, curriculum := range all_curriculums {
+		total_number_of_sections += curriculum.GetTotalSectionsBySemester(selected_semester)
+	}
+
+	log.Printf("GetJsonClassSchedule: [%s] total number of sections of all read curriculums is %d",
+		Curriculum.SEMESTER_INDEX_NAME[selected_semester], total_number_of_sections,
+	)
+
+	log.Printf("GetJsonClassSchedule: [%s] read university schedule has a total length of..... %d",
+		Curriculum.SEMESTER_INDEX_NAME[selected_semester], len(university_schedules),
+	)
 
 	// parse schedule_idx parameter
 
