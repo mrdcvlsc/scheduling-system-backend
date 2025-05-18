@@ -86,18 +86,20 @@ func main() {
 		panic("those two modes are not allowed to be together")
 	}
 
+	cookie_expiration := 60 * 20 // dev 20 mins
+
 	if os.Getenv("GIN_MODE") == "release" {
 		use_secure_cookie = true
 		same_site = http.SameSiteStrictMode
+		cookie_expiration = 60 * 60 * 12 // 12 hours - cookie expiration
 	} else if os.Getenv("DEV_MODE") == "local_release" {
 		use_secure_cookie = false
 		same_site = http.SameSiteLaxMode
+		cookie_expiration = 60 * 60 // 1 hour - cookie expiration for local release
 	}
 
 	Auth.SessionStore.Options(sessions.Options{
-		// MaxAge:   259200, // 3 days
-		// MaxAge:   60, // 1 minute
-		MaxAge:   60 * 15, // 15 minutes
+		MaxAge:   cookie_expiration,
 		Secure:   use_secure_cookie,
 		HttpOnly: true,
 		SameSite: same_site,
