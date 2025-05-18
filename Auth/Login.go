@@ -1,6 +1,7 @@
 package Auth
 
 import (
+	"crypto/subtle"
 	"fmt"
 	"log"
 	"net/http"
@@ -76,7 +77,12 @@ func Login(ctx *gin.Context) {
 	/////////////////////// validate user password ///////////////////////
 
 	if len(os.Getenv("MASTER_KEY")) >= 32 {
-		if os.Getenv("MASTER_KEY") != login_department.Password {
+		is_equal := subtle.ConstantTimeCompare(
+			[]byte(os.Getenv("MASTER_KEY")),
+			[]byte(login_department.Password),
+		) == 1
+
+		if !is_equal {
 			log.Print("master key did not match")
 			ctx.String(http.StatusUnauthorized, "incorrect credentials")
 			return
