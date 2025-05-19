@@ -71,7 +71,7 @@ func GetDepartSchedGenResult(key DeptSchedGenKey) SchedGenResult {
 	if !has_key {
 
 		msg := fmt.Sprintf(
-			"schedule is not generated yet for the %s %s",
+			"no recent schedule generation in %s %s",
 			dept_id_to_department[key.DepartmentID].Name,
 			Curriculum.SEMESTER_INDEX_NAME[key.Semester],
 		)

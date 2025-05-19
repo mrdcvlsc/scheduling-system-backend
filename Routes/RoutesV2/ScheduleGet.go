@@ -81,7 +81,7 @@ func GetJsonClassSchedule(ctx *gin.Context) {
 	all_curriculums, err_read_all_curriculum := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
 
 	if err_read_all_curriculum != nil {
-		ctx.String(http.StatusInternalServerError, "unable to read curriculums for that department")
+		ctx.String(http.StatusInternalServerError, "Unable to load curriculums for the selected department.")
 		return
 	}
 
@@ -141,7 +141,7 @@ func GetJsonClassSchedule(ctx *gin.Context) {
 		subjects, err_read_all_subjects := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllSubjects()
 
 		if err_read_all_subjects != nil {
-			ctx.String(http.StatusInternalServerError, "we can not retrieve the subjects information right now")
+			ctx.String(http.StatusInternalServerError, "Unable to retrieve subject data at this time. Please try again later.")
 			return
 		}
 
@@ -156,7 +156,7 @@ func GetJsonClassSchedule(ctx *gin.Context) {
 		instructors, err_read_all_instructors := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllInstructors()
 
 		if err_read_all_instructors != nil {
-			ctx.String(http.StatusInternalServerError, "we can not retrieve the instructors information right now")
+			ctx.String(http.StatusInternalServerError, "Unable to retrieve instructor data at this time. Please try again later.")
 			return
 		}
 
@@ -173,7 +173,7 @@ func GetJsonClassSchedule(ctx *gin.Context) {
 		rooms, err_read_all_rooms := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllRooms()
 
 		if err_read_all_rooms != nil {
-			ctx.String(http.StatusInternalServerError, "we can not retrieve the rooms information right now")
+			ctx.String(http.StatusInternalServerError, "Unable to retrieve room data at this time. Please try again later.")
 			return
 		}
 
@@ -276,7 +276,7 @@ func GetValidateSchedules(ctx *gin.Context) {
 	// all_curriculums, err_read_all_curriculum := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
 
 	// if err_read_all_curriculum != nil {
-	// 	ctx.String(http.StatusInternalServerError, "unable to read curriculums for that department")
+	// 	ctx.String(http.StatusInternalServerError, "Unable to load curriculums for the selected department.")
 	// 	return
 	// }
 
@@ -293,14 +293,14 @@ func GetValidateSchedules(ctx *gin.Context) {
 	rooms, err_read_all_rooms := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllRooms()
 
 	if err_read_all_rooms != nil {
-		ctx.String(http.StatusInternalServerError, "we can not retrieve the rooms information right now")
+		ctx.String(http.StatusInternalServerError, "Unable to retrieve room data at this time. Please try again later.")
 		return
 	}
 
 	curriculums, err_read_all_curriculum := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
 
 	if err_read_all_curriculum != nil {
-		ctx.String(http.StatusInternalServerError, "we're unable to read curriculums information right now")
+		ctx.String(http.StatusInternalServerError, "Unable to load curriculum information at this time. Please refresh and try again later.")
 		return
 	}
 
@@ -357,7 +357,11 @@ func GetEstimates(ctx *gin.Context) {
 
 	if err != nil {
 		log.Print("GetEstimates: [error-estimation]")
-		ctx.String(http.StatusInternalServerError, "error in resource estimation, caused by ", err.Error())
+		ctx.String(
+			http.StatusInternalServerError,
+			"Resource estimation error: %s. Please contact support.",
+			err.Error(),
+		)
 		return
 	}
 
