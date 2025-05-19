@@ -38,6 +38,15 @@ func DeleteDepartment(ctx *gin.Context) {
 		return
 	}
 
+	if RouteGlobals.IsGeneratingSchedule.Load() {
+		log.Print("DeleteDepartment: [busy] you or other department(s) are still generating a schedule, please wait until the process is finished")
+		ctx.String(http.StatusForbidden, "we're unable to delete the department right now, you or other department(s) are still generating a schedule, please wait a little while until those process are done")
+		return
+	}
+
+	RouteGlobals.ReindexUniSchedMutex.Lock()
+	defer RouteGlobals.ReindexUniSchedMutex.Unlock()
+
 	all_curriculums, err_read_all_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
 
 	if err_read_all_curriculums != nil {

@@ -28,6 +28,15 @@ func DeleteSubject(ctx *gin.Context) {
 		return
 	}
 
+	if RouteGlobals.IsGeneratingSchedule.Load() {
+		log.Print("DeleteSubject: [busy] you or other department(s) are still generating a schedule, please wait until the process is finished")
+		ctx.String(http.StatusForbidden, "we're unable to delete the subject right now, you or other department(s) are still generating a schedule, please wait a little while until those process are done")
+		return
+	}
+
+	RouteGlobals.ReindexUniSchedMutex.Lock()
+	defer RouteGlobals.ReindexUniSchedMutex.Unlock()
+
 	for semester := range Curriculum.SUPPORTED_SEMESTERS {
 		university_schedules, _ := ObtainUniversityScheduleNoContext(nil, semester)
 

@@ -35,6 +35,17 @@ func PatchRoom(ctx *gin.Context) {
 		return
 	}
 
+	if selected_room.DepartmentID != update_room.DepartmentID {
+		if RouteGlobals.IsGeneratingSchedule.Load() {
+			log.Print("PatchRoom: [busy] you or other department(s) are still generating a schedule, please wait until the process is finished")
+			ctx.String(http.StatusForbidden, "we're unable to move the room to other departments right now, you or other department(s) are still generating a schedule, please wait a little while until those process are done")
+			return
+		}
+
+		RouteGlobals.ReindexUniSchedMutex.Lock()
+		defer RouteGlobals.ReindexUniSchedMutex.Unlock()
+	}
+
 	if is_allowed := Auth.IsDepartmentAllowed(ctx, selected_room.DepartmentID); !is_allowed {
 		return
 	}
