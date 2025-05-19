@@ -1,9 +1,12 @@
 package RoutesV1
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"reflect"
 	"sync"
 	"time"
@@ -389,6 +392,18 @@ queue_pop_loop:
 				retry+1,
 			)
 
+			// initialize run statistics variables
+
+			generation_statistics := make([]float64, 0)
+
+			generation_statistics = append(
+				generation_statistics,
+				GeneticAlgorithm.MeasureCompleteUniSchedBasicFitness(
+					university_schedule, curriculums,
+					department_to_encode, semester_to_encode,
+				),
+			)
+
 			// generate the encoding resource for the obtained university schedule
 
 			previous_fitness := 0.0
@@ -409,6 +424,16 @@ queue_pop_loop:
 								generation, POPULATION_SIZE, fitness,
 							),
 						},
+					)
+
+					// record genetic algorithm run statistics
+
+					generation_statistics = append(
+						generation_statistics,
+						GeneticAlgorithm.MeasureCompleteUniSchedBasicFitness(
+							generation_fittest_sched, curriculums,
+							department_to_encode, semester_to_encode,
+						),
 					)
 
 					// save genetic algorithm's generated in-between university schedule when there's new highest fit schedule
@@ -487,6 +512,45 @@ queue_pop_loop:
 
 				continue
 			}
+
+			// save genetic algorithm run statistics
+
+			generation_statistics = append(generation_statistics, time.Since(start).Seconds())
+			generation_statistics = append(generation_statistics, float64(department_id))
+
+			var read_generation_statistics [][]float64
+
+			read_generation_stats_data, err_read_statistics_data := os.ReadFile("GA-STATS.json")
+
+			is_ready_generation_statistics := true
+
+			if err_read_statistics_data != nil {
+				if !errors.Is(err_read_statistics_data, os.ErrNotExist) {
+					log.Printf("encode_schedule [error-reading-ga-statistics] : %s", err_read_statistics_data.Error())
+					is_ready_generation_statistics = false
+				}
+			} else if err_unmarshal_statistics := json.Unmarshal(read_generation_stats_data, &read_generation_statistics); err_unmarshal_statistics != nil {
+				log.Printf("encode_schedule [error-parsing-ga-statistics] : %s", err_unmarshal_statistics.Error())
+				is_ready_generation_statistics = false
+			}
+
+			if is_ready_generation_statistics {
+				read_generation_statistics = append(read_generation_statistics, generation_statistics)
+
+				updated_generation_statistics, err_ga_stats_marshal := json.MarshalIndent(read_generation_statistics, "", " ")
+
+				if err_ga_stats_marshal != nil {
+					log.Printf("encode_schedule [error-marshal-ga-statistics] : %s", err_ga_stats_marshal.Error())
+					return
+				}
+
+				if err := os.WriteFile("GA-STATS.json", updated_generation_statistics, 0644); err != nil {
+					log.Printf("encode_schedule [error-write-ga-statistics] : %s", err.Error())
+					return
+				}
+			}
+
+			/////////////////////////////////////////
 
 			log.Printf(
 				"encode_schedule: genetic algorithm has generated schedules for %s %s after %d tries",
