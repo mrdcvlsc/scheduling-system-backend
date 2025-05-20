@@ -117,6 +117,10 @@ func MeasureCompleteUniSchedBasicFitness(complete_uni_sched Schedule.UniTimeTabl
 		return IterProceed
 	})
 
+	if total_fitness_measurements == 0 {
+		return -24.0
+	}
+
 	return accumulated_fitness / float64(total_fitness_measurements)
 }
 
