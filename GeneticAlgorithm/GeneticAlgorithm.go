@@ -94,8 +94,8 @@ func RunGeneticAlgorithm(
 			)
 		}
 
-		log.Printf("university schedule fitness : %f", MeasureCompleteUniSchedBasicFitness(base_uni_sched, curriculums, nil, selected_semester))
-		log.Printf("department schedule fitness : %f", MeasureCompleteUniSchedBasicFitness(base_uni_sched, curriculums, department_to_encode, selected_semester))
+		log.Printf("university schedule fitness : %f", MeasureUniSchedBasicFitness(base_uni_sched, curriculums, nil, selected_semester))
+		log.Printf("department schedule fitness : %f", MeasureUniSchedBasicFitness(base_uni_sched, curriculums, department_to_encode, selected_semester))
 
 		genesis_population = append(genesis_population, SchedAndResources{
 			UniSched:  new_base_sched,
@@ -212,8 +212,8 @@ func RunGeneticAlgorithm(
 		})
 
 		for i := 0; i < len(genesis_population); i += 2 {
-			A := MeasureCompleteUniSchedBasicFitness(genesis_population[i].UniSched, curriculums, department_to_encode, selected_semester)
-			B := MeasureCompleteUniSchedBasicFitness(genesis_population[i+1].UniSched, curriculums, department_to_encode, selected_semester)
+			A := MeasureUniSchedBasicFitness(genesis_population[i].UniSched, curriculums, department_to_encode, selected_semester)
+			B := MeasureUniSchedBasicFitness(genesis_population[i+1].UniSched, curriculums, department_to_encode, selected_semester)
 
 			if A > B {
 				population = append(population, genesis_population[i])
@@ -385,8 +385,8 @@ func RunGeneticAlgorithm(
 		start = time.Now()
 
 		sort.Slice(population, func(i, j int) bool {
-			fitness_a := MeasureCompleteUniSchedBasicFitness(population[i].UniSched, curriculums, department_to_encode, selected_semester)
-			fitness_b := MeasureCompleteUniSchedBasicFitness(population[j].UniSched, curriculums, department_to_encode, selected_semester)
+			fitness_a := MeasureUniSchedBasicFitness(population[i].UniSched, curriculums, department_to_encode, selected_semester)
+			fitness_b := MeasureUniSchedBasicFitness(population[j].UniSched, curriculums, department_to_encode, selected_semester)
 			return fitness_a > fitness_b
 		})
 
@@ -394,7 +394,7 @@ func RunGeneticAlgorithm(
 
 		genesis_population = population
 
-		fittest_individual_fitness := MeasureCompleteUniSchedBasicFitness(genesis_population[0].UniSched, curriculums, department_to_encode, selected_semester)
+		fittest_individual_fitness := MeasureUniSchedBasicFitness(genesis_population[0].UniSched, curriculums, department_to_encode, selected_semester)
 
 		fmt.Printf(
 			"ga: [population to transfer to next generation] - took %s, best individual fitness : %f\n",
@@ -407,7 +407,7 @@ func RunGeneticAlgorithm(
 
 		if os.Getenv("LOG_MODE") == "verbose" {
 			for i, uni_gen_sched := range genesis_population {
-				fmt.Printf("generation %d, individual %d -> fitness : %f\n", g, i+1, MeasureCompleteUniSchedBasicFitness(
+				fmt.Printf("generation %d, individual %d -> fitness : %f\n", g, i+1, MeasureUniSchedBasicFitness(
 					uni_gen_sched.UniSched, curriculums, department_to_encode, selected_semester,
 				))
 			}
@@ -418,7 +418,7 @@ func RunGeneticAlgorithm(
 	//            GENETIC ALGORITHM END : PICK THE BEST INDIVIDUAL SOLUTION
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	log.Printf("ga: fittest individual fitness : %f", MeasureCompleteUniSchedBasicFitness(genesis_population[0].UniSched, curriculums, department_to_encode, selected_semester))
+	log.Printf("ga: fittest individual fitness : %f", MeasureUniSchedBasicFitness(genesis_population[0].UniSched, curriculums, department_to_encode, selected_semester))
 
 	if genesis_population[0].UniSched.IsEmpty() {
 		log.Printf("GA-ERROR: fittest university schedule is empty")

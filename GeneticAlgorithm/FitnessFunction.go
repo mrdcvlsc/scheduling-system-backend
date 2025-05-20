@@ -92,7 +92,7 @@ func MeasureWeekTimeTableBasicFitness(week_sched Schedule.WeekTimeTable) float64
 }
 
 // A basic fitness function
-func MeasureCompleteUniSchedBasicFitness(complete_uni_sched Schedule.UniTimeTables, all_curriculums []Curriculum.Curriculum, department_to_measure map[uint16]bool, selected_semester int) float64 {
+func MeasureUniSchedBasicFitness(complete_uni_sched Schedule.UniTimeTables, all_curriculums []Curriculum.Curriculum, department_to_measure map[uint16]bool, selected_semester int) float64 {
 	if complete_uni_sched.IsEmpty() {
 		return -24.0
 	}

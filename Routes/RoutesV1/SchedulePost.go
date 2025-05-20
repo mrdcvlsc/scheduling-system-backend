@@ -398,7 +398,7 @@ queue_pop_loop:
 
 			generation_statistics = append(
 				generation_statistics,
-				GeneticAlgorithm.MeasureCompleteUniSchedBasicFitness(
+				GeneticAlgorithm.MeasureUniSchedBasicFitness(
 					university_schedule, curriculums,
 					department_to_encode, semester_to_encode,
 				),
@@ -415,26 +415,25 @@ queue_pop_loop:
 				POPULATION_SIZE, TOTAL_GENERATION,
 				RouteGlobals.ResourcesPersistence, func(generation int, generation_fittest_sched Schedule.UniTimeTables, fitness float64) {
 
+					department_schedule_fitness := GeneticAlgorithm.MeasureUniSchedBasicFitness(
+						generation_fittest_sched, curriculums,
+						department_to_encode, semester_to_encode,
+					)
+
 					RouteGlobals.SetDeptSchedGenResult(
 						RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
 						RouteGlobals.SchedGenResult{
 							Status: RouteGlobals.SchedGenStatusInProgress,
 							Message: fmt.Sprintf(
-								"running genetic algorithm, at generation %d, with population size %d, fittest schedule at %f",
-								generation, POPULATION_SIZE, fitness,
+								"running genetic algorithm, generation %d/%d, population size %d, department schedule fitness at %f, overall university schedule fitness at %f",
+								generation, TOTAL_GENERATION, POPULATION_SIZE, department_schedule_fitness, fitness,
 							),
 						},
 					)
 
 					// record genetic algorithm run statistics
 
-					generation_statistics = append(
-						generation_statistics,
-						GeneticAlgorithm.MeasureCompleteUniSchedBasicFitness(
-							generation_fittest_sched, curriculums,
-							department_to_encode, semester_to_encode,
-						),
-					)
+					generation_statistics = append(generation_statistics, department_schedule_fitness)
 
 					// save genetic algorithm's generated in-between university schedule when there's new highest fit schedule
 
