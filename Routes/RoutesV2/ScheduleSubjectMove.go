@@ -76,11 +76,15 @@ func PostSubjectTimeSlotMove(ctx *gin.Context) {
 
 	// parse department_id parameter
 
-	// department_id, is_valid_department_id_param := RoutesV1.IsValidParameterDepartmentID(ctx)
+	department_id, is_valid_department_id_param := RoutesV1.IsValidParameterDepartmentID(ctx)
 
-	// if !is_valid_department_id_param {
-	// 	return
-	// }
+	if !is_valid_department_id_param {
+		return
+	}
+
+	if is_allowed := Auth.IsDepartmentAllowed(ctx, uint16(department_id)); !is_allowed {
+		return
+	}
 
 	// get all curriculums
 

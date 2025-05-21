@@ -62,13 +62,15 @@ func DeleteClearClassSchedule(ctx *gin.Context) {
 
 	// parse department_id parameter
 
-	// TODO: use department_id for authentication later on.
+	department_id, is_valid_department_id_param := RoutesV1.IsValidParameterDepartmentID(ctx)
 
-	// department_id, is_valid_department_id_param := RoutesV1.IsValidParameterDepartmentID(ctx)
+	if !is_valid_department_id_param {
+		return
+	}
 
-	// if !is_valid_department_id_param {
-	// 	return
-	// }
+	if is_allowed := Auth.IsDepartmentAllowed(ctx, uint16(department_id)); !is_allowed {
+		return
+	}
 
 	RouteGlobals.ReindexUniSchedMutex.Lock()
 	defer RouteGlobals.ReindexUniSchedMutex.Unlock()
