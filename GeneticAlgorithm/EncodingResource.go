@@ -3,6 +3,7 @@ package GeneticAlgorithm
 import (
 	"fmt"
 	"log"
+	"reflect"
 	"sort"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
@@ -138,7 +139,7 @@ func IsEqualEncodingResource(a, b *EncodingResource) bool {
 			})
 
 			for a_room_idx, a_room := range a_in_v {
-				if a_room != b_in_v[a_room_idx] {
+				if !reflect.DeepEqual(a_room, b_in_v[a_room_idx]) {
 					for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
 						for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
 							if a_room.GetTimeSlotClassCount(day, time_slot) != b_in_v[a_room_idx].GetTimeSlotClassCount(day, time_slot) {

@@ -8,6 +8,7 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Auth"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
+	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
 /*
@@ -27,6 +28,8 @@ func PatchRoom(ctx *gin.Context) {
 		ctx.String(http.StatusBadRequest, "we are unable to properly read the room updated data")
 		return
 	}
+
+	Utils.PrettyPrint(update_room)
 
 	selected_room, err_read_room := RouteGlobals.ResourcesPersistence.ReaderService.ReadRoom(update_room.RoomID)
 

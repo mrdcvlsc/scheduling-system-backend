@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"slices"
 	"testing"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageSchedule"
@@ -125,7 +128,10 @@ func TestNewPopulationSecondSem(t *testing.T) {
 }
 
 func GeneratePopulations(t *testing.T, target_semester int) int {
-	persistence := StorageResources.Persistence{ReaderService: &StorageResources.JsonReader{}}
+	persistence := StorageResources.Persistence{
+		ReaderService: &StorageResources.JsonReader{},
+		WriterService: &StorageResources.JsonWriter{},
+	}
 
 	t.Logf("Semester : %d\n\n", target_semester)
 
@@ -143,10 +149,35 @@ func GeneratePopulations(t *testing.T, target_semester int) int {
 		t.Fatal(err_all_departments)
 	}
 
+	if target_semester == 0 {
+		err_add_room := persistence.WriterService.CreateRoom(Rooms.Room{
+			DepartmentID:       0,
+			Capacity:           1,
+			RoomType:           Rooms.ROOM_TYPE_LEC,
+			Name:               "SHARED_BY_TED_AND_DOM",
+			SharingDepartments: []uint16{3, 4},
+		})
+
+		if err_add_room != nil {
+			t.Fatal("error adding room : ", err_add_room.Error())
+		}
+	}
+
 	rooms, err_all_rooms := persistence.ReaderService.ReadAllRooms()
 
 	if err_all_rooms != nil {
 		t.Fatal(err_all_rooms)
+	}
+
+	var added_room *Rooms.Room
+
+	if target_semester == 0 {
+		for _, room := range rooms {
+			if room.Name == "SHARED_BY_TED_AND_DOM" {
+				added_room = &room
+				break
+			}
+		}
 	}
 
 	curriculums, err_all_curriculums := persistence.ReaderService.ReadAllCurriculum()
@@ -280,6 +311,35 @@ func GeneratePopulations(t *testing.T, target_semester int) int {
 		}
 
 		final_uni_sched = university_schedules
+
+		if target_semester == 0 {
+			// test room shared by departments correctness
+
+			if added_room == nil {
+				t.Fatal("there is no added room found")
+			}
+
+			if added_room.RoomID > 60000 {
+				t.Fatal("something is wrong with the added room, id value too high")
+			}
+
+			GeneticAlgorithm.IterateSectionsWeekSchedule(university_schedules, curriculums, target_semester, nil, nil,
+				func(indicies GeneticAlgorithm.IterIndices, values GeneticAlgorithm.IterValues) GeneticAlgorithm.IterReturnType {
+					for day := range Const.N_WEEKLY_SCHOOL_DAYS {
+						for time_slot := range Const.N_DAILY_TIME_SLOTS {
+							has_found_added_room := values.WeekSched[day][time_slot].GetRoomID() == added_room.RoomID
+							is_shared_to_department := slices.Contains(added_room.SharingDepartments, values.Curriculum.DepartmentID)
+
+							if has_found_added_room && !is_shared_to_department {
+								t.Fatalf("the added room that was supposed to be used only by TED and DOM is found in %s", dept_id_to_department[values.Curriculum.DepartmentID].Name)
+							}
+						}
+					}
+
+					return GeneticAlgorithm.IterProceed
+				},
+			)
+		}
 	}
 
 	failed_individuals := float64(len(err_list_generation))
