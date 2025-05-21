@@ -19,14 +19,14 @@ func TestEmptyScheduleFitness(t *testing.T) {
 
 	uni_sched := GeneticAlgorithm.NewEmptyIndividual(curriculums, GeneticAlgorithm.TERM_1ST_SEMESTER)
 
-	fitness := GeneticAlgorithm.MeasureCompleteUniSchedBasicFitness(uni_sched, curriculums, nil, GeneticAlgorithm.TERM_1ST_SEMESTER)
+	fitness := GeneticAlgorithm.MeasureUniSchedBasicFitness(uni_sched, curriculums, nil, GeneticAlgorithm.TERM_1ST_SEMESTER)
 	t.Logf("empty schedule fitness : %f", fitness)
 
 	for range 50 {
 		uni_sched = append(uni_sched, Schedule.WeekTimeTable{})
 	}
 
-	fitness_of_empty_schedules := GeneticAlgorithm.MeasureCompleteUniSchedBasicFitness(uni_sched, curriculums, nil, GeneticAlgorithm.TERM_1ST_SEMESTER)
+	fitness_of_empty_schedules := GeneticAlgorithm.MeasureUniSchedBasicFitness(uni_sched, curriculums, nil, GeneticAlgorithm.TERM_1ST_SEMESTER)
 
 	empty_fitness := -24.0
 
@@ -118,7 +118,7 @@ func TestGeneratedScheduleFitness(t *testing.T) {
 		}
 	}
 
-	fitness := GeneticAlgorithm.MeasureCompleteUniSchedBasicFitness(*new_university_schedule, curriculums, nil, target_semester)
+	fitness := GeneticAlgorithm.MeasureUniSchedBasicFitness(*new_university_schedule, curriculums, nil, target_semester)
 
 	if fitness >= -12.0 && fitness <= 12.0 {
 		t.Logf("generated schedule fitness : %f", fitness)

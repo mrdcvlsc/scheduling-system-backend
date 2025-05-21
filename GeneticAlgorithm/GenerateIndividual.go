@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"slices"
 	"sort"
 	"time"
 
@@ -483,6 +484,12 @@ func EncodeIndividualGenome(
 
 							if selected_room == nil || !has_available_room {
 								for room_idx := range room_type_to_general_rooms[room_type] {
+
+									if len(room_type_to_general_rooms[room_type][room_idx].SharingDepartments) > 0 {
+										if !slices.Contains(room_type_to_general_rooms[room_type][room_idx].SharingDepartments, curriculum.DepartmentID) {
+											continue
+										}
+									}
 
 									has_available_room = true
 

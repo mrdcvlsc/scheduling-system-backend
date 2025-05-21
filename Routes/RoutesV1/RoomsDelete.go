@@ -29,6 +29,15 @@ func DeleteRoom(ctx *gin.Context) {
 		return
 	}
 
+	if RouteGlobals.IsGeneratingSchedule.Load() {
+		log.Print("DeleteRoom: [busy] you or other department(s) are still generating a schedule, please wait until the process is finished")
+		ctx.String(http.StatusForbidden, "we're unable to delete the room right now, you or other department(s) are still generating a schedule, please wait a little while until those process are done")
+		return
+	}
+
+	RouteGlobals.ReindexUniSchedMutex.Lock()
+	defer RouteGlobals.ReindexUniSchedMutex.Unlock()
+
 	selected_room, err_read_room := RouteGlobals.ResourcesPersistence.ReaderService.ReadRoom(uint16(room_id))
 
 	if err_read_room != nil {

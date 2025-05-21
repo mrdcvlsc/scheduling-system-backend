@@ -1,6 +1,7 @@
 package RoutesV1
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -32,6 +33,17 @@ func PatchInstructor(ctx *gin.Context) {
 	if err_read_instructor != nil {
 		ctx.String(http.StatusInternalServerError, "we're unable to find that instructor right now")
 		return
+	}
+
+	if selected_instructor.DepartmentID != update_instructor_with_time_str.DepartmentID {
+		if RouteGlobals.IsGeneratingSchedule.Load() {
+			log.Print("PatchInstructor: [busy] you or other department(s) are still generating a schedule, please wait until the process is finished")
+			ctx.String(http.StatusForbidden, "we're unable to move the instructor to other departments right now, you or other department(s) are still generating a schedule, please wait a little while until those process are done")
+			return
+		}
+
+		RouteGlobals.ReindexUniSchedMutex.Lock()
+		defer RouteGlobals.ReindexUniSchedMutex.Unlock()
 	}
 
 	if is_allowed := Auth.IsDepartmentAllowed(ctx, selected_instructor.DepartmentID); !is_allowed {

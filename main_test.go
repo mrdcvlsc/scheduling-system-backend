@@ -80,6 +80,9 @@ func TestIntegrationEditCurriculumSectionV1(t *testing.T) {
 	// wait for the schedules to be generated
 
 	for {
+		time.Sleep(15 * time.Second)
+		t.Log("Waiting for schedule generation to finish...")
+
 		request := httptest.NewRequest(http.MethodGet, "/v1/gen_status", nil)
 		response := httptest.NewRecorder()
 
@@ -100,9 +103,6 @@ func TestIntegrationEditCurriculumSectionV1(t *testing.T) {
 		if !get_body.IsGenerating {
 			break
 		}
-
-		time.Sleep(15 * time.Second)
-		t.Log("Waiting for schedule generation to finish...")
 	}
 
 	// validate each departments using schedule generation results
@@ -353,6 +353,9 @@ func TestIntegrationEditCurriculumSectionV2(t *testing.T) {
 		// wait for the schedules to be generated
 
 		for {
+			time.Sleep(15 * time.Second)
+			t.Log("Waiting for schedule generation to finish...")
+
 			request := httptest.NewRequest(http.MethodGet, "/v1/gen_status", nil)
 			response := httptest.NewRecorder()
 
@@ -373,9 +376,6 @@ func TestIntegrationEditCurriculumSectionV2(t *testing.T) {
 			if !get_body.IsGenerating {
 				break
 			}
-
-			time.Sleep(15 * time.Second)
-			t.Log("Waiting for schedule generation to finish...")
 		}
 
 		// validate each departments using schedule generation results

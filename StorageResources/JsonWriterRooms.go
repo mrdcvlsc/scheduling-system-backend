@@ -27,11 +27,12 @@ func (s *JsonWriter) CreateRoom(new_room Rooms.Room) error {
 	}
 
 	all_rooms = append(all_rooms, Rooms.Room{
-		RoomID:       all_rooms[len(all_rooms)-1].RoomID + 1,
-		DepartmentID: new_room.DepartmentID,
-		Capacity:     new_room.Capacity,
-		RoomType:     new_room.RoomType,
-		Name:         new_room.Name,
+		RoomID:             all_rooms[len(all_rooms)-1].RoomID + 1,
+		DepartmentID:       new_room.DepartmentID,
+		Capacity:           new_room.Capacity,
+		RoomType:           new_room.RoomType,
+		Name:               new_room.Name,
+		SharingDepartments: new_room.SharingDepartments,
 	})
 
 	err_save_rooms := json_save_all_rooms(all_rooms)
@@ -74,11 +75,12 @@ func (s *JsonWriter) UpdateRoom(room_to_update Rooms.Room) error {
 	}
 
 	all_rooms[to_update_idx] = Rooms.Room{
-		RoomID:       room_to_update.RoomID,
-		DepartmentID: room_to_update.DepartmentID,
-		Capacity:     room_to_update.Capacity,
-		RoomType:     room_to_update.RoomType,
-		Name:         room_to_update.Name,
+		RoomID:             room_to_update.RoomID,
+		DepartmentID:       room_to_update.DepartmentID,
+		Capacity:           room_to_update.Capacity,
+		RoomType:           room_to_update.RoomType,
+		Name:               room_to_update.Name,
+		SharingDepartments: room_to_update.SharingDepartments,
 	}
 
 	err_save_rooms := json_save_all_rooms(all_rooms)

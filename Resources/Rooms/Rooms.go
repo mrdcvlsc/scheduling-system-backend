@@ -19,6 +19,8 @@ type Room struct {
 	RoomType     uint16 `json:"RoomType" bson:"RoomType"`         // determines the room type: 0 => lec, 1 => lab, 2 => gym.
 	Name         string `json:"Name" bson:"Name"`
 
+	SharingDepartments []uint16 `json:"SharingDepartments,omitempty" bson:"SharingDepartments,omitempty"`
+
 	timeSlotClassCount [TIME_SLOT_CLASS_COUNTER_SIZE]uint8 // records the numbers of classes or sections allocated in the room for a specific timeslot
 }
 
