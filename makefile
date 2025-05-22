@@ -64,58 +64,6 @@ testv:
 testvs:
 	go clean -testcache && go test -run TestNewPopulation ./GeneticAlgorithm -v -timeout 0
 
-gh_test:
-	@echo "running generate schedule test encoding individual"
-
-	$(MAKE) devr
-	go clean -testcache && go test -run TestEstimateResourceAvailabilityFirstSem ./GeneticAlgorithm -timeout 0
-
-	$(MAKE) devr
-	go clean -testcache && go test -run TestEstimateResourceAvailabilitySecondSem ./GeneticAlgorithm -timeout 0
-
-	$(MAKE) devr
-	go clean -testcache && go test -run TestNewPopulationFirstSem ./GeneticAlgorithm -timeout 0
-
-	$(MAKE) devr
-	go clean -testcache && go test -run TestNewPopulationSecondSem ./GeneticAlgorithm -timeout 0
-
-	$(MAKE) devr
-	go clean -testcache && go test -run TestNewPopulation1stSemWithDepartmentSelection ./GeneticAlgorithm -timeout 0
-
-	$(MAKE) devr
-	go clean -testcache && go test -run TestNewPopulation2ndSemWithDepartmentSelection ./GeneticAlgorithm -timeout 0
-
-	@echo "running test resource methods"
-
-	$(MAKE) devr
-	go clean -testcache && go test -run Test ./Resources/Curriculum -timeout 0
-
-	$(MAKE) devr
-	go clean -testcache && go test -run Test ./Resources/Instructors -timeout 0
-
-	$(MAKE) devr
-	go clean -testcache && go test -run Test ./Resources/Rooms -timeout 0
-
-	@echo "running test schedule data structures"
-
-	$(MAKE) devr
-	go clean -testcache && go test -run Test ./Schedule -timeout 0
-
-	@echo "running test persistence methods"
-
-	$(MAKE) devr
-	go clean -testcache && go test -run Test ./StorageResources -timeout 0
-
-	$(MAKE) devr
-	go clean -testcache && go test -run Test ./StorageSchedule -timeout 0
-
-	@echo "running test others"
-
-	$(MAKE) devr
-	go clean -testcache && go test -run Test ./Tests/schedule_datastructure_basic -timeout 0
-	
-	go clean -testcache && go test -run Test ./Utils -timeout 0
-	
 gh_i_test:
 	@echo "running integration tests"
 
@@ -189,6 +137,11 @@ gh_i_test_local:
 bench:
 	# we need to escape the dollar sign for the command: go test -run=^$ -bench=. ./...
 	go test -run=^$$ -bench=. ./... -benchmem
+
+benchmark:
+	$(MAKE) devr_local
+	go clean -testcache
+	go test -run=BenchmarkIntegrationStressTest -bench=./ -timeout 0 > bench.txt
 
 todo:
 	python todo.py
