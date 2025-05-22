@@ -52,10 +52,19 @@ func (room *Room) IncTimeSlotClassCount(day, time_slot int) {
 	limb_idx := idx_2D_to_1D / 2
 	shift_multiplier := idx_2D_to_1D % 2
 
-	if int(room.GetTimeSlotClassCount(day, time_slot)) == MAX_ROOM_CAPACITY {
+	current_time_slot_allocation := int(room.GetTimeSlotClassCount(day, time_slot))
+
+	if current_time_slot_allocation >= int(room.Capacity) {
 		panic(fmt.Sprintf(
-			"(%s - [id:%d, type:%d])IncTimeSlotClassCount(%d, %d) - uint4 overflow, cannot increment to higher room capacity",
-			room.Name, room.RoomID, room.RoomType, day, time_slot,
+			"(%s - [id:%d, type:%d])IncTimeSlotClassCount(%d, %d) - cannot increment to larger room capacity : (capacity current/max = %d/%d)",
+			room.Name, room.RoomID, room.RoomType, day, time_slot, room.GetTimeSlotClassCount(day, time_slot), room.Capacity,
+		))
+	}
+
+	if current_time_slot_allocation >= MAX_ROOM_CAPACITY {
+		panic(fmt.Sprintf(
+			"(%s - [id:%d, type:%d])IncTimeSlotClassCount(%d, %d) - uint4 overflow, cannot increment to higher room capacity : (capacity current/max = %d/%d)",
+			room.Name, room.RoomID, room.RoomType, day, time_slot, room.GetTimeSlotClassCount(day, time_slot), room.Capacity,
 		))
 	}
 
