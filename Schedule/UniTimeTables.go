@@ -205,8 +205,10 @@ func (university_sched UniTimeTables) VerticalRangedValidation(
 					_, has_room_id := room_counter[room_id]
 
 					if !has_room_id {
-						room_counter[room_id] = &roomCountAndCapacity{}
-						room_counter[room_id].Capacity = room_id_to_capacity[room_id]
+						room_counter[room_id] = &roomCountAndCapacity{
+							OverlappingSections: make([]uint16, 0),
+							Capacity:            room_id_to_capacity[room_id],
+						}
 					}
 
 					room_counter[room_id].OverlappingSections = append(room_counter[room_id].OverlappingSections, uint16(section_idx))
