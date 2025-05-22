@@ -344,7 +344,7 @@ func TestJsonFilePersistence_RoomCRU(t *testing.T) {
 	new_room := Rooms.Room{
 		Name:         "NEW RM 360",
 		DepartmentID: 98,
-		Capacity:     34,
+		Capacity:     14,
 		RoomType:     0,
 	}
 
@@ -399,7 +399,7 @@ func TestJsonFilePersistence_RoomCRU(t *testing.T) {
 	if created_new_room.DepartmentID != 98 {
 		t.Error("wrong `created_new_room.DepartmentID`")
 	}
-	if created_new_room.Capacity != 34 {
+	if created_new_room.Capacity != 14 {
 		t.Error("wrong `created_new_room.Capacity`")
 	}
 	if created_new_room.RoomType != 0 {

@@ -9,7 +9,9 @@ import (
 )
 
 func Test_Rooms_timeSlotClassCount_methods(t *testing.T) {
-	room := &Rooms.Room{}
+	room := &Rooms.Room{
+		Capacity: uint16(Rooms.MAX_ROOM_CAPACITY),
+	}
 	array := [Const.N_WEEKLY_SCHOOL_DAYS][Const.N_DAILY_TIME_SLOTS]uint8{}
 
 	for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
