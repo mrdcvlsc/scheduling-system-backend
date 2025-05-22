@@ -18,6 +18,10 @@ func (s *MongodbWriter) CreateRoom(new_room Rooms.Room) error {
 		return errors.New("error CreateRoom(): cannot create a new room with a non-zero RoomID")
 	}
 
+	if new_room.Capacity > uint16(Rooms.MAX_ROOM_CAPACITY) {
+		return fmt.Errorf("MongoDB.CreateRoom room to add has a capacity of %d section(s), the maximum allowed is only 15", new_room.Capacity)
+	}
+
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -78,6 +82,10 @@ func (s *MongodbWriter) UpdateRoom(updated_room Rooms.Room) error {
 
 	if updated_room.RoomID == 0 {
 		return errors.New("error UpdateRoom(): parameter argument missing invalid RoomID")
+	}
+
+	if updated_room.Capacity > uint16(Rooms.MAX_ROOM_CAPACITY) {
+		return fmt.Errorf("MongoDB.UpdateRoom room to update has a capacity of %d section(s), the maximum allowed is only 15", updated_room.Capacity)
 	}
 
 	if s.Mongo.Rooms == nil {
