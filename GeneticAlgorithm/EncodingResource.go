@@ -248,68 +248,51 @@ func GenerateEncodingResourceFromUniTimeTable(
 	//                           RE-CREATE ENCODING RESOURCE DATA
 	//////////////////////////////////////////////////////////////////////////////////////
 
-	counted_sections := 0
+	IterateSectionsWeekSchedule(university_schedules, curriculums, selected_semester, nil, nil,
+		func(indicies IterIndices, values IterValues) IterReturnType {
+			for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
+				for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
+					subject_id := university_schedules[indicies.Usi][day].GetTimeSlot(time_slot).GetSubjectID()
 
-	for _, curriculum := range curriculums {
-		for _, year_level := range curriculum.YearLevels {
+					if subject_id != 0 {
+						instructor_id := university_schedules[indicies.Usi][day].GetTimeSlot(time_slot).GetInstructorID()
+						room_id := university_schedules[indicies.Usi][day].GetTimeSlot(time_slot).GetRoomID()
 
-			if !year_level.IsActive {
-				continue // skip inactive year levels
-			}
+						selected_instructor := instructor_id_to_instructor[instructor_id]
+						selected_room := room_id_to_room[room_id]
 
-			for semester_idx, semester := range year_level.Semesters {
+						if instructor_id == 0 {
+							log.Panic("there should be an instructor allocation here, why there is none?")
+						}
 
-				if selected_semester != semester_idx {
-					continue // skip not selected semesters
-				}
+						if room_id == 0 {
+							log.Panic("there should be a room allocation here, why there is none?")
+						}
 
-				for section_idx := 0; section_idx < semester.Sections; section_idx++ {
+						selected_instructor.Time.SetAvailability(false, day, time_slot)
+						selected_room.IncTimeSlotClassCount(day, time_slot)
 
-					for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
-						for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
-							subject_id := university_schedules[counted_sections][day].GetTimeSlot(time_slot).GetSubjectID()
+						_, has_sched_idx := encode_resource.IsSchedIdxToSubIdToSkip[uint16(indicies.Usi)]
 
-							if subject_id != 0 {
-								instructor_id := university_schedules[counted_sections][day].GetTimeSlot(time_slot).GetInstructorID()
-								room_id := university_schedules[counted_sections][day].GetTimeSlot(time_slot).GetRoomID()
+						if !has_sched_idx {
+							encode_resource.IsSchedIdxToSubIdToSkip[uint16(indicies.Usi)] = make(map[uint16]bool)
+						}
 
-								selected_instructor := instructor_id_to_instructor[instructor_id]
-								selected_room := room_id_to_room[room_id]
+						_, has_subject_id := encode_resource.IsSchedIdxToSubIdToSkip[uint16(indicies.Usi)][subject_id]
 
-								if instructor_id == 0 {
-									log.Panic("there should be an instructor allocation here, why there is none?")
-								}
+						if !has_subject_id {
+							encode_resource.IsSchedIdxToSubIdToSkip[uint16(indicies.Usi)][subject_id] = true
+							selected_instructor.AssignedSubjects++
+						}
 
-								if room_id == 0 {
-									log.Panic("there should be a room allocation here, why there is none?")
-								}
+						selected_instructor.TotalTeachingHours += (1.0 / Const.N_HOUR_TIME_SLOTS)
+					}
+				} // ------------- end of time_slot loop -------------
+			} // ------------- end of day loop -------------
 
-								selected_instructor.Time.SetAvailability(false, day, time_slot)
-								selected_room.IncTimeSlotClassCount(day, time_slot)
-
-								_, has_sched_idx := encode_resource.IsSchedIdxToSubIdToSkip[uint16(counted_sections)]
-
-								if !has_sched_idx {
-									encode_resource.IsSchedIdxToSubIdToSkip[uint16(counted_sections)] = make(map[uint16]bool)
-								}
-
-								_, has_subject_id := encode_resource.IsSchedIdxToSubIdToSkip[uint16(counted_sections)][subject_id]
-
-								if !has_subject_id {
-									encode_resource.IsSchedIdxToSubIdToSkip[uint16(counted_sections)][subject_id] = true
-									selected_instructor.AssignedSubjects++
-								}
-
-								selected_instructor.TotalTeachingHours += (1.0 / Const.N_HOUR_TIME_SLOTS)
-							}
-						} // ------------- end of time_slot loop -------------
-					} // ------------- end of day loop -------------
-
-					counted_sections++
-				} // ------------- end of section_idx loop -------------
-			} // ------------- end of semester_idx loop -------------
-		} // ------------- end of year_level loop -------------
-	} // ------------- end of curriculum loop -------------
+			return IterProceed
+		},
+	)
 
 	return encode_resource, nil
 }
