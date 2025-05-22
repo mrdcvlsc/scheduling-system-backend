@@ -293,7 +293,7 @@ func RunGeneticAlgorithm(
 		remaining_missing_population = population_size - len(population)
 
 		fmt.Printf(
-			"ga: [crossover] - took %s, remaining missing population after tournament selection %d\n",
+			"ga: [crossover] - took %s, remaining missing population after crossover %d\n",
 			time.Since(start), remaining_missing_population,
 		)
 
