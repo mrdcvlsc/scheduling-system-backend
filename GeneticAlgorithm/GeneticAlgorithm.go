@@ -310,7 +310,7 @@ func RunGeneticAlgorithm(
 			// ApplyRandomDaySwapTimeSlots(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
 			// ApplyRandomSubjectDaySwap(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
 			// ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
-			ApplyRandomSubjectTimeSlotAndDayNudge(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
+			// ApplyRandomSubjectTimeSlotAndDayNudge(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
 
 			// repair broken genome after mutations
 
@@ -364,7 +364,7 @@ func RunGeneticAlgorithm(
 						// ApplyRandomDaySwapTimeSlots(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
 						// ApplyRandomSubjectDaySwap(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
 						// ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
-						ApplyRandomSubjectTimeSlotAndDayNudge(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
+						// ApplyRandomSubjectTimeSlotAndDayNudge(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
 					}
 
 					continue
