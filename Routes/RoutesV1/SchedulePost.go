@@ -641,11 +641,11 @@ queue_pop_loop:
 				log.Print("encode_schedule: (not-equal) genetic algorithm generated new schedules")
 			}
 
-			if GeneticAlgorithm.IsEqualEncodingResource(generated_encoding_resource, fittest_encoding_resource) {
-				log.Print("encode_schedule: (equal) genetic algorithm didn't change the original base encoding resources")
-			} else {
-				log.Print("encode_schedule: (not-equal) genetic algorithm generated new encoding resources")
-			}
+			// if GeneticAlgorithm.IsEqualEncodingResource(generated_encoding_resource, fittest_encoding_resource) {
+			// 	log.Print("encode_schedule: (equal) genetic algorithm didn't change the original base encoding resources")
+			// } else {
+			// 	log.Print("encode_schedule: (not-equal) genetic algorithm generated new encoding resources")
+			// }
 
 			if len(fittest_encoding_resource.DeptIdToInstructors) <= 0 {
 				panic("this re-encoding resource has an empty DeptIdToInstructors")
