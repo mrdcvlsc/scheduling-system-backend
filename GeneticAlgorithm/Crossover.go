@@ -392,16 +392,14 @@ func inherit_trait_from_a_parent(
 				has_extended_subject: true,
 			}
 		}
-	} else {
-		if is_first_target_time_slot_free {
-			for j := 0; j < subject.TimeSlotSize; j++ {
-				offspring[usi][subject.Day][subject.StartingTimeSlot+j].SetSubjectID(subject.SubjectID)
-				offspring[usi][subject.Day][subject.StartingTimeSlot+j].SetInstructorID(subject.InstructorID)
-				offspring[usi][subject.Day][subject.StartingTimeSlot+j].SetRoomID(subject.RoomID)
+	} else if is_first_target_time_slot_free {
+		for j := 0; j < subject.TimeSlotSize; j++ {
+			offspring[usi][subject.Day][subject.StartingTimeSlot+j].SetSubjectID(subject.SubjectID)
+			offspring[usi][subject.Day][subject.StartingTimeSlot+j].SetInstructorID(subject.InstructorID)
+			offspring[usi][subject.Day][subject.StartingTimeSlot+j].SetRoomID(subject.RoomID)
 
-				id_to_instructor[subject.InstructorID].Time.SetAvailability(false, subject.Day, subject.StartingTimeSlot+j)
-				id_to_room[subject.RoomID].IncTimeSlotClassCount(subject.Day, subject.StartingTimeSlot+j)
-			}
+			id_to_instructor[subject.InstructorID].Time.SetAvailability(false, subject.Day, subject.StartingTimeSlot+j)
+			id_to_room[subject.RoomID].IncTimeSlotClassCount(subject.Day, subject.StartingTimeSlot+j)
 		}
 
 		return inherit_trait_result{
