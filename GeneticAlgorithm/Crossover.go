@@ -49,14 +49,6 @@ func Crossover(
 
 	offspring := make(Schedule.UniTimeTables, len(parent1))
 
-	offspring_encode_resource, err_gen_encoding_resource := GenerateEncodingResourceFromUniTimeTable(
-		offspring, curriculums, selected_semester, default_encoding_resource,
-	)
-
-	if err_gen_encoding_resource != nil {
-		return nil, fmt.Errorf("crossover error, caused by : %s", err_gen_encoding_resource.Error())
-	}
-
 	// copy other department subjects to the offspring, it doesn't matter if we use parent 1 or 2
 	// both parents should have the same subjects allocated in other departments
 
@@ -84,6 +76,14 @@ func Crossover(
 		if is_to_encode {
 			ApplyClearDepartmentSchedule(offspring, curriculums, department_id, selected_semester)
 		}
+	}
+
+	offspring_encode_resource, err_gen_encoding_resource := GenerateEncodingResourceFromUniTimeTable(
+		offspring, curriculums, selected_semester, default_encoding_resource,
+	)
+
+	if err_gen_encoding_resource != nil {
+		return nil, fmt.Errorf("crossover error, caused by : %s", err_gen_encoding_resource.Error())
 	}
 
 	is_err_to_return := false
@@ -302,7 +302,7 @@ func Crossover(
 		)
 
 		if err_repair_encoding != nil {
-			return nil, fmt.Errorf("crossover error, caused by : %s", err_repair_encoding.Error())
+			return nil, fmt.Errorf("crossover completion error, caused by : %s", err_repair_encoding.Error())
 		}
 
 		return &SchedAndResources{
