@@ -19,6 +19,9 @@ type EncodingResource struct {
 	IsSchedIdxToSubIdToSkip map[uint16]map[uint16]bool
 	DeptIdToInstructors     map[uint16][]Instructors.Instructor
 	DeptIdToRoomtypeToRooms map[uint16]map[uint16][]Rooms.Room
+
+	IdToInstructor map[uint16]*Instructors.Instructor // flatten `DeptIdToInstructors`
+	IdToRoom       map[uint16]*Rooms.Room             // flatten `DeptIdToRoomtypeToRooms`
 }
 
 func (s *EncodingResource) MakeCopy() (*EncodingResource, error) {
@@ -64,10 +67,37 @@ func (s *EncodingResource) MakeCopy() (*EncodingResource, error) {
 		}
 	}
 
+	//////////////////////////////////////////////////////////////////////////////////////
+	//                              FLATTEN ENCODING RESOURCES
+	//////////////////////////////////////////////////////////////////////////////////////
+
+	room_id_to_room := make(map[uint16]*Rooms.Room)
+
+	for out_key, out_v := range dept_id_to_room_type_to_rooms {
+		for in_key, in_v := range out_v {
+			for room_idx, room := range in_v {
+				room_id_to_room[room.RoomID] = &dept_id_to_room_type_to_rooms[out_key][in_key][room_idx]
+			}
+		}
+	}
+
+	instructor_id_to_instructor := make(map[uint16]*Instructors.Instructor)
+
+	for k, v := range dept_id_to_instructors {
+		for instructor_idx, instructor := range v {
+			instructor_id_to_instructor[instructor.InstructorID] = &dept_id_to_instructors[k][instructor_idx]
+		}
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
 	return &EncodingResource{
 		IsSchedIdxToSubIdToSkip: is_sched_idx_to_sub_id_to_skip,
 		DeptIdToInstructors:     dept_id_to_instructors,
 		DeptIdToRoomtypeToRooms: dept_id_to_room_type_to_rooms,
+
+		IdToInstructor: instructor_id_to_instructor,
+		IdToRoom:       room_id_to_room,
 	}, nil
 }
 
@@ -222,27 +252,8 @@ func GenerateEncodingResourceFromUniTimeTable(
 	//                              FLATTEN ENCODING RESOURCES
 	//////////////////////////////////////////////////////////////////////////////////////
 
-	////////////////////////////////////////////////////////////////////////////////////////
-
-	room_id_to_room := make(map[uint16]*Rooms.Room)
-
-	for out_key, out_v := range encode_resource.DeptIdToRoomtypeToRooms {
-		for in_key, in_v := range out_v {
-			for room_idx, room := range in_v {
-				room_id_to_room[room.RoomID] = &encode_resource.DeptIdToRoomtypeToRooms[out_key][in_key][room_idx]
-			}
-		}
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////
-
-	instructor_id_to_instructor := make(map[uint16]*Instructors.Instructor)
-
-	for k, v := range encode_resource.DeptIdToInstructors {
-		for instructor_idx, instructor := range v {
-			instructor_id_to_instructor[instructor.InstructorID] = &encode_resource.DeptIdToInstructors[k][instructor_idx]
-		}
-	}
+	room_id_to_room := encode_resource.IdToRoom
+	instructor_id_to_instructor := encode_resource.IdToInstructor
 
 	//////////////////////////////////////////////////////////////////////////////////////
 	//                           RE-CREATE ENCODING RESOURCE DATA
@@ -316,9 +327,36 @@ func ReadDefaultEncodingResource(resource_persistence *StorageResources.Persiste
 
 	dept_id_to_instructors := GenerateMapDeptIdToInstructors(instructors)
 
+	//////////////////////////////////////////////////////////////////////////////////////
+	//                              FLATTEN ENCODING RESOURCES
+	//////////////////////////////////////////////////////////////////////////////////////
+
+	room_id_to_room := make(map[uint16]*Rooms.Room)
+
+	for out_key, out_v := range dept_id_to_room_type_to_rooms {
+		for in_key, in_v := range out_v {
+			for room_idx, room := range in_v {
+				room_id_to_room[room.RoomID] = &dept_id_to_room_type_to_rooms[out_key][in_key][room_idx]
+			}
+		}
+	}
+
+	instructor_id_to_instructor := make(map[uint16]*Instructors.Instructor)
+
+	for k, v := range dept_id_to_instructors {
+		for instructor_idx, instructor := range v {
+			instructor_id_to_instructor[instructor.InstructorID] = &dept_id_to_instructors[k][instructor_idx]
+		}
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
 	return &EncodingResource{
 		IsSchedIdxToSubIdToSkip: make(map[uint16]map[uint16]bool),
 		DeptIdToInstructors:     dept_id_to_instructors,
 		DeptIdToRoomtypeToRooms: dept_id_to_room_type_to_rooms,
+
+		IdToInstructor: instructor_id_to_instructor,
+		IdToRoom:       room_id_to_room,
 	}, nil
 }
