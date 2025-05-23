@@ -387,11 +387,11 @@ func inherit_trait_from_a_parent(
 				id_to_room[subj_extend.RoomID].IncTimeSlotClassCount(subj_extend.Day, subj_extend.StartingTimeSlot+j)
 			}
 
-			if _, has_sched_idx := offspring_encode_resource.IsSchedIdxToSubIdToSkip[uint16(i)]; !has_sched_idx {
-				offspring_encode_resource.IsSchedIdxToSubIdToSkip[uint16(i)] = make(map[uint16]bool)
+			if _, has_sched_idx := offspring_encode_resource.IsSchedIdxToSubIdToSkip[uint16(usi)]; !has_sched_idx {
+				offspring_encode_resource.IsSchedIdxToSubIdToSkip[uint16(usi)] = make(map[uint16]bool)
 			}
 
-			offspring_encode_resource.IsSchedIdxToSubIdToSkip[uint16(i)][subject.SubjectID] = true
+			offspring_encode_resource.IsSchedIdxToSubIdToSkip[uint16(usi)][subject.SubjectID] = true
 
 			return inherit_trait_result{
 				success:              true,
@@ -408,11 +408,11 @@ func inherit_trait_from_a_parent(
 			id_to_room[subject.RoomID].IncTimeSlotClassCount(subject.Day, subject.StartingTimeSlot+j)
 		}
 
-		if _, has_sched_idx := offspring_encode_resource.IsSchedIdxToSubIdToSkip[uint16(i)]; !has_sched_idx {
-			offspring_encode_resource.IsSchedIdxToSubIdToSkip[uint16(i)] = make(map[uint16]bool)
+		if _, has_sched_idx := offspring_encode_resource.IsSchedIdxToSubIdToSkip[uint16(usi)]; !has_sched_idx {
+			offspring_encode_resource.IsSchedIdxToSubIdToSkip[uint16(usi)] = make(map[uint16]bool)
 		}
 
-		offspring_encode_resource.IsSchedIdxToSubIdToSkip[uint16(i)][subject.SubjectID] = true
+		offspring_encode_resource.IsSchedIdxToSubIdToSkip[uint16(usi)][subject.SubjectID] = true
 
 		return inherit_trait_result{
 			success:              true,
