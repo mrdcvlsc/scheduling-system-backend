@@ -347,21 +347,49 @@ func ApplyRandomSubjectTimeSlotNudge(
 				continue
 			}
 
-			// for i_ts := 0; i_ts < rnd_subject.TimeSlotSize; i_ts++ {
-			// 	old_slot := sched[usi][rnd_subject.Day].GetTimeSlot(rnd_subject.StartingTimeSlot + i_ts)
-			// 	old_slot.Set(0, 0, 0)
+			for i_ts := 0; i_ts < rnd_subject.TimeSlotSize; i_ts++ {
+				old_slot := sched[usi][rnd_subject.Day].GetTimeSlot(rnd_subject.StartingTimeSlot + i_ts)
+				old_slot.Set(0, 0, 0)
 
-			// 	id_to_instructor[rnd_subject.InstructorID].Time.SetAvailability(true, rnd_subject.Day, (rnd_subject.StartingTimeSlot + i_ts))
-			// 	id_to_room[rnd_subject.RoomID].DecTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot + i_ts))
-			// }
+				id_to_instructor[rnd_subject.InstructorID].Time.SetAvailability(true, rnd_subject.Day, (rnd_subject.StartingTimeSlot + i_ts))
 
-			// for i_ts := 0; i_ts < rnd_subject.TimeSlotSize; i_ts++ {
-			// 	nudge_slot := sched[usi][rnd_subject.Day].GetTimeSlot(rnd_subject.StartingTimeSlot + nudge_value + i_ts)
-			// 	nudge_slot.Set(rnd_subject.SubjectID, rnd_subject.InstructorID, rnd_subject.RoomID)
+				prev_room_val := int(id_to_room[rnd_subject.RoomID].GetTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot + i_ts)))
+				id_to_room[rnd_subject.RoomID].DecTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot + i_ts))
+				next_room_val := int(id_to_room[rnd_subject.RoomID].GetTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot + i_ts)))
 
-			// 	id_to_instructor[rnd_subject.InstructorID].Time.SetAvailability(false, rnd_subject.Day, (rnd_subject.StartingTimeSlot + nudge_value + i_ts))
-			// 	id_to_room[rnd_subject.RoomID].IncTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot + nudge_value + i_ts))
-			// }
+				if prev_room_val == 0 {
+					if next_room_val != 0 {
+						log.Panic("decrement is wrong for zero values")
+					}
+				}
+
+				if next_room_val != prev_room_val-1 {
+					log.Panic("decrement is wrong for normal values")
+				}
+			}
+
+			for i_ts := 0; i_ts < rnd_subject.TimeSlotSize; i_ts++ {
+				nudge_slot := sched[usi][rnd_subject.Day].GetTimeSlot(rnd_subject.StartingTimeSlot + nudge_value + i_ts)
+				nudge_slot.Set(rnd_subject.SubjectID, rnd_subject.InstructorID, rnd_subject.RoomID)
+
+				id_to_instructor[rnd_subject.InstructorID].Time.SetAvailability(false, rnd_subject.Day, (rnd_subject.StartingTimeSlot + nudge_value + i_ts))
+
+				prev_room_val := int(id_to_room[rnd_subject.RoomID].GetTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot + nudge_value + i_ts)))
+				id_to_room[rnd_subject.RoomID].IncTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot + nudge_value + i_ts))
+				next_room_val := int(id_to_room[rnd_subject.RoomID].GetTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot + nudge_value + i_ts)))
+
+				if prev_room_val == 15 {
+					log.Panic("increment is allowing increment above 15")
+				}
+
+				if prev_room_val == int(id_to_room[rnd_subject.RoomID].Capacity) {
+					log.Panic("increment is allowing increment above maximum room capacity")
+				}
+
+				if next_room_val != prev_room_val+1 {
+					log.Panic("increment is wrong for normal values")
+				}
+			}
 
 			successful_subject_time_slot_nudge++
 		}
