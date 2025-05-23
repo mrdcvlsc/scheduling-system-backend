@@ -219,7 +219,7 @@ func IsEqualEncodingResource(a, b *EncodingResource) bool {
 
 		for instructor_idx, instructor := range a_v {
 			if instructor != b_v[instructor_idx] {
-				log.Print("IsEqualEncodingResource: not equal DeptIdToInstructors - case 4")
+				log.Printf("IsEqualEncodingResource: not equal DeptIdToInstructors - case 4, \ninstructor:\n%v\n\nb_v[instructor_idx]:%v\n", instructor, b_v[instructor_idx])
 				return false
 			}
 		}
