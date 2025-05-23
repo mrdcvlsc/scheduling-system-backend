@@ -106,6 +106,29 @@ func ApplyRandomDaySwapTimeSlots(
 				if is_instructor_a_available && is_instructor_b_available && is_room_a_available && is_room_b_available {
 
 					for time_slot := range Const.N_DAILY_TIME_SLOTS {
+
+						// update instructors
+
+						instructor_id_a := sched[usi][day][time_slot].GetInstructorID()
+						id_to_instructor[instructor_id_a].Time.SetAvailability(false, day_swap, time_slot)
+						id_to_instructor[instructor_id_a].Time.SetAvailability(true, day, time_slot)
+
+						instructor_id_b := sched[usi][day_swap][time_slot].GetInstructorID()
+						id_to_instructor[instructor_id_b].Time.SetAvailability(false, day, time_slot)
+						id_to_instructor[instructor_id_b].Time.SetAvailability(true, day_swap, time_slot)
+
+						// update rooms
+
+						room_id_a := sched[usi][day][time_slot].GetRoomID()
+						id_to_room[room_id_a].IncTimeSlotClassCount(day_swap, time_slot)
+						id_to_room[room_id_a].DecTimeSlotClassCount(day, time_slot)
+
+						room_id_b := sched[usi][day_swap][time_slot].GetRoomID()
+						id_to_room[room_id_b].IncTimeSlotClassCount(day, time_slot)
+						id_to_room[room_id_b].DecTimeSlotClassCount(day_swap, time_slot)
+
+						// swap time slots
+
 						sched[usi][day][time_slot], sched[usi][day_swap][time_slot] = sched[usi][day_swap][time_slot], sched[usi][day][time_slot]
 					}
 
