@@ -1,14 +1,12 @@
-name: tests
+name: bench
 
 on:
   push:
     branches:
       - "**"
-  pull_request:
-    branches: [ "canary", "main", "development" ]
 
 jobs:
-  run_tests:
+  run_bench:
 
     runs-on: ubuntu-latest
 
