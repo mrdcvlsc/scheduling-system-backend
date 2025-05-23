@@ -8,8 +8,6 @@ import (
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
-	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
-	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
@@ -151,16 +149,17 @@ func ApplyRandomDaySwapTimeSlots(
 
 func ApplyRandomSubjectDaySwap(
 	sched Schedule.UniTimeTables, encoding_resource *EncodingResource,
-	rooms []Rooms.Room,
 	all_curriculums []Curriculum.Curriculum,
 	department_id uint16, selected_semester int,
-	instructor_id_to_instructor map[uint16]*Instructors.Instructor,
 ) {
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 
 	successful_subject_day_swaps := 0
 	total_tried_day_swaps := 0
 	total_lec_and_lab_subjects := 0
+
+	id_to_instructor := encoding_resource.IdToInstructor
+	id_to_room := encoding_resource.IdToRoom
 
 	IterateSectionsWeekSchedule(sched, all_curriculums, selected_semester, nil, nil, func(indicies IterIndices, values IterValues) IterReturnType {
 
@@ -211,9 +210,10 @@ func ApplyRandomSubjectDaySwap(
 					swap_slot := sched[usi][day_swap].GetTimeSlot(rand_subject.StartingTimeSlot + i)
 
 					is_time_slot_available := swap_slot.GetSubjectID() == 0
-					is_instructor_available := instructor_id_to_instructor[rand_subject.InstructorID].Time.GetAvailability(day_swap, rand_subject.StartingTimeSlot+i)
+					is_instructor_available := id_to_instructor[rand_subject.InstructorID].Time.GetAvailability(day_swap, rand_subject.StartingTimeSlot+i)
+					is_room_available := id_to_room[rand_subject.RoomID].GetTimeSlotClassCount(day_swap, rand_subject.StartingTimeSlot+i) < uint8(id_to_room[rand_subject.RoomID].Capacity)
 
-					if !(is_time_slot_available && is_instructor_available) {
+					if !(is_time_slot_available && is_instructor_available && is_room_available) {
 						is_free_time_slot = false
 						break
 					}
@@ -226,27 +226,16 @@ func ApplyRandomSubjectDaySwap(
 				for i := range rand_subject.TimeSlotSize {
 					old_slot := sched[usi][rand_subject.Day].GetTimeSlot(rand_subject.StartingTimeSlot + i)
 					old_slot.Set(0, 0, 0)
+					id_to_instructor[rand_subject.InstructorID].Time.SetAvailability(true, rand_subject.Day, rand_subject.StartingTimeSlot+i)
+					id_to_room[rand_subject.RoomID].DecTimeSlotClassCount(rand_subject.Day, rand_subject.StartingTimeSlot+i)
 
 					swap_slot := sched[usi][day_swap].GetTimeSlot(rand_subject.StartingTimeSlot + i)
 					swap_slot.Set(rand_subject.SubjectID, rand_subject.InstructorID, rand_subject.RoomID)
+					id_to_instructor[rand_subject.InstructorID].Time.SetAvailability(false, day_swap, rand_subject.StartingTimeSlot+i)
+					id_to_room[rand_subject.RoomID].IncTimeSlotClassCount(day_swap, rand_subject.StartingTimeSlot+i)
 				}
 
-				err_overlaps := sched.VerticalRangedValidation(rooms,
-					day_swap, 1,
-					rand_subject.StartingTimeSlot, rand_subject.TimeSlotSize,
-				)
-
-				if len(err_overlaps) > 0 {
-					for i := range rand_subject.TimeSlotSize {
-						old_slot := sched[usi][rand_subject.Day].GetTimeSlot(rand_subject.StartingTimeSlot + i)
-						old_slot.Set(rand_subject.SubjectID, rand_subject.InstructorID, rand_subject.RoomID)
-
-						swap_slot := sched[usi][day_swap].GetTimeSlot(rand_subject.StartingTimeSlot + i)
-						swap_slot.Set(0, 0, 0)
-					}
-				} else {
-					successful_subject_day_swaps++
-				}
+				successful_subject_day_swaps++
 			}
 		}
 
@@ -260,16 +249,17 @@ func ApplyRandomSubjectDaySwap(
 
 func ApplyRandomSubjectTimeSlotNudge(
 	sched Schedule.UniTimeTables, encoding_resource *EncodingResource,
-	rooms []Rooms.Room,
 	all_curriculums []Curriculum.Curriculum,
 	department_id uint16, selected_semester int,
-	instructor_id_to_instructor map[uint16]*Instructors.Instructor,
 ) {
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 
 	successful_subject_time_slot_nudge := 0
 	total_tried_time_slot_nudge := 0
 	total_lec_and_lab_subjects := 0
+
+	id_to_instructor := encoding_resource.IdToInstructor
+	id_to_room := encoding_resource.IdToRoom
 
 	IterateSectionsWeekSchedule(sched, all_curriculums, selected_semester, nil, nil, func(indicies IterIndices, values IterValues) IterReturnType {
 
@@ -331,15 +321,19 @@ func ApplyRandomSubjectTimeSlotNudge(
 				for i := 0; i < rnd_subject.TimeSlotSize; i++ {
 					nudge_slot := sched[usi][rnd_subject.Day].GetTimeSlot(rnd_subject.StartingTimeSlot + nudge_value + i)
 
-					is_empty_slot := nudge_slot.GetSubjectID() == 0
-
-					is_same_subject_and_room := (nudge_slot.GetSubjectID() == rnd_subject.SubjectID) &&
+					is_same_subject_block := (nudge_slot.GetSubjectID() == rnd_subject.SubjectID) &&
 						(nudge_slot.GetInstructorID() == rnd_subject.InstructorID) &&
 						(nudge_slot.GetRoomID() == rnd_subject.RoomID)
 
-					is_instructor_available := instructor_id_to_instructor[rnd_subject.InstructorID].Time.GetAvailability(rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value+i)
+					if is_same_subject_block {
+						continue
+					}
 
-					if !((is_empty_slot || is_same_subject_and_room) && is_instructor_available) {
+					is_empty_slot := nudge_slot.GetSubjectID() == 0
+					is_instructor_available := id_to_instructor[rnd_subject.InstructorID].Time.GetAvailability(rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value+i)
+					is_room_available := id_to_room[rnd_subject.RoomID].GetTimeSlotClassCount(rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value+i) < uint8(id_to_room[rnd_subject.RoomID].Capacity)
+
+					if !(is_empty_slot && is_instructor_available && is_room_available) {
 						is_free_time_slot = false
 						break
 					}
@@ -352,31 +346,21 @@ func ApplyRandomSubjectTimeSlotNudge(
 				for i := 0; i < rnd_subject.TimeSlotSize; i++ {
 					old_slot := sched[usi][rnd_subject.Day].GetTimeSlot(rnd_subject.StartingTimeSlot + i)
 					old_slot.Set(0, 0, 0)
+
+					id_to_instructor[rnd_subject.InstructorID].Time.SetAvailability(true, rnd_subject.Day, (rnd_subject.StartingTimeSlot + i))
+					id_to_room[rnd_subject.RoomID].DecTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot + i))
 				}
 
 				for i := 0; i < rnd_subject.TimeSlotSize; i++ {
 					nudge_slot := sched[usi][rnd_subject.Day].GetTimeSlot(rnd_subject.StartingTimeSlot + nudge_value + i)
 					nudge_slot.Set(rnd_subject.SubjectID, rnd_subject.InstructorID, rnd_subject.RoomID)
+
+					id_to_instructor[rnd_subject.InstructorID].Time.SetAvailability(false, rnd_subject.Day, (rnd_subject.StartingTimeSlot + nudge_value + i))
+					id_to_room[rnd_subject.RoomID].IncTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot + nudge_value + i))
 				}
 
-				err_overlaps := sched.VerticalRangedValidation(rooms,
-					rnd_subject.Day, 1,
-					rnd_subject.StartingTimeSlot+nudge_value, rnd_subject.TimeSlotSize,
-				)
+				successful_subject_time_slot_nudge++
 
-				if len(err_overlaps) > 0 {
-					for i := 0; i < rnd_subject.TimeSlotSize; i++ {
-						nudge_slot := sched[usi][rnd_subject.Day].GetTimeSlot(rnd_subject.StartingTimeSlot + nudge_value + i)
-						nudge_slot.Set(0, 0, 0)
-					}
-
-					for i := 0; i < rnd_subject.TimeSlotSize; i++ {
-						old_slot := sched[usi][rnd_subject.Day].GetTimeSlot(rnd_subject.StartingTimeSlot + i)
-						old_slot.Set(rnd_subject.SubjectID, rnd_subject.InstructorID, rnd_subject.RoomID)
-					}
-				} else {
-					successful_subject_time_slot_nudge++
-				}
 			}
 		}
 
@@ -393,16 +377,17 @@ func ApplyRandomSubjectTimeSlotNudge(
 
 func ApplyRandomSubjectTimeSlotAndDayNudge(
 	sched Schedule.UniTimeTables, encoding_resource *EncodingResource,
-	rooms []Rooms.Room,
 	all_curriculums []Curriculum.Curriculum,
 	department_id uint16, selected_semester int,
-	instructor_id_to_instructor map[uint16]*Instructors.Instructor,
 ) {
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 
 	successful_subject_nudge := 0
 	total_tried_nudge := 0
 	total_lec_and_lab_subjects := 0
+
+	id_to_instructor := encoding_resource.IdToInstructor
+	id_to_room := encoding_resource.IdToRoom
 
 	IterateSectionsWeekSchedule(sched, all_curriculums, selected_semester, nil, nil, func(indicies IterIndices, values IterValues) IterReturnType {
 
@@ -465,15 +450,19 @@ func ApplyRandomSubjectTimeSlotAndDayNudge(
 				for i := 0; i < rnd_subject.TimeSlotSize; i++ {
 					nudge_slot := sched[usi][day_swap].GetTimeSlot(rnd_subject.StartingTimeSlot + nudge_value + i)
 
-					is_empty_slot := nudge_slot.GetSubjectID() == 0
-
-					is_same_subject_and_room := (nudge_slot.GetSubjectID() == rnd_subject.SubjectID) &&
+					is_same_subject_block := (nudge_slot.GetSubjectID() == rnd_subject.SubjectID) &&
 						(nudge_slot.GetInstructorID() == rnd_subject.InstructorID) &&
 						(nudge_slot.GetRoomID() == rnd_subject.RoomID)
 
-					is_instructor_available := instructor_id_to_instructor[rnd_subject.InstructorID].Time.GetAvailability(day_swap, rnd_subject.StartingTimeSlot+nudge_value+i)
+					if is_same_subject_block {
+						continue
+					}
 
-					if !((is_empty_slot || is_same_subject_and_room) && is_instructor_available) {
+					is_empty_slot := nudge_slot.GetSubjectID() == 0
+					is_instructor_available := id_to_instructor[rnd_subject.InstructorID].Time.GetAvailability(day_swap, rnd_subject.StartingTimeSlot+nudge_value+i)
+					is_room_available := id_to_room[rnd_subject.RoomID].GetTimeSlotClassCount(day_swap, rnd_subject.StartingTimeSlot+nudge_value+i) < uint8(id_to_room[rnd_subject.RoomID].Capacity)
+
+					if !(is_empty_slot && is_instructor_available && is_room_available) {
 						is_free_time_slot = false
 						break
 					}
@@ -486,31 +475,21 @@ func ApplyRandomSubjectTimeSlotAndDayNudge(
 				for i := 0; i < rnd_subject.TimeSlotSize; i++ {
 					old_slot := sched[usi][rnd_subject.Day].GetTimeSlot(rnd_subject.StartingTimeSlot + i)
 					old_slot.Set(0, 0, 0)
+
+					id_to_instructor[rnd_subject.InstructorID].Time.SetAvailability(true, rnd_subject.Day, (rnd_subject.StartingTimeSlot + i))
+					id_to_room[rnd_subject.RoomID].DecTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot + i))
 				}
 
 				for i := 0; i < rnd_subject.TimeSlotSize; i++ {
 					nudge_slot := sched[usi][day_swap].GetTimeSlot(rnd_subject.StartingTimeSlot + nudge_value + i)
 					nudge_slot.Set(rnd_subject.SubjectID, rnd_subject.InstructorID, rnd_subject.RoomID)
+
+					id_to_instructor[rnd_subject.InstructorID].Time.SetAvailability(false, day_swap, (rnd_subject.StartingTimeSlot + nudge_value + i))
+					id_to_room[rnd_subject.RoomID].IncTimeSlotClassCount(day_swap, (rnd_subject.StartingTimeSlot + nudge_value + i))
 				}
 
-				err_overlaps := sched.VerticalRangedValidation(rooms,
-					day_swap, 1,
-					rnd_subject.StartingTimeSlot+nudge_value, rnd_subject.TimeSlotSize,
-				)
+				successful_subject_nudge++
 
-				if len(err_overlaps) > 0 {
-					for i := 0; i < rnd_subject.TimeSlotSize; i++ {
-						nudge_slot := sched[usi][day_swap].GetTimeSlot(rnd_subject.StartingTimeSlot + nudge_value + i)
-						nudge_slot.Set(0, 0, 0)
-					}
-
-					for i := 0; i < rnd_subject.TimeSlotSize; i++ {
-						old_slot := sched[usi][rnd_subject.Day].GetTimeSlot(rnd_subject.StartingTimeSlot + i)
-						old_slot.Set(rnd_subject.SubjectID, rnd_subject.InstructorID, rnd_subject.RoomID)
-					}
-				} else {
-					successful_subject_nudge++
-				}
 			}
 		}
 

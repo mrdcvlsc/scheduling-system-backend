@@ -308,9 +308,9 @@ func RunGeneticAlgorithm(
 			// apply random mutations to some of the CURRENT individuals in the population
 
 			ApplyRandomDaySwapTimeSlots(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
-			ApplyRandomSubjectDaySwap(population[i].UniSched, population[i].Resources, rooms, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
-			ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, population[i].Resources, rooms, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
-			ApplyRandomSubjectTimeSlotAndDayNudge(population[i].UniSched, population[i].Resources, rooms, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
+			ApplyRandomSubjectDaySwap(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
+			ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
+			ApplyRandomSubjectTimeSlotAndDayNudge(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
 
 			// repair broken genome after mutations
 
@@ -362,9 +362,9 @@ func RunGeneticAlgorithm(
 						)
 					} else {
 						ApplyRandomDaySwapTimeSlots(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
-						ApplyRandomSubjectDaySwap(population[i].UniSched, population[i].Resources, rooms, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
-						ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, population[i].Resources, rooms, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
-						ApplyRandomSubjectTimeSlotAndDayNudge(population[i].UniSched, population[i].Resources, rooms, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
+						ApplyRandomSubjectDaySwap(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
+						ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
+						ApplyRandomSubjectTimeSlotAndDayNudge(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
 					}
 
 					continue
