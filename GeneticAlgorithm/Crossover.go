@@ -83,7 +83,7 @@ func Crossover(
 	)
 
 	if err_gen_encoding_resource != nil {
-		return nil, fmt.Errorf("crossover error, caused by : %s", err_gen_encoding_resource.Error())
+		return nil, fmt.Errorf("crossover generate encoding error, caused by : %s", err_gen_encoding_resource.Error())
 	}
 
 	is_err_to_return := false
@@ -335,7 +335,7 @@ func inherit_trait_from_a_parent(
 	has_extended_subject := false
 
 	if i+1 < len(json_subjects) {
-		if json_subjects[i+1].SubjectID == subject.SubjectID {
+		if (json_subjects[i+1].SubjectID == subject.SubjectID) && (json_subjects[i+1].InstructorID == subject.InstructorID) {
 			has_extended_subject = true
 		}
 	}
@@ -387,6 +387,12 @@ func inherit_trait_from_a_parent(
 				id_to_room[subj_extend.RoomID].IncTimeSlotClassCount(subj_extend.Day, subj_extend.StartingTimeSlot+j)
 			}
 
+			if _, has_sched_idx := offspring_encode_resource.IsSchedIdxToSubIdToSkip[uint16(i)]; !has_sched_idx {
+				offspring_encode_resource.IsSchedIdxToSubIdToSkip[uint16(i)] = make(map[uint16]bool)
+			}
+
+			offspring_encode_resource.IsSchedIdxToSubIdToSkip[uint16(i)][subject.SubjectID] = true
+
 			return inherit_trait_result{
 				success:              true,
 				has_extended_subject: true,
@@ -401,6 +407,12 @@ func inherit_trait_from_a_parent(
 			id_to_instructor[subject.InstructorID].Time.SetAvailability(false, subject.Day, subject.StartingTimeSlot+j)
 			id_to_room[subject.RoomID].IncTimeSlotClassCount(subject.Day, subject.StartingTimeSlot+j)
 		}
+
+		if _, has_sched_idx := offspring_encode_resource.IsSchedIdxToSubIdToSkip[uint16(i)]; !has_sched_idx {
+			offspring_encode_resource.IsSchedIdxToSubIdToSkip[uint16(i)] = make(map[uint16]bool)
+		}
+
+		offspring_encode_resource.IsSchedIdxToSubIdToSkip[uint16(i)][subject.SubjectID] = true
 
 		return inherit_trait_result{
 			success:              true,
