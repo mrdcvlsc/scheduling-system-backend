@@ -139,10 +139,12 @@ func IsEqualEncodingResource(a, b *EncodingResource) bool {
 		b_out_v, has_b_out_k := b.DeptIdToRoomtypeToRooms[a_out_k]
 
 		if !has_b_out_k {
+			log.Print("IsEqualEncodingResource: not equal DeptIdToRoomtypeToRooms - case 1")
 			return false
 		}
 
 		if len(a_out_v) != len(b_out_v) {
+			log.Print("IsEqualEncodingResource: not equal DeptIdToRoomtypeToRooms - case 2")
 			return false
 		}
 
@@ -151,10 +153,12 @@ func IsEqualEncodingResource(a, b *EncodingResource) bool {
 			b_in_v, has_b_in_k := b_out_v[a_in_k]
 
 			if !has_b_in_k {
+				log.Print("IsEqualEncodingResource: not equal DeptIdToRoomtypeToRooms - case 3")
 				return false
 			}
 
 			if len(a_in_v) != len(b_in_v) {
+				log.Print("IsEqualEncodingResource: not equal DeptIdToRoomtypeToRooms - case 4")
 				return false
 			}
 
@@ -176,6 +180,8 @@ func IsEqualEncodingResource(a, b *EncodingResource) bool {
 							}
 						}
 					}
+
+					log.Print("IsEqualEncodingResource: not equal DeptIdToRoomtypeToRooms - case 5")
 					return false
 				}
 			}
@@ -185,6 +191,7 @@ func IsEqualEncodingResource(a, b *EncodingResource) bool {
 	////////////////////////////////////////////////////////////////////////////////////////
 
 	if len(a.DeptIdToInstructors) != len(b.DeptIdToInstructors) {
+		log.Print("IsEqualEncodingResource: not equal DeptIdToInstructors - case 1")
 		return false
 	}
 
@@ -193,10 +200,12 @@ func IsEqualEncodingResource(a, b *EncodingResource) bool {
 		b_v, has_b_k := b.DeptIdToInstructors[a_k]
 
 		if !has_b_k {
+			log.Print("IsEqualEncodingResource: not equal DeptIdToInstructors - case 2")
 			return false
 		}
 
 		if len(a_v) != len(b_v) {
+			log.Print("IsEqualEncodingResource: not equal DeptIdToInstructors - case 3")
 			return false
 		}
 
@@ -210,6 +219,7 @@ func IsEqualEncodingResource(a, b *EncodingResource) bool {
 
 		for instructor_idx, instructor := range a_v {
 			if instructor != b_v[instructor_idx] {
+				log.Print("IsEqualEncodingResource: not equal DeptIdToInstructors - case 4")
 				return false
 			}
 		}
