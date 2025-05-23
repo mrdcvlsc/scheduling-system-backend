@@ -299,6 +299,10 @@ func ApplyRandomSubjectTimeSlotNudge(
 				rnd_subject := subjects_json[shuffled_idx]
 				nudge_value := Utils.RandomInRange(-MAX_TIME_SLOT_NUDGE, MAX_TIME_SLOT_NUDGE)
 
+				if rnd_subject.SubjectID == 0 {
+					continue
+				}
+
 				if nudge_value == 0 {
 					continue
 				}
@@ -358,7 +362,6 @@ func ApplyRandomSubjectTimeSlotNudge(
 				}
 
 				successful_subject_time_slot_nudge++
-
 			}
 		}
 
