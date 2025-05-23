@@ -73,8 +73,7 @@ func (room *Room) IncTimeSlotClassCount(day, time_slot int) {
 
 // decrease by 1 the current number of classes or sections allocated in the room for a specific time slot.
 //
-// warning decrementing until the max room capacity 15 would underflow the whole
-// uint8 which cause serialized data corruption due to underflow of the uint8 type.
+// note: decrementing 0 values will not do anything.
 func (room *Room) DecTimeSlotClassCount(day, time_slot int) {
 	idx_2D_to_1D := (day * Const.N_DAILY_TIME_SLOTS) + time_slot
 	limb_idx := idx_2D_to_1D / 2
@@ -83,10 +82,7 @@ func (room *Room) DecTimeSlotClassCount(day, time_slot int) {
 	current_time_slot_allocation := int(room.GetTimeSlotClassCount(day, time_slot))
 
 	if current_time_slot_allocation == 0 {
-		panic(fmt.Sprintf(
-			"(%s - [id:%d, type:%d])DecTimeSlotClassCount(%d, %d) - cannot decrement to smaller room capacity : (capacity current/max = %d/%d)",
-			room.Name, room.RoomID, room.RoomType, day, time_slot, room.GetTimeSlotClassCount(day, time_slot), room.Capacity,
-		))
+		return
 	}
 
 	room.timeSlotClassCount[limb_idx] -= (0b1 << (4 * shift_multiplier))
