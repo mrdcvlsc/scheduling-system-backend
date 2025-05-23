@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"slices"
 	"sort"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
@@ -105,34 +106,31 @@ func IsEqualEncodingResource(a, b *EncodingResource) bool {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	if len(a.IsSchedIdxToSubIdToSkip) != len(b.IsSchedIdxToSubIdToSkip) {
-		return false
+	remove_false_subject_to_skip := func(m map[uint16]map[uint16]bool) map[uint16][]uint16 {
+		out := make(map[uint16][]uint16, len(m))
+
+		for usi, subject_id_to_skip := range m {
+
+			for subject_id, to_skip := range subject_id_to_skip {
+				if !to_skip {
+					continue
+				}
+
+				out[usi] = append(out[usi], subject_id)
+			}
+
+			slices.Sort(out[usi])
+		}
+
+		return out
 	}
 
-	for a_out_k, a_out_v := range a.IsSchedIdxToSubIdToSkip {
+	skip_subjects_a := remove_false_subject_to_skip(a.IsSchedIdxToSubIdToSkip)
+	skip_subjects_b := remove_false_subject_to_skip(b.IsSchedIdxToSubIdToSkip)
 
-		b_out_v, has_b_out_k := b.IsSchedIdxToSubIdToSkip[a_out_k]
-
-		if !has_b_out_k {
-			return false
-		}
-
-		if len(a_out_v) != len(b_out_v) {
-			return false
-		}
-
-		for a_in_k, a_in_v := range a_out_v {
-
-			b_in_v, has_b_in_k := b_out_v[a_in_k]
-
-			if !has_b_in_k {
-				return false
-			}
-
-			if b_in_v != a_in_v {
-				return false
-			}
-		}
+	if !reflect.DeepEqual(skip_subjects_a, skip_subjects_b) {
+		log.Print("IsEqualEncodingResource: not equal IsSchedIdxToSubIdToSkip")
+		return false
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////
