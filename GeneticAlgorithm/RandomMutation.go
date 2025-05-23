@@ -22,17 +22,6 @@ const DAY_SWAP_PERCENT_PROBABILITY int = 10                // %
 const SECTION_WEEK_CLEAR_PERCENT_PROBABILITY int = 2       // %
 const SUBJECT_ERASURE_PROBABILITY int = 7                  // %
 
-func ApplyClearDepartmentSchedule(sched Schedule.UniTimeTables, all_curriculums []Curriculum.Curriculum, department_id uint16, selected_semester int) {
-	IterateSectionsWeekSchedule(sched, all_curriculums, selected_semester, nil, nil, func(indecies IterIndices, values IterValues) IterReturnType {
-
-		if values.Curriculum.DepartmentID == department_id {
-			values.Sched[indecies.Usi] = Schedule.WeekTimeTable{}
-		}
-
-		return IterProceed
-	})
-}
-
 func ApplyRandomDaySwapTimeSlots(
 	sched Schedule.UniTimeTables, all_curriculums []Curriculum.Curriculum,
 	department_id uint16, selected_semester int,

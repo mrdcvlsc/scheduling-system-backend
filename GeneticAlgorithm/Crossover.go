@@ -74,7 +74,7 @@ func Crossover(
 
 	for department_id, is_to_encode := range department_to_encode {
 		if is_to_encode {
-			ApplyClearDepartmentSchedule(offspring, curriculums, department_id, selected_semester)
+			ClearDepartmentSchedule(offspring, curriculums, department_id, selected_semester)
 		}
 	}
 

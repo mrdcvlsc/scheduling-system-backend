@@ -127,7 +127,7 @@ func RunGeneticAlgorithm(
 			return nil, nil, fmt.Errorf("genetic algorithm run error: slice elements copied %d, internal university schedule copy operation failed in generate new individual function", copied_week_time_table)
 		}
 
-		ApplyClearDepartmentSchedule(copy_uni_sched, curriculums, department_id, selected_semester)
+		ClearDepartmentSchedule(copy_uni_sched, curriculums, department_id, selected_semester)
 
 		copy_encoding_resource, err_gen_copy_encoding_resource := GenerateEncodingResourceFromUniTimeTable(copy_uni_sched, curriculums, selected_semester, default_empty_encoding_resource)
 
@@ -307,7 +307,6 @@ func RunGeneticAlgorithm(
 
 			// apply random mutations to some of the CURRENT individuals in the population
 
-			// ApplyRandomSubjectErasure(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
 			ApplyRandomDaySwapTimeSlots(population[i].UniSched, curriculums, department_id, selected_semester, rooms, default_instructor_id_to_instructor)
 			ApplyRandomSubjectDaySwap(population[i].UniSched, rooms, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
 			ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, rooms, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
@@ -335,6 +334,13 @@ func RunGeneticAlgorithm(
 					)
 				}
 
+				if !IsEqualEncodingResource(generated_encoding_resource, population[i].Resources) {
+					// TODO: if tested many times, and there is no instance of this panic, then directly use
+					// the generated encoding resource of the crossover function instead of generating it again.
+
+					panic("encoding resource after crossover should be equal to the generated encoding resource, why is this one not? ERROR DETECTED!")
+				}
+
 				repaired_uni_sched, repaired_encoding_resource, err_repair_schedule := EncodeIndividualGenome(
 					population[i].UniSched, curriculums, dept_id_to_department,
 					generated_encoding_resource, department_to_encode,
@@ -355,7 +361,6 @@ func RunGeneticAlgorithm(
 							g, MAX_RE_ENCODE_REPAIR_TRIALS, err_repair_schedule.Error(),
 						)
 					} else {
-						// ApplyRandomSubjectErasure(population[i].UniSched, rooms, curriculums, department_id, selected_semester)
 						ApplyRandomDaySwapTimeSlots(population[i].UniSched, curriculums, department_id, selected_semester, rooms, default_instructor_id_to_instructor)
 						ApplyRandomSubjectDaySwap(population[i].UniSched, rooms, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
 						ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, rooms, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
