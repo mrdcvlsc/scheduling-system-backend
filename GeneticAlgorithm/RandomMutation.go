@@ -23,16 +23,18 @@ const SECTION_WEEK_CLEAR_PERCENT_PROBABILITY int = 2       // %
 const SUBJECT_ERASURE_PROBABILITY int = 7                  // %
 
 func ApplyRandomDaySwapTimeSlots(
-	sched Schedule.UniTimeTables, all_curriculums []Curriculum.Curriculum,
+	sched Schedule.UniTimeTables, encoding_resource *EncodingResource,
+	all_curriculums []Curriculum.Curriculum,
 	department_id uint16, selected_semester int,
-	rooms []Rooms.Room,
-	instructor_id_to_instructor map[uint16]*Instructors.Instructor,
 ) {
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 
 	day_swap_attempts := 0
 	day_swap_success := 0
 	has_attempted := true
+
+	id_to_instructor := encoding_resource.IdToInstructor
+	id_to_room := encoding_resource.IdToRoom
 
 	for day := range Const.N_WEEKLY_SCHOOL_DAYS {
 
@@ -60,37 +62,53 @@ func ApplyRandomDaySwapTimeSlots(
 
 				usi := indecies.Usi
 
-				is_instructor_available_day := true
-				is_instructor_available_day_swap := true
+				is_instructor_a_available := true
+				is_instructor_b_available := true
+
+				is_room_a_available := true
+				is_room_b_available := true
 
 				for time_slot := range Const.N_DAILY_TIME_SLOTS {
-					sched[usi][day][time_slot], sched[usi][day_swap][time_slot] = sched[usi][day_swap][time_slot], sched[usi][day][time_slot]
+
+					// check instructors
 
 					instructor_id_a := sched[usi][day][time_slot].GetInstructorID()
 					if instructor_id_a != 0 {
-						if !instructor_id_to_instructor[instructor_id_a].Time.GetAvailability(day, time_slot) {
-							is_instructor_available_day = false
+						if !id_to_instructor[instructor_id_a].Time.GetAvailability(day_swap, time_slot) {
+							is_instructor_a_available = false
 						}
 					}
 
 					instructor_id_b := sched[usi][day_swap][time_slot].GetInstructorID()
 					if instructor_id_b != 0 {
-						if !instructor_id_to_instructor[instructor_id_b].Time.GetAvailability(day_swap, time_slot) {
-							is_instructor_available_day_swap = false
+						if !id_to_instructor[instructor_id_b].Time.GetAvailability(day, time_slot) {
+							is_instructor_b_available = false
+						}
+					}
+
+					// check rooms
+
+					room_id_a := sched[usi][day][time_slot].GetRoomID()
+					if room_id_a != 0 {
+						if id_to_room[room_id_a].GetTimeSlotClassCount(day_swap, time_slot) >= uint8(id_to_room[room_id_a].Capacity) {
+							is_room_a_available = false
+						}
+					}
+
+					room_id_b := sched[usi][day_swap][time_slot].GetRoomID()
+					if room_id_b != 0 {
+						if id_to_room[room_id_b].GetTimeSlotClassCount(day, time_slot) >= uint8(id_to_room[room_id_b].Capacity) {
+							is_room_b_available = false
 						}
 					}
 				}
 
-				err_day_a := sched.VerticalRangedValidation(rooms, day, 1, 0, Const.N_DAILY_TIME_SLOTS)
-				err_day_b := sched.VerticalRangedValidation(rooms, day_swap, 1, 0, Const.N_DAILY_TIME_SLOTS)
+				if is_instructor_a_available && is_instructor_b_available && is_room_a_available && is_room_b_available {
 
-				// if there are vertical errors, undo the mutation
-
-				if !((len(err_day_a) == 0) && (len(err_day_b) == 0) && is_instructor_available_day && is_instructor_available_day_swap) {
 					for time_slot := range Const.N_DAILY_TIME_SLOTS {
 						sched[usi][day][time_slot], sched[usi][day_swap][time_slot] = sched[usi][day_swap][time_slot], sched[usi][day][time_slot]
 					}
-				} else {
+
 					day_swap_success++
 				}
 			}
@@ -109,7 +127,7 @@ func ApplyRandomDaySwapTimeSlots(
 }
 
 func ApplyRandomSubjectDaySwap(
-	sched Schedule.UniTimeTables,
+	sched Schedule.UniTimeTables, encoding_resource *EncodingResource,
 	rooms []Rooms.Room,
 	all_curriculums []Curriculum.Curriculum,
 	department_id uint16, selected_semester int,
@@ -218,7 +236,7 @@ func ApplyRandomSubjectDaySwap(
 }
 
 func ApplyRandomSubjectTimeSlotNudge(
-	sched Schedule.UniTimeTables,
+	sched Schedule.UniTimeTables, encoding_resource *EncodingResource,
 	rooms []Rooms.Room,
 	all_curriculums []Curriculum.Curriculum,
 	department_id uint16, selected_semester int,
@@ -351,7 +369,7 @@ func ApplyRandomSubjectTimeSlotNudge(
 }
 
 func ApplyRandomSubjectTimeSlotAndDayNudge(
-	sched Schedule.UniTimeTables,
+	sched Schedule.UniTimeTables, encoding_resource *EncodingResource,
 	rooms []Rooms.Room,
 	all_curriculums []Curriculum.Curriculum,
 	department_id uint16, selected_semester int,
