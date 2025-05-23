@@ -14,7 +14,6 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/StorageResources"
-	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
 const MAX_BASE_SCHEDULE_REPAIR_TRAIALS int = 512
@@ -339,11 +338,11 @@ func RunGeneticAlgorithm(
 					// TODO: if tested many times, and there is no instance of this panic, then directly use
 					// the generated encoding resource of the crossover function instead of generating it again.
 
-					log.Println("====================== generated encoding resource ======================")
-					Utils.PrettyPrint(generated_encoding_resource)
-					log.Println("====================== crossover encoding resource ======================")
-					Utils.PrettyPrint(population[i].Resources)
-					log.Println("=========================================================================")
+					// log.Println("====================== generated encoding resource ======================")
+					// Utils.PrettyPrint(generated_encoding_resource)
+					// log.Println("====================== crossover encoding resource ======================")
+					// Utils.PrettyPrint(population[i].Resources)
+					// log.Println("=========================================================================")
 
 					panic("encoding resource after crossover should be equal to the generated encoding resource, why is this one not? ERROR DETECTED!")
 				}
