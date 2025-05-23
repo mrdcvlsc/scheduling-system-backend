@@ -175,7 +175,14 @@ func IsEqualEncodingResource(a, b *EncodingResource) bool {
 					for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
 						for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
 							if a_room.GetTimeSlotClassCount(day, time_slot) != b_in_v[a_room_idx].GetTimeSlotClassCount(day, time_slot) {
-								fmt.Printf("RIDX: %d, room_id: %d | d(%d), t(%d) => a(%d), b(%d)\n", a_room_idx, a_room.RoomID, day, time_slot, a_room.GetTimeSlotClassCount(day, time_slot), b_in_v[a_room_idx].GetTimeSlotClassCount(day, time_slot))
+								fmt.Printf(
+									"RIDX: %d, room_id: %d | d(%d), t(%d) => a(%d), b(%d)\n\na room:\n%+v\n\nb room:\n%+v\n\n",
+									a_room_idx, a_room.RoomID,
+									day, time_slot,
+									a_room.GetTimeSlotClassCount(day, time_slot),
+									b_in_v[a_room_idx].GetTimeSlotClassCount(day, time_slot),
+									a_room, b_in_v[a_room_idx],
+								)
 								return false
 							}
 						}
