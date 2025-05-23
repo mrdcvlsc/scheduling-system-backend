@@ -299,6 +299,10 @@ func ApplyRandomSubjectTimeSlotNudge(
 				rnd_subject := subjects_json[shuffled_idx]
 				nudge_value := Utils.RandomInRange(-MAX_TIME_SLOT_NUDGE, MAX_TIME_SLOT_NUDGE)
 
+				if nudge_value == 0 {
+					continue
+				}
+
 				is_nudge_start_idx_lt_min := (rnd_subject.StartingTimeSlot + nudge_value) < 0
 				is_nudge_start_idx_gt_max := (rnd_subject.StartingTimeSlot + nudge_value) >= Const.N_DAILY_TIME_SLOTS
 				is_nudge_start_idx_valid := !is_nudge_start_idx_lt_min && !is_nudge_start_idx_gt_max
