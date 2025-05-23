@@ -60,44 +60,38 @@ func ApplyRandomDaySwapTimeSlots(
 
 				usi := indecies.Usi
 
-				is_instructor_a_available := true
-				is_instructor_b_available := true
+				is_instructor_a_available := false
+				is_instructor_b_available := false
 
-				is_room_a_available := true
-				is_room_b_available := true
+				is_room_a_available := false
+				is_room_b_available := false
 
 				for time_slot := range Const.N_DAILY_TIME_SLOTS {
 
 					// check instructors
 
 					instructor_id_a := sched[usi][day][time_slot].GetInstructorID()
+
 					if instructor_id_a != 0 {
-						if !id_to_instructor[instructor_id_a].Time.GetAvailability(day_swap, time_slot) {
-							is_instructor_a_available = false
-						}
+						is_instructor_a_available = id_to_instructor[instructor_id_a].Time.GetAvailability(day_swap, time_slot)
 					}
 
 					instructor_id_b := sched[usi][day_swap][time_slot].GetInstructorID()
+
 					if instructor_id_b != 0 {
-						if !id_to_instructor[instructor_id_b].Time.GetAvailability(day, time_slot) {
-							is_instructor_b_available = false
-						}
+						is_instructor_b_available = id_to_instructor[instructor_id_b].Time.GetAvailability(day, time_slot)
 					}
 
 					// check rooms
 
 					room_id_a := sched[usi][day][time_slot].GetRoomID()
 					if room_id_a != 0 {
-						if id_to_room[room_id_a].GetTimeSlotClassCount(day_swap, time_slot) >= uint8(id_to_room[room_id_a].Capacity) {
-							is_room_a_available = false
-						}
+						is_room_a_available = id_to_room[room_id_a].GetTimeSlotClassCount(day_swap, time_slot) < uint8(id_to_room[room_id_a].Capacity)
 					}
 
 					room_id_b := sched[usi][day_swap][time_slot].GetRoomID()
 					if room_id_b != 0 {
-						if id_to_room[room_id_b].GetTimeSlotClassCount(day, time_slot) >= uint8(id_to_room[room_id_b].Capacity) {
-							is_room_b_available = false
-						}
+						is_room_b_available = id_to_room[room_id_b].GetTimeSlotClassCount(day, time_slot) < uint8(id_to_room[room_id_b].Capacity)
 					}
 				}
 
