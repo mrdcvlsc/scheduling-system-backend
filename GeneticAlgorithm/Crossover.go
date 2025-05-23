@@ -49,6 +49,14 @@ func Crossover(
 
 	offspring := make(Schedule.UniTimeTables, len(parent1))
 
+	offspring_encode_resource, err_gen_encoding_resource := GenerateEncodingResourceFromUniTimeTable(
+		offspring, curriculums, selected_semester, default_encoding_resource,
+	)
+
+	if err_gen_encoding_resource != nil {
+		return nil, fmt.Errorf("crossover error, caused by : %s", err_gen_encoding_resource.Error())
+	}
+
 	// copy other department subjects to the offspring, it doesn't matter if we use parent 1 or 2
 	// both parents should have the same subjects allocated in other departments
 
@@ -233,10 +241,8 @@ func Crossover(
 
 			base_parent_result := inherit_trait_from_a_parent(
 				i, indicies.Usi,
-				offspring,
+				offspring, offspring_encode_resource,
 				base_parent_subjects,
-				rooms,
-				instructor_id_to_instructor,
 			)
 
 			if base_parent_result.success {
@@ -255,10 +261,8 @@ func Crossover(
 
 			fallback_parent_result := inherit_trait_from_a_parent(
 				i, indicies.Usi,
-				offspring,
+				offspring, offspring_encode_resource,
 				fallback_parent_subjects,
-				rooms,
-				instructor_id_to_instructor,
 			)
 
 			if fallback_parent_result.has_extended_subject {
@@ -288,20 +292,12 @@ func Crossover(
 		return nil, fmt.Errorf("crossover error, caused by : %s", return_err.Error())
 	}
 
-	encoding_resource, err_gen_encoding_resource := GenerateEncodingResourceFromUniTimeTable(
-		offspring, curriculums, selected_semester, default_encoding_resource,
-	)
-
-	if err_gen_encoding_resource != nil {
-		return nil, fmt.Errorf("crossover error, caused by : %s", err_gen_encoding_resource.Error())
-	}
-
 	if failed_parents_encoding > 0 {
 		// re-encode the schedule - fillup missing time slots
 
 		repaired_sched, repaired_encoding_resource, err_repair_encoding := EncodeIndividualGenome(
 			offspring, curriculums,
-			dept_id_to_department, encoding_resource,
+			dept_id_to_department, offspring_encode_resource,
 			department_to_encode, selected_semester, 0,
 		)
 
@@ -317,7 +313,7 @@ func Crossover(
 
 	return &SchedAndResources{
 		UniSched:  offspring,
-		Resources: encoding_resource,
+		Resources: offspring_encode_resource,
 	}, nil
 }
 
@@ -328,12 +324,13 @@ type inherit_trait_result struct {
 
 func inherit_trait_from_a_parent(
 	i, usi int,
-	offspring Schedule.UniTimeTables,
+	offspring Schedule.UniTimeTables, offspring_encode_resource *EncodingResource,
 	json_subjects []Schedule.TimeSlotSubjectJSON,
-	rooms []Rooms.Room,
-	instructor_id_to_instructor map[uint16]*Instructors.Instructor,
 ) inherit_trait_result {
 	subject := &json_subjects[i]
+
+	id_to_room := offspring_encode_resource.IdToRoom
+	id_to_instructor := offspring_encode_resource.IdToInstructor
 
 	has_extended_subject := false
 
@@ -346,23 +343,14 @@ func inherit_trait_from_a_parent(
 	is_first_target_time_slot_free := true
 	is_second_target_time_slot_free := true
 
-	// TODO: optimization - I think there's no need to set/unset here, we can optimize by direct checking from instructor and room encoding resource availability
-
 	for j := 0; j < subject.TimeSlotSize; j++ {
 		is_time_slot_available := offspring[usi][subject.Day][subject.StartingTimeSlot+j].GetSubjectID() == 0
-		is_instructor_available := instructor_id_to_instructor[subject.InstructorID].Time.GetAvailability(subject.Day, subject.StartingTimeSlot+j)
+		is_instructor_available := id_to_instructor[subject.InstructorID].Time.GetAvailability(subject.Day, subject.StartingTimeSlot+j)
+		is_room_available := id_to_room[subject.RoomID].GetTimeSlotClassCount(subject.Day, subject.StartingTimeSlot+j) < uint8(id_to_room[subject.RoomID].Capacity)
 
-		if !is_time_slot_available || !is_instructor_available {
+		if !(is_time_slot_available && is_instructor_available && is_room_available) {
 			is_first_target_time_slot_free = false
 			break
-		}
-	}
-
-	if is_first_target_time_slot_free {
-		for j := 0; j < subject.TimeSlotSize; j++ {
-			offspring[usi][subject.Day][subject.StartingTimeSlot+j].SetSubjectID(subject.SubjectID)
-			offspring[usi][subject.Day][subject.StartingTimeSlot+j].SetInstructorID(subject.InstructorID)
-			offspring[usi][subject.Day][subject.StartingTimeSlot+j].SetRoomID(subject.RoomID)
 		}
 	}
 
@@ -371,78 +359,54 @@ func inherit_trait_from_a_parent(
 
 		for j := 0; j < subj_extend.TimeSlotSize; j++ {
 			is_time_slot_available := offspring[usi][subj_extend.Day][subj_extend.StartingTimeSlot+j].GetSubjectID() == 0
-			is_instructor_available := instructor_id_to_instructor[subj_extend.InstructorID].Time.GetAvailability(subj_extend.Day, subj_extend.StartingTimeSlot+j)
+			is_instructor_available := id_to_instructor[subj_extend.InstructorID].Time.GetAvailability(subj_extend.Day, subj_extend.StartingTimeSlot+j)
+			is_room_available := id_to_room[subj_extend.RoomID].GetTimeSlotClassCount(subj_extend.Day, subj_extend.StartingTimeSlot+j) < uint8(id_to_room[subj_extend.RoomID].Capacity)
 
-			if !is_time_slot_available || !is_instructor_available {
+			if !(is_time_slot_available && is_instructor_available && is_room_available) {
 				is_second_target_time_slot_free = false
 				break
 			}
 		}
 
-		if is_second_target_time_slot_free {
+		if is_first_target_time_slot_free && is_second_target_time_slot_free {
+			for j := 0; j < subject.TimeSlotSize; j++ {
+				offspring[usi][subject.Day][subject.StartingTimeSlot+j].SetSubjectID(subject.SubjectID)
+				offspring[usi][subject.Day][subject.StartingTimeSlot+j].SetInstructorID(subject.InstructorID)
+				offspring[usi][subject.Day][subject.StartingTimeSlot+j].SetRoomID(subject.RoomID)
+
+				id_to_instructor[subject.InstructorID].Time.SetAvailability(false, subject.Day, subject.StartingTimeSlot+j)
+				id_to_room[subject.RoomID].IncTimeSlotClassCount(subject.Day, subject.StartingTimeSlot+j)
+			}
+
 			for j := 0; j < subj_extend.TimeSlotSize; j++ {
 				offspring[usi][subj_extend.Day][subj_extend.StartingTimeSlot+j].SetSubjectID(subj_extend.SubjectID)
 				offspring[usi][subj_extend.Day][subj_extend.StartingTimeSlot+j].SetInstructorID(subj_extend.InstructorID)
 				offspring[usi][subj_extend.Day][subj_extend.StartingTimeSlot+j].SetRoomID(subj_extend.RoomID)
+
+				id_to_instructor[subj_extend.InstructorID].Time.SetAvailability(false, subj_extend.Day, subj_extend.StartingTimeSlot+j)
+				id_to_room[subj_extend.RoomID].IncTimeSlotClassCount(subj_extend.Day, subj_extend.StartingTimeSlot+j)
 			}
-		}
-	}
 
-	var err_vv []error
-	var err_vv_extend []error
-
-	if is_first_target_time_slot_free {
-
-		// TODO: optimization - remove after implementing direct check using instructor and room availability
-		err_vv = offspring.VerticalRangedValidation(
-			rooms,
-			subject.Day, 1,
-			subject.StartingTimeSlot, subject.TimeSlotSize,
-		)
-	}
-
-	if has_extended_subject && is_second_target_time_slot_free {
-		subj_extend := &json_subjects[i+1]
-
-		// TODO: optimization - remove after implementing direct check using instructor and room availability
-		err_vv_extend = offspring.VerticalRangedValidation(
-			rooms,
-			subj_extend.Day, 1,
-			subj_extend.StartingTimeSlot, subj_extend.TimeSlotSize,
-		)
-	}
-
-	if has_extended_subject {
-		if len(err_vv) == 0 && len(err_vv_extend) == 0 && is_first_target_time_slot_free && is_second_target_time_slot_free {
 			return inherit_trait_result{
 				success:              true,
 				has_extended_subject: true,
 			}
 		}
 	} else {
-		if len(err_vv) == 0 && is_first_target_time_slot_free {
-			return inherit_trait_result{
-				success:              true,
-				has_extended_subject: false,
+		if is_first_target_time_slot_free {
+			for j := 0; j < subject.TimeSlotSize; j++ {
+				offspring[usi][subject.Day][subject.StartingTimeSlot+j].SetSubjectID(subject.SubjectID)
+				offspring[usi][subject.Day][subject.StartingTimeSlot+j].SetInstructorID(subject.InstructorID)
+				offspring[usi][subject.Day][subject.StartingTimeSlot+j].SetRoomID(subject.RoomID)
+
+				id_to_instructor[subject.InstructorID].Time.SetAvailability(false, subject.Day, subject.StartingTimeSlot+j)
+				id_to_room[subject.RoomID].IncTimeSlotClassCount(subject.Day, subject.StartingTimeSlot+j)
 			}
 		}
-	}
 
-	if is_first_target_time_slot_free {
-		for j := 0; j < subject.TimeSlotSize; j++ {
-			offspring[usi][subject.Day][subject.StartingTimeSlot+j].SetSubjectID(0)
-			offspring[usi][subject.Day][subject.StartingTimeSlot+j].SetInstructorID(0)
-			offspring[usi][subject.Day][subject.StartingTimeSlot+j].SetRoomID(0)
-		}
-	}
-
-	if has_extended_subject && is_second_target_time_slot_free {
-		subj_extend := &json_subjects[i+1]
-
-		for j := 0; j < subj_extend.TimeSlotSize; j++ {
-			offspring[usi][subj_extend.Day][subj_extend.StartingTimeSlot+j].SetSubjectID(0)
-			offspring[usi][subj_extend.Day][subj_extend.StartingTimeSlot+j].SetInstructorID(0)
-			offspring[usi][subj_extend.Day][subj_extend.StartingTimeSlot+j].SetRoomID(0)
+		return inherit_trait_result{
+			success:              true,
+			has_extended_subject: false,
 		}
 	}
 
