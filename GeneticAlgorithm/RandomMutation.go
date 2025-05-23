@@ -364,7 +364,7 @@ func ApplyRandomSubjectTimeSlotNudge(
 				}
 
 				if next_room_val != prev_room_val-1 {
-					log.Panic("decrement is wrong for normal values")
+					log.Panicf("decrement is wrong for normal values : previous = %d, next = %d", prev_room_val, next_room_val)
 				}
 			}
 
@@ -387,7 +387,7 @@ func ApplyRandomSubjectTimeSlotNudge(
 				}
 
 				if next_room_val != prev_room_val+1 {
-					log.Panic("increment is wrong for normal values")
+					log.Panicf("increment is wrong for normal values: previous = %d, next = %d", prev_room_val, next_room_val)
 				}
 			}
 
