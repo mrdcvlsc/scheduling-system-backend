@@ -258,111 +258,112 @@ func ApplyRandomSubjectTimeSlotNudge(
 	IterateSectionsWeekSchedule(sched, all_curriculums, selected_semester, nil, nil, func(indicies IterIndices, values IterValues) IterReturnType {
 
 		curriculum := values.Curriculum
-
 		usi := indicies.Usi
 
-		if curriculum.DepartmentID == department_id {
+		if curriculum.DepartmentID != department_id {
+			return IterProceed
+		}
 
-			mfit := MeasureWeekTimeTableBasicFitness(*values.WeekSched)
+		mfit := MeasureWeekTimeTableBasicFitness(*values.WeekSched)
 
-			if mfit > 10 {
-				return IterProceed
+		if mfit > 10 {
+			return IterProceed
+		}
+
+		subjects_json := sched[usi].GetWeekSubjectsJSON()
+		total_lec_and_lab_subjects += len(subjects_json)
+
+		if len(subjects_json) == 0 {
+			return IterProceed
+		}
+
+		rng_n := len(subjects_json)
+
+		if rng_n <= 0 {
+			return IterProceed
+		}
+
+		subject_count_to_try_time_slot_nudge := rng.Intn(rng_n)
+
+		rng.Shuffle(len(subjects_json), func(i, j int) {
+			subjects_json[i], subjects_json[j] = subjects_json[j], subjects_json[i]
+		})
+
+		for shuffled_idx := range subject_count_to_try_time_slot_nudge {
+
+			if rng.Int31n(100) >= int32(SUBJECT_TIME_SLOT_NUDGE_PROBABILITY) {
+				continue
 			}
 
-			subjects_json := sched[usi].GetWeekSubjectsJSON()
-			total_lec_and_lab_subjects += len(subjects_json)
+			total_tried_time_slot_nudge++
 
-			if len(subjects_json) == 0 {
-				return IterProceed
+			rnd_subject := subjects_json[shuffled_idx]
+			nudge_value := Utils.RandomInRange(-MAX_TIME_SLOT_NUDGE, MAX_TIME_SLOT_NUDGE)
+
+			if rnd_subject.SubjectID == 0 {
+				continue
 			}
 
-			rng_n := len(subjects_json)
-
-			if rng_n <= 0 {
-				return IterProceed
+			if nudge_value == 0 {
+				continue
 			}
 
-			subject_count_to_try_time_slot_nudge := rng.Intn(rng_n) + 1
+			is_nudge_start_idx_lt_min := (rnd_subject.StartingTimeSlot + nudge_value) < 0
+			is_nudge_start_idx_gt_max := (rnd_subject.StartingTimeSlot + nudge_value) >= Const.N_DAILY_TIME_SLOTS
+			is_nudge_start_idx_valid := !is_nudge_start_idx_lt_min && !is_nudge_start_idx_gt_max
 
-			rng.Shuffle(len(subjects_json), func(i, j int) {
-				subjects_json[i], subjects_json[j] = subjects_json[j], subjects_json[i]
-			})
+			is_nudge_end_idx_lt_min := (rnd_subject.StartingTimeSlot + nudge_value + rnd_subject.TimeSlotSize - 1) < 0
+			is_nudge_end_idx_gt_max := (rnd_subject.StartingTimeSlot + nudge_value + rnd_subject.TimeSlotSize - 1) >= Const.N_DAILY_TIME_SLOTS
+			is_nudge_end_idx_valid := !is_nudge_end_idx_lt_min && !is_nudge_end_idx_gt_max
 
-			for shuffled_idx := 0; shuffled_idx < subject_count_to_try_time_slot_nudge; shuffled_idx++ {
-
-				if rng.Int31n(100) >= int32(SUBJECT_TIME_SLOT_NUDGE_PROBABILITY) {
-					continue
-				}
-
-				total_tried_time_slot_nudge++
-
-				rnd_subject := subjects_json[shuffled_idx]
-				nudge_value := Utils.RandomInRange(-MAX_TIME_SLOT_NUDGE, MAX_TIME_SLOT_NUDGE)
-
-				if rnd_subject.SubjectID == 0 {
-					continue
-				}
-
-				if nudge_value == 0 {
-					continue
-				}
-
-				is_nudge_start_idx_lt_min := (rnd_subject.StartingTimeSlot + nudge_value) < 0
-				is_nudge_start_idx_gt_max := (rnd_subject.StartingTimeSlot + nudge_value) >= Const.N_DAILY_TIME_SLOTS
-				is_nudge_start_idx_valid := !is_nudge_start_idx_lt_min && !is_nudge_start_idx_gt_max
-
-				is_nudge_end_idx_lt_min := (rnd_subject.StartingTimeSlot + nudge_value + rnd_subject.TimeSlotSize - 1) < 0
-				is_nudge_end_idx_gt_max := (rnd_subject.StartingTimeSlot + nudge_value + rnd_subject.TimeSlotSize - 1) >= Const.N_DAILY_TIME_SLOTS
-				is_nudge_end_idx_valid := !is_nudge_end_idx_lt_min && !is_nudge_end_idx_gt_max
-
-				if !is_nudge_start_idx_valid || !is_nudge_end_idx_valid {
-					continue
-				}
-
-				is_free_time_slot := true
-				for i := 0; i < rnd_subject.TimeSlotSize; i++ {
-					nudge_slot := sched[usi][rnd_subject.Day].GetTimeSlot(rnd_subject.StartingTimeSlot + nudge_value + i)
-
-					is_same_subject_block := (nudge_slot.GetSubjectID() == rnd_subject.SubjectID) &&
-						(nudge_slot.GetInstructorID() == rnd_subject.InstructorID) &&
-						(nudge_slot.GetRoomID() == rnd_subject.RoomID)
-
-					if is_same_subject_block {
-						continue
-					}
-
-					is_empty_slot := nudge_slot.GetSubjectID() == 0
-					is_instructor_available := id_to_instructor[rnd_subject.InstructorID].Time.GetAvailability(rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value+i)
-					is_room_available := id_to_room[rnd_subject.RoomID].GetTimeSlotClassCount(rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value+i) < uint8(id_to_room[rnd_subject.RoomID].Capacity)
-
-					if !(is_empty_slot && is_instructor_available && is_room_available) {
-						is_free_time_slot = false
-						break
-					}
-				}
-
-				if !is_free_time_slot {
-					continue
-				}
-
-				for i := 0; i < rnd_subject.TimeSlotSize; i++ {
-					old_slot := sched[usi][rnd_subject.Day].GetTimeSlot(rnd_subject.StartingTimeSlot + i)
-					old_slot.Set(0, 0, 0)
-
-					id_to_instructor[rnd_subject.InstructorID].Time.SetAvailability(true, rnd_subject.Day, (rnd_subject.StartingTimeSlot + i))
-					id_to_room[rnd_subject.RoomID].DecTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot + i))
-				}
-
-				for i := 0; i < rnd_subject.TimeSlotSize; i++ {
-					nudge_slot := sched[usi][rnd_subject.Day].GetTimeSlot(rnd_subject.StartingTimeSlot + nudge_value + i)
-					nudge_slot.Set(rnd_subject.SubjectID, rnd_subject.InstructorID, rnd_subject.RoomID)
-
-					id_to_instructor[rnd_subject.InstructorID].Time.SetAvailability(false, rnd_subject.Day, (rnd_subject.StartingTimeSlot + nudge_value + i))
-					id_to_room[rnd_subject.RoomID].IncTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot + nudge_value + i))
-				}
-
-				successful_subject_time_slot_nudge++
+			if !is_nudge_start_idx_valid || !is_nudge_end_idx_valid {
+				continue
 			}
+
+			is_free_time_slot := true
+
+			for i_ts := 0; i_ts < rnd_subject.TimeSlotSize; i_ts++ {
+				nudge_slot := sched[usi][rnd_subject.Day].GetTimeSlot(rnd_subject.StartingTimeSlot + nudge_value + i_ts)
+
+				is_same_subject_block := (nudge_slot.GetSubjectID() == rnd_subject.SubjectID) &&
+					(nudge_slot.GetInstructorID() == rnd_subject.InstructorID) &&
+					(nudge_slot.GetRoomID() == rnd_subject.RoomID)
+
+				if is_same_subject_block {
+					continue
+				}
+
+				is_empty_slot := nudge_slot.GetSubjectID() == 0
+				is_instructor_available := id_to_instructor[rnd_subject.InstructorID].Time.GetAvailability(rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value+i_ts)
+				is_room_available := id_to_room[rnd_subject.RoomID].GetTimeSlotClassCount(rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value+i_ts) < uint8(id_to_room[rnd_subject.RoomID].Capacity)
+
+				if !(is_empty_slot && is_instructor_available && is_room_available) {
+					is_free_time_slot = false
+					break
+				}
+			}
+
+			if !is_free_time_slot {
+				continue
+			}
+
+			for i_ts := 0; i_ts < rnd_subject.TimeSlotSize; i_ts++ {
+				old_slot := sched[usi][rnd_subject.Day].GetTimeSlot(rnd_subject.StartingTimeSlot + i_ts)
+				old_slot.Set(0, 0, 0)
+
+				id_to_instructor[rnd_subject.InstructorID].Time.SetAvailability(true, rnd_subject.Day, (rnd_subject.StartingTimeSlot + i_ts))
+				id_to_room[rnd_subject.RoomID].DecTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot + i_ts))
+			}
+
+			for i_ts := 0; i_ts < rnd_subject.TimeSlotSize; i_ts++ {
+				nudge_slot := sched[usi][rnd_subject.Day].GetTimeSlot(rnd_subject.StartingTimeSlot + nudge_value + i_ts)
+				nudge_slot.Set(rnd_subject.SubjectID, rnd_subject.InstructorID, rnd_subject.RoomID)
+
+				id_to_instructor[rnd_subject.InstructorID].Time.SetAvailability(false, rnd_subject.Day, (rnd_subject.StartingTimeSlot + nudge_value + i_ts))
+				id_to_room[rnd_subject.RoomID].IncTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot + nudge_value + i_ts))
+			}
+
+			successful_subject_time_slot_nudge++
 		}
 
 		return IterProceed
