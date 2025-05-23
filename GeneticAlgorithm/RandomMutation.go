@@ -347,21 +347,21 @@ func ApplyRandomSubjectTimeSlotNudge(
 				continue
 			}
 
-			for i_ts := 0; i_ts < rnd_subject.TimeSlotSize; i_ts++ {
-				old_slot := sched[usi][rnd_subject.Day].GetTimeSlot(rnd_subject.StartingTimeSlot + i_ts)
-				old_slot.Set(0, 0, 0)
+			// for i_ts := 0; i_ts < rnd_subject.TimeSlotSize; i_ts++ {
+			// 	old_slot := sched[usi][rnd_subject.Day].GetTimeSlot(rnd_subject.StartingTimeSlot + i_ts)
+			// 	old_slot.Set(0, 0, 0)
 
-				id_to_instructor[rnd_subject.InstructorID].Time.SetAvailability(true, rnd_subject.Day, (rnd_subject.StartingTimeSlot + i_ts))
-				id_to_room[rnd_subject.RoomID].DecTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot + i_ts))
-			}
+			// 	id_to_instructor[rnd_subject.InstructorID].Time.SetAvailability(true, rnd_subject.Day, (rnd_subject.StartingTimeSlot + i_ts))
+			// 	id_to_room[rnd_subject.RoomID].DecTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot + i_ts))
+			// }
 
-			for i_ts := 0; i_ts < rnd_subject.TimeSlotSize; i_ts++ {
-				nudge_slot := sched[usi][rnd_subject.Day].GetTimeSlot(rnd_subject.StartingTimeSlot + nudge_value + i_ts)
-				nudge_slot.Set(rnd_subject.SubjectID, rnd_subject.InstructorID, rnd_subject.RoomID)
+			// for i_ts := 0; i_ts < rnd_subject.TimeSlotSize; i_ts++ {
+			// 	nudge_slot := sched[usi][rnd_subject.Day].GetTimeSlot(rnd_subject.StartingTimeSlot + nudge_value + i_ts)
+			// 	nudge_slot.Set(rnd_subject.SubjectID, rnd_subject.InstructorID, rnd_subject.RoomID)
 
-				id_to_instructor[rnd_subject.InstructorID].Time.SetAvailability(false, rnd_subject.Day, (rnd_subject.StartingTimeSlot + nudge_value + i_ts))
-				id_to_room[rnd_subject.RoomID].IncTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot + nudge_value + i_ts))
-			}
+			// 	id_to_instructor[rnd_subject.InstructorID].Time.SetAvailability(false, rnd_subject.Day, (rnd_subject.StartingTimeSlot + nudge_value + i_ts))
+			// 	id_to_room[rnd_subject.RoomID].IncTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot + nudge_value + i_ts))
+			// }
 
 			successful_subject_time_slot_nudge++
 		}
