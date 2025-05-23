@@ -235,7 +235,7 @@ func (university_sched UniTimeTables) VerticalRangedValidation(
 			}
 
 			for k, v := range room_counter {
-				if len(v.OverlappingSections) > int(v.Capacity) {
+				if len(v.OverlappingSections) > int(v.Capacity) || len(v.OverlappingSections) > Rooms.MAX_ROOM_CAPACITY {
 
 					err_json := &UniRoomValidationError{
 						Msg:                 "overlapping room time slot",
