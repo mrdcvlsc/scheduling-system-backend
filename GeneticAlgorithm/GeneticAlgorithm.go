@@ -324,8 +324,8 @@ func RunGeneticAlgorithm(
 
 				if err_generate_encoding_resource != nil {
 					log.Printf(
-						"RunGeneticAlgorithm [Random Mutation]: unable to generate encoding resource needed to repair a mutated individual on generation %d, caused by %s",
-						g, err_generate_encoding_resource.Error(),
+						"RunGeneticAlgorithm [Random Mutation][%d]: unable to generate encoding resource needed to repair a mutated individual on generation %d, caused by %s",
+						i, g, err_generate_encoding_resource.Error(),
 					)
 
 					return nil, nil, fmt.Errorf(
@@ -336,7 +336,10 @@ func RunGeneticAlgorithm(
 
 				if !IsEqualEncodingResource(generated_encoding_resource, population[i].Resources) {
 					// TODO: if tested many times, and there is no instance of this panic, then directly use
-					panic("encoding resource after crossover should be equal to the generated encoding resource, why is this one not? ERROR DETECTED!")
+					panic(fmt.Sprintf(
+						"RunGeneticAlgorithm: [Random Mutation][%d] encoding resource after crossover should be equal to the generated encoding resource, why is this one not? ERROR DETECTED!",
+						i,
+					))
 				}
 
 				repaired_uni_sched, repaired_encoding_resource, err_repair_schedule := EncodeIndividualGenome(
