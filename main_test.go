@@ -20,6 +20,8 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Departments"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 	"github.com/mrdcvlsc/scheduling-system-backend/Routes/RoutesV1"
 	"github.com/mrdcvlsc/scheduling-system-backend/Routes/RoutesV2"
@@ -460,7 +462,7 @@ func TestIntegrationEditCurriculumSectionV2(t *testing.T) {
 		set_new_curriculums, err_read_set_new_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
 
 		if err_read_set_new_curriculums != nil {
-			t.Fatalf("Failed to read new curriculums: %v", err_read_old_curriculums)
+			t.Fatalf("Failed to read new curriculums: %v", err_read_set_new_curriculums)
 		}
 
 		for c, curriculum := range set_new_curriculums {
@@ -633,6 +635,424 @@ func TestIntegrationEditCurriculumSectionV2(t *testing.T) {
 			)
 		}
 	}
+}
+
+type StatsKey struct {
+	Semester      int
+	DepartmentID  uint16
+	TotalSections int
+}
+
+func BenchmarkIntegrationStressTest(b *testing.B) {
+
+	const THIS_TEST_SUPPORTED_SEMESTER int = 1
+
+	router := setup_router()
+
+	// edit curriculum section counts
+
+	fmt.Println("edit curriculum section count")
+
+	set_new_curriculums, err_read_set_new_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
+
+	if err_read_set_new_curriculums != nil {
+		b.Fatalf("Failed to read new curriculums: %v", err_read_set_new_curriculums)
+	}
+
+	semester_idx_to_department_id_to_department_section_count := make(map[int]map[uint16]int)
+
+	for c, curriculum := range set_new_curriculums {
+		for y, year_level := range curriculum.YearLevels {
+			for s := range year_level.Semesters {
+
+				if s >= THIS_TEST_SUPPORTED_SEMESTER {
+					continue
+				}
+
+				set_new_curriculums[c].YearLevels[y].Semesters[s].Sections = 10
+
+				if _, has_semester := semester_idx_to_department_id_to_department_section_count[s]; !has_semester {
+					semester_idx_to_department_id_to_department_section_count[s] = make(map[uint16]int)
+				}
+
+				if _, has_dept_id := semester_idx_to_department_id_to_department_section_count[s][curriculum.DepartmentID]; !has_dept_id {
+					semester_idx_to_department_id_to_department_section_count[s][curriculum.DepartmentID] = set_new_curriculums[c].YearLevels[y].Semesters[s].Sections
+				} else {
+					semester_idx_to_department_id_to_department_section_count[s][curriculum.DepartmentID] += set_new_curriculums[c].YearLevels[y].Semesters[s].Sections
+				}
+
+				// remove all currently designated instructors to avoid error
+
+				for subj_i := range set_new_curriculums[c].YearLevels[y].Semesters[s].Subjects {
+					set_new_curriculums[c].YearLevels[y].Semesters[s].Subjects[subj_i].DesignatedInstructors = nil
+				}
+			}
+		}
+	}
+
+	// add resources
+
+	fmt.Println("rooms and instructor resources")
+
+	departments, err_read_all_departments := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllDepartments()
+
+	if err_read_all_departments != nil {
+		b.Fatal("error reading all departments")
+	}
+
+	for _, department := range departments {
+
+		fmt.Printf("adding resources in %s\n", department.Name)
+
+		for i := range 500 {
+			err_create_room_LAB := RouteGlobals.ResourcesPersistence.WriterService.CreateRoom(Rooms.Room{
+				DepartmentID: department.DepartmentID,
+				Capacity:     1,
+				RoomType:     Rooms.ROOM_TYPE_LAB,
+				Name:         fmt.Sprintf("Dept%dType%dRoomAdd%d", department.DepartmentID, Rooms.ROOM_TYPE_LAB, i),
+			})
+
+			if err_create_room_LAB != nil {
+				b.Fatal(err_create_room_LAB)
+			}
+
+			err_create_room_LEC := RouteGlobals.ResourcesPersistence.WriterService.CreateRoom(Rooms.Room{
+				DepartmentID: department.DepartmentID,
+				Capacity:     1,
+				RoomType:     Rooms.ROOM_TYPE_LEC,
+				Name:         fmt.Sprintf("Dept%dType%dRoomAdd%d", department.DepartmentID, Rooms.ROOM_TYPE_LEC, i),
+			})
+
+			if err_create_room_LEC != nil {
+				b.Fatal(err_create_room_LEC)
+			}
+
+			err_create_room_GYM := RouteGlobals.ResourcesPersistence.WriterService.CreateRoom(Rooms.Room{
+				DepartmentID: department.DepartmentID,
+				Capacity:     1,
+				RoomType:     Rooms.ROOM_TYPE_GYM,
+				Name:         fmt.Sprintf("Dept%dType%dRoomAdd%d", department.DepartmentID, Rooms.ROOM_TYPE_GYM, i),
+			})
+
+			if err_create_room_GYM != nil {
+				b.Fatal(err_create_room_GYM)
+			}
+
+			err_create_instructor := RouteGlobals.ResourcesPersistence.WriterService.CreateInstructor(Instructors.Instructor{
+				DepartmentID:  department.DepartmentID,
+				FirstName:     fmt.Sprintf("FirstDept%dInst%d", department.DepartmentID, i),
+				MiddleInitial: fmt.Sprintf("MidDept%dInst%d", department.DepartmentID, i),
+				LastName:      fmt.Sprintf("LastDept%dInst%d", department.DepartmentID, i),
+			})
+
+			if err_create_instructor != nil {
+				b.Fatal(err_create_instructor)
+			}
+		}
+	}
+
+	///
+
+	fmt.Println("patch request edited curriculums")
+
+	for _, curriculum := range set_new_curriculums {
+		json_curriculum, err := json.Marshal(curriculum)
+
+		if err != nil {
+			panic(err)
+		}
+
+		request := httptest.NewRequest(http.MethodPatch, "/v1/curriculum_update", bytes.NewBuffer(json_curriculum))
+
+		request.Header.Set("Content-Type", "application/json")
+
+		response := httptest.NewRecorder()
+
+		router.ServeHTTP(response, request)
+
+		if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
+			b.Fatalf("Failed to edit curriculum sections: status code %d, body: %s", response.Code, response.Body.String())
+		}
+	}
+
+	// generate university schedules for all semesters
+
+	fmt.Println("read departments")
+
+	departments, err_read_departments := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllDepartments()
+
+	if err_read_departments != nil {
+		b.Fatalf("Failed to read departments: %v", err_read_departments)
+	}
+
+	departments_without_gen := make([]Departments.Department, 0, len(departments))
+
+	for i := range departments {
+		if departments[i].DepartmentID == 0 {
+			continue
+		}
+
+		departments_without_gen = append(departments_without_gen, departments[i])
+	}
+
+	departments = departments_without_gen
+
+	// generate schedules
+
+	fmt.Println("initial generation - generate university schedules")
+
+	for semester := range THIS_TEST_SUPPORTED_SEMESTER {
+		for _, department := range departments {
+
+			///////////////////////////////////////////////// lies here a memory you don't want to remember... ///////////////////
+
+			b.Logf("generating schedule for %s %s", department.Name, Curriculum.SEMESTER_INDEX_NAME[semester])
+
+			request := httptest.NewRequest(
+				http.MethodPost, fmt.Sprintf(
+					"/v1/generate_schedule?semester=%d&department_id=%d",
+					semester, department.DepartmentID,
+				),
+				http.NoBody,
+			)
+
+			response := httptest.NewRecorder()
+
+			router.ServeHTTP(response, request)
+
+			if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
+				b.Fatalf("Failed to generate schedules: status code %d, body: %s", response.Code, response.Body.String())
+			}
+		}
+	}
+
+	// wait for the schedules to be generated
+
+	fmt.Println("wait...")
+
+	for {
+		time.Sleep(30 * time.Second)
+		b.Log("Waiting for schedule generation to finish...")
+
+		request := httptest.NewRequest(http.MethodGet, "/v1/gen_status", nil)
+		response := httptest.NewRecorder()
+
+		router.ServeHTTP(response, request)
+
+		if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
+			b.Fatalf("Failed to check generation status: status code %d, body: %s", response.Code, response.Body.String())
+		}
+
+		var get_body struct {
+			IsGenerating bool `json:"status"`
+		}
+
+		if err := json.Unmarshal(response.Body.Bytes(), &get_body); err != nil {
+			b.Fatalf("Failed to parse generation status response: %v", err)
+		}
+
+		if !get_body.IsGenerating {
+			break
+		}
+	}
+
+	// generate schedules again but this time clear the schedule for each departments first
+
+	fmt.Println("final generation - generate university scehdules")
+
+	statistics := make(map[StatsKey]string)
+
+	for semester := range THIS_TEST_SUPPORTED_SEMESTER {
+		for _, department := range departments {
+
+			{
+				b.Logf("clearing schedule for %s %s", department.Name, Curriculum.SEMESTER_INDEX_NAME[semester])
+
+				request := httptest.NewRequest(
+					http.MethodDelete, fmt.Sprintf(
+						"/v1/clear_department_schedules?semester=%d&department_id=%d",
+						semester, department.DepartmentID,
+					),
+					http.NoBody,
+				)
+
+				response := httptest.NewRecorder()
+
+				router.ServeHTTP(response, request)
+
+				if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
+					b.Fatalf("Failed to generate schedules: status code %d, body: %s", response.Code, response.Body.String())
+				}
+			}
+
+			measure_time := time.Now()
+
+			{
+				///////////////////////////////////////////////// lies here a memory you don't want to remember... ///////////////////
+
+				b.Logf("generating schedule for %s %s", department.Name, Curriculum.SEMESTER_INDEX_NAME[semester])
+
+				request := httptest.NewRequest(
+					http.MethodPost, fmt.Sprintf(
+						"/v1/generate_schedule?semester=%d&department_id=%d",
+						semester, department.DepartmentID,
+					),
+					http.NoBody,
+				)
+
+				response := httptest.NewRecorder()
+
+				router.ServeHTTP(response, request)
+
+				if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
+					b.Fatalf("Failed to generate schedules: status code %d, body: %s", response.Code, response.Body.String())
+				}
+			}
+
+			// wait for the schedules to be generated
+
+			for {
+				time.Sleep(15 * time.Second)
+				b.Log("Waiting for schedule generation to finish...")
+
+				request := httptest.NewRequest(http.MethodGet, "/v1/gen_status", nil)
+				response := httptest.NewRecorder()
+
+				router.ServeHTTP(response, request)
+
+				if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
+					b.Fatalf("Failed to check generation status: status code %d, body: %s", response.Code, response.Body.String())
+				}
+
+				var get_body struct {
+					IsGenerating bool `json:"status"`
+				}
+
+				if err := json.Unmarshal(response.Body.Bytes(), &get_body); err != nil {
+					b.Fatalf("Failed to parse generation status response: %v", err)
+				}
+
+				if !get_body.IsGenerating {
+					break
+				}
+			}
+
+			statistics_key := StatsKey{
+				Semester:     semester,
+				DepartmentID: department.DepartmentID,
+			}
+
+			if _, has_key := statistics[statistics_key]; !has_key {
+				statistics[statistics_key] = time.Since(measure_time).String()
+			}
+		}
+	}
+
+	// validate each departments using schedule generation results
+
+	responses_gen := make([]string, 0)
+
+	for semester := range THIS_TEST_SUPPORTED_SEMESTER {
+		for _, department := range departments {
+
+			///////////////////////////////////////////////// lies here a memory you don't want to remember... ///////////////////
+
+			request := httptest.NewRequest(
+				http.MethodGet,
+				fmt.Sprintf("/v1/dept_gen_result?semester=%d&department_id=%d", semester, department.DepartmentID),
+				nil,
+			)
+
+			response := httptest.NewRecorder()
+
+			router.ServeHTTP(response, request)
+
+			if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
+				b.Fatalf("Unexpected status code %d for department %d: body: %s", response.Code, department.DepartmentID, response.Body.String())
+			} else {
+				response_body := &RouteGlobals.SchedGenResult{}
+				if err := json.Unmarshal(response.Body.Bytes(), &response_body); err != nil {
+					b.Fatalf("Failed to parse generation status response: %v", err)
+				}
+
+				if !(semester == 2 && Utils.HasSubString(response_body.Message, "empty")) {
+					if response_body.Status != RouteGlobals.SchedGenStatusSuccess {
+						b.Fatalf("Failed to generation schedule in %s, %s - %s", department.Code, response_body.Status, response_body.Message)
+					}
+
+					b.Logf("Validation %s result %s : %s", department.Code, response_body.Status, response_body.Message)
+				}
+
+				responses_gen = append(responses_gen, response_body.Message)
+			}
+		}
+	}
+
+	// validate each department using the API
+
+	for semester := range THIS_TEST_SUPPORTED_SEMESTER {
+		for _, department := range departments {
+
+			///////////////////////////////////////////////// lies here a memory you don't want to remember... ///////////////////
+
+			request := httptest.NewRequest(
+				http.MethodGet,
+				fmt.Sprintf("/v2/validate_schedules?semester=%d&department_id=%d", semester, department.DepartmentID),
+				nil,
+			)
+
+			response := httptest.NewRecorder()
+
+			router.ServeHTTP(response, request)
+
+			switch response.Code {
+			case http.StatusNotFound, http.StatusConflict:
+				var validationResponse []string
+				if err := json.Unmarshal(response.Body.Bytes(), &validationResponse); err != nil {
+					b.Fatalf("Failed to parse validation response for department %d: %v", department.DepartmentID, err)
+				}
+
+				if len(validationResponse) > 0 {
+					b.Fatalf("Validation errors for department %d: %v", department.DepartmentID, validationResponse)
+				}
+			default:
+				if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
+					b.Fatalf("Unexpected status code %d for department %d: body: %s", response.Code, department.DepartmentID, response.Body.String())
+				}
+			}
+		}
+	}
+
+	b.Log("\n===========================\n")
+
+	fmt.Printf("length detected %d\n", len(semester_idx_to_department_id_to_department_section_count))
+
+	total_sections := 0
+
+	for s, did_to_deptsec := range semester_idx_to_department_id_to_department_section_count {
+
+		fmt.Printf("length detected inside %d\n", len(did_to_deptsec))
+
+		for did, deptsec := range did_to_deptsec {
+			fmt.Printf(">>> department id %d - %s - total section count = %d\n", did, Curriculum.SEMESTER_INDEX_NAME[s], deptsec)
+			total_sections += deptsec
+		}
+	}
+
+	fmt.Printf("total university sections %d\n", total_sections)
+
+	b.Log("\n===========================\n")
+
+	for k, v := range statistics {
+		fmt.Printf("department id %d - %s took %s\n", k.DepartmentID, Curriculum.SEMESTER_INDEX_NAME[k.Semester], v)
+	}
+
+	b.Log("\n===========================\n")
+
+	for _, msg := range responses_gen {
+		fmt.Printf("msg : %s\n", msg)
+	}
+
 }
 
 func setup_router() *gin.Engine {
