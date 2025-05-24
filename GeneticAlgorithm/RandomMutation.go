@@ -414,6 +414,13 @@ func ApplyRandomSubjectTimeSlotNudge(
 			///////////////
 
 			for i_ts := 0; i_ts < rnd_subject.TimeSlotSize; i_ts++ {
+
+				log.Printf(
+					"\n\nRoom Availability = %t\n\nInst Availability = %t\n\n",
+					(id_to_room[rnd_subject.RoomID].GetTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot+nudge_value+i_ts))) < uint8(id_to_room[rnd_subject.RoomID].Capacity),
+					id_to_instructor[rnd_subject.InstructorID].Time.GetAvailability(rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value+i_ts),
+				)
+
 				nudge_slot := sched[usi][rnd_subject.Day].GetTimeSlot(rnd_subject.StartingTimeSlot + nudge_value + i_ts)
 				nudge_slot.Set(rnd_subject.SubjectID, rnd_subject.InstructorID, rnd_subject.RoomID)
 
@@ -441,10 +448,10 @@ func ApplyRandomSubjectTimeSlotNudge(
 
 				if len(err_v2_val) > 0 {
 					log.Printf(
-						"\n\nsubject time slot = D(%d), T(%d-%d)\n  nudge time slot = D(%d), T(%d-%d)\n\ncurrent time slot = T(%d)\n\n",
+						"\n\nsubject time slot = D(%d), T(%d-%d)\n  nudge time slot = D(%d), T(%d-%d)\n\ncurrent time slot iter = T(%d)\n\nactual time slot = T(%d)\n\n",
 						rnd_subject.Day, rnd_subject.StartingTimeSlot, rnd_subject.StartingTimeSlot+rnd_subject.TimeSlotSize-1,
 						rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value, rnd_subject.StartingTimeSlot+nudge_value+rnd_subject.TimeSlotSize-1,
-						i_ts,
+						i_ts, (rnd_subject.StartingTimeSlot + nudge_value + i_ts),
 					)
 
 					log.Panicf("OPPSv-Spc2!  THERE IS SOMETHING WRONG (VARTICAL VALIDATION) - USI[%d]\n\n%v\n\n", usi, err_v2_val)
