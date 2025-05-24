@@ -592,11 +592,13 @@ func EncodeIndividualGenome(
 
 							if errs := ValidateEncodingResource(university_schedules, encoding_resource, curriculums, selected_semester); errs != nil {
 								log.Fatalf(
-									"EncodeIndividual: (d:%d, t:%d) AFTER SUBJECT TIME SLOT ASSIGNMENT %s(tsize:%d) [usi:%d] - %s %s %s - error %s: ",
+									"EncodeIndividual: (d:%d, t:%d) AFTER SUBJECT TIME SLOT ASSIGNMENT %s(tsize:%d) [usi:%d] - %s %s %s | (room:%d|%s), (instructor:%d|%s) \n\nerror:\n\n %s: ",
 									day, selected_time_slot,
 									subject.Code, subject_total_time_slots, indicies.Usi,
 									values.Curriculum.CurriculumCode, values.YearLevel.Name,
 									Curriculum.SECTION[indicies.Section],
+									selected_room.RoomID, selected_room.Name,
+									selected_instructor.InstructorID, selected_instructor.LastName,
 									errs,
 								)
 							}
