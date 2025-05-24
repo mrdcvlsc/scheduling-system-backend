@@ -295,6 +295,10 @@ func ApplyRandomSubjectTimeSlotNudge(
 
 		log.Println()
 
+		if subject_count_to_try_time_slot_nudge > len(subjects_json) {
+			panic("WHUWAW VERY GOOOOD!")
+		}
+
 		for shuffled_idx := range subject_count_to_try_time_slot_nudge {
 
 			if rng.Int31n(100) >= int32(SUBJECT_TIME_SLOT_NUDGE_PROBABILITY) {
@@ -351,10 +355,6 @@ func ApplyRandomSubjectTimeSlotNudge(
 					(nudge_slot.GetInstructorID() == rnd_subject.InstructorID) &&
 					(nudge_slot.GetRoomID() == rnd_subject.RoomID)
 
-				if is_same_subject_block {
-					continue
-				}
-
 				if _, has_instructor := id_to_instructor[rnd_subject.InstructorID]; !has_instructor {
 					log.Panicf("that instructor id does not exist id = %d ", rnd_subject.InstructorID)
 				}
@@ -367,7 +367,7 @@ func ApplyRandomSubjectTimeSlotNudge(
 				is_instructor_available := id_to_instructor[rnd_subject.InstructorID].Time.GetAvailability(rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value+i_ts)
 				is_room_available := (id_to_room[rnd_subject.RoomID].GetTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot + nudge_value + i_ts))) < uint8(id_to_room[rnd_subject.RoomID].Capacity)
 
-				if !(is_empty_slot && is_instructor_available && is_room_available) {
+				if !((is_empty_slot && is_instructor_available && is_room_available) || is_same_subject_block) {
 					is_free_time_slot = false
 					break
 				}
