@@ -289,6 +289,12 @@ func ApplyRandomSubjectTimeSlotNudge(
 			subjects_json[i], subjects_json[j] = subjects_json[j], subjects_json[i]
 		})
 
+		for _, s := range subjects_json {
+			log.Printf("subject [usi:%d] : s(%d), i(%d), r(%d) ==> D(%d), T(%d), S(%d)\n", usi, s.SubjectID, s.InstructorID, s.RoomID, s.Day, s.TimeSlotSize, s.TimeSlotSize)
+		}
+
+		log.Println()
+
 		for shuffled_idx := range subject_count_to_try_time_slot_nudge {
 
 			if rng.Int31n(100) >= int32(SUBJECT_TIME_SLOT_NUDGE_PROBABILITY) {
@@ -473,6 +479,10 @@ func ApplyRandomSubjectTimeSlotAndDayNudge(
 			}
 
 			subject_count_to_try_nudge := rng.Intn(rng_n) + 1
+
+			if subject_count_to_try_nudge <= 0 {
+				return IterProceed
+			}
 
 			rng.Shuffle(len(subjects_json), func(i, j int) {
 				subjects_json[i], subjects_json[j] = subjects_json[j], subjects_json[i]
