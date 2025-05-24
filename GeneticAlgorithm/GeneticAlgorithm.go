@@ -305,12 +305,36 @@ func RunGeneticAlgorithm(
 
 		for i := 1; i < len(population); i++ {
 
+			err_v_val := population[i].UniSched.VerticalValidation(rooms)
+
+			if len(err_v_val) > 0 {
+				log.Panicf("OPPSv1!  THERE IS SOMETHING WRONG (VARTICAL VALIDATION) - RANDOM MUTATION INDEX [%d]", i)
+			}
+
+			err_h_val := HorizontalValidation(population[i].UniSched, curriculums, department_to_encode, selected_semester)
+
+			if len(err_h_val) > 0 {
+				log.Panicf("OPPSv1!  THERE IS SOMETHING WRONG (HORIZONTAL VALIDATION) - RANDOM MUTATION INDEX [%d]", i)
+			}
+
 			// apply random mutations to some of the CURRENT individuals in the population
 
 			// ApplyRandomDaySwapTimeSlots(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
 			// ApplyRandomSubjectDaySwap(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
 			ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
 			// ApplyRandomSubjectTimeSlotAndDayNudge(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
+
+			err_v2_val := population[i].UniSched.VerticalValidation(rooms)
+
+			if len(err_v2_val) > 0 {
+				log.Panicf("OPPSv2!  THERE IS SOMETHING WRONG (VARTICAL VALIDATION) - RANDOM MUTATION INDEX [%d]", i)
+			}
+
+			err_h2_val := HorizontalValidation(population[i].UniSched, curriculums, department_to_encode, selected_semester)
+
+			if len(err_h2_val) > 0 {
+				log.Panicf("OPPSv2!  THERE IS SOMETHING WRONG (HORIZONTAL VALIDATION) - RANDOM MUTATION INDEX [%d]", i)
+			}
 
 			// repair broken genome after mutations
 
