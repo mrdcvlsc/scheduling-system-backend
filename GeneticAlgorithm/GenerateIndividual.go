@@ -86,19 +86,10 @@ func EncodeIndividualGenome(
 		return nil, nil, fmt.Errorf("error encode individual genome, caused by: %s", err_make_copy.Error())
 	}
 
-	if errs := ValidateEncodingResource(university_schedules, encoding_resource, curriculums, selected_semester); errs != nil {
-		log.Fatal(errs)
-	}
-
-	if !IsEqualEncodingResource(encoding_resource, rc_encoding_resource) {
-		// TODO: if tested many times, and there is no instance of this panic, then directly use
-		log.Fatal("EncodeIndividual: encoding resource copy not equal")
-	}
-
 	////////////////////////////////////////////////////////////////////////////////////////
 
 	var room_type_to_rooms map[uint16][]Rooms.Room
-	var instructors []*Instructors.Instructor
+	var instructors []Instructors.Instructor
 
 	room_type_to_general_rooms := encoding_resource.DeptIdToRoomtypeToRooms[0]
 
@@ -115,12 +106,7 @@ func EncodeIndividualGenome(
 			curriculum := values.Curriculum
 
 			room_type_to_rooms = encoding_resource.DeptIdToRoomtypeToRooms[curriculum.DepartmentID]
-
-			instructors := make([]*Instructors.Instructor, 0, len(encoding_resource.DeptIdToInstructors))
-
-			for i := range len(encoding_resource.DeptIdToInstructors[curriculum.DepartmentID]) {
-				instructors = append(instructors, &encoding_resource.DeptIdToInstructors[curriculum.DepartmentID][i])
-			}
+			instructors = encoding_resource.DeptIdToInstructors[curriculum.DepartmentID]
 
 			return IterProceed
 		},
@@ -198,7 +184,7 @@ func EncodeIndividualGenome(
 					instructor_id_to_instructor := make(map[uint16]*Instructors.Instructor)
 
 					for i := range instructors {
-						instructor_id_to_instructor[instructors[i].InstructorID] = instructors[i]
+						instructor_id_to_instructor[instructors[i].InstructorID] = &instructors[i]
 					}
 
 					for i := range encoding_resource.DeptIdToInstructors[0] {
@@ -345,11 +331,11 @@ func EncodeIndividualGenome(
 
 								if selected_instructor == nil {
 									for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
-										is_available_instructor = is_available_instructor && encoding_resource.IdToInstructor[specialized_instructors[instructor_idx].InstructorID].Time.GetAvailability(day, instructor_time_slot)
+										is_available_instructor = is_available_instructor && specialized_instructors[instructor_idx].Time.GetAvailability(day, instructor_time_slot)
 									}
 								} else {
 									for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
-										is_available_instructor = is_available_instructor && encoding_resource.IdToInstructor[selected_instructor.InstructorID].Time.GetAvailability(day, instructor_time_slot)
+										is_available_instructor = is_available_instructor && selected_instructor.Time.GetAvailability(day, instructor_time_slot)
 									}
 								}
 
@@ -391,12 +377,12 @@ func EncodeIndividualGenome(
 
 								if selected_instructor == nil {
 									for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
-										is_available_instructor = is_available_instructor && encoding_resource.IdToInstructor[instructors[instructor_idx].InstructorID].Time.GetAvailability(day, instructor_time_slot)
+										is_available_instructor = is_available_instructor && instructors[instructor_idx].Time.GetAvailability(day, instructor_time_slot)
 									}
 
 								} else {
 									for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
-										is_available_instructor = is_available_instructor && encoding_resource.IdToInstructor[selected_instructor.InstructorID].Time.GetAvailability(day, instructor_time_slot)
+										is_available_instructor = is_available_instructor && selected_instructor.Time.GetAvailability(day, instructor_time_slot)
 									}
 								}
 
@@ -459,7 +445,7 @@ func EncodeIndividualGenome(
 								has_available_room = true
 
 								for room_time_slot := time_slot; room_time_slot < (time_slot + subject_total_time_slots); room_time_slot++ {
-									has_available_room = has_available_room && encoding_resource.IdToRoom[gym[room_idx].RoomID].GetTimeSlotClassCount(day, room_time_slot) < uint8(gym[room_idx].Capacity)
+									has_available_room = has_available_room && gym[room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(gym[room_idx].Capacity)
 								}
 
 								if !has_available_room {
@@ -482,7 +468,7 @@ func EncodeIndividualGenome(
 								has_available_room = true
 
 								for room_time_slot := time_slot; room_time_slot < (time_slot + subject_total_time_slots); room_time_slot++ {
-									has_available_room = has_available_room && encoding_resource.IdToRoom[room_type_to_rooms[room_type][room_idx].RoomID].GetTimeSlotClassCount(day, room_time_slot) < uint8(room_type_to_rooms[room_type][room_idx].Capacity)
+									has_available_room = has_available_room && room_type_to_rooms[room_type][room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(room_type_to_rooms[room_type][room_idx].Capacity)
 								}
 
 								if !has_available_room {
@@ -508,7 +494,7 @@ func EncodeIndividualGenome(
 									has_available_room = true
 
 									for room_time_slot := time_slot; room_time_slot < (time_slot + subject_total_time_slots); room_time_slot++ {
-										has_available_room = has_available_room && encoding_resource.IdToRoom[room_type_to_general_rooms[room_type][room_idx].RoomID].GetTimeSlotClassCount(day, room_time_slot) < uint8(room_type_to_general_rooms[room_type][room_idx].Capacity)
+										has_available_room = has_available_room && room_type_to_general_rooms[room_type][room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(room_type_to_general_rooms[room_type][room_idx].Capacity)
 									}
 
 									if !has_available_room {
@@ -558,7 +544,7 @@ func EncodeIndividualGenome(
 							if subject.DesignatedInstructors != nil {
 								selected_instructor = specialized_instructors[selected_instructor_idx]
 							} else {
-								selected_instructor = instructors[selected_instructor_idx]
+								selected_instructor = &instructors[selected_instructor_idx]
 							}
 						}
 
@@ -581,10 +567,8 @@ func EncodeIndividualGenome(
 								panic("woah woah woah! you are overwriting a room allocated in that time slot")
 							}
 
-							// selected_instructor.Time.SetAvailability(false, day, selected_time_slot)
-							encoding_resource.IdToInstructor[selected_instructor.InstructorID].Time.SetAvailability(false, day, selected_time_slot)
-							// selected_room.IncTimeSlotClassCount(day, selected_time_slot)
-							encoding_resource.IdToRoom[selected_room.RoomID].IncTimeSlotClassCount(day, selected_time_slot)
+							selected_instructor.Time.SetAvailability(false, day, selected_time_slot)
+							selected_room.IncTimeSlotClassCount(day, selected_time_slot)
 
 							if subject.ID == 0 {
 								panic(fmt.Sprintf(
@@ -597,24 +581,6 @@ func EncodeIndividualGenome(
 							day_sched.GetTimeSlot(selected_time_slot).SetInstructorID(selected_instructor.InstructorID)
 							day_sched.GetTimeSlot(selected_time_slot).SetRoomID(selected_room.RoomID)
 
-							if errs := ValidateEncodingResource(university_schedules, encoding_resource, curriculums, selected_semester); errs != nil {
-								log.Fatalf(
-									"EncodeIndividual: (d:%d, t:%d) AFTER SUBJECT TIME SLOT ASSIGNMENT %s(tsize:%d) [usi:%d] - %s %s section %s | (room:%d|%s), (instructor:%d|%s) \n\nerror:\n\n %s: ",
-									day, selected_time_slot,
-									subject.Code, subject_total_time_slots, indicies.Usi,
-									values.Curriculum.CurriculumCode, values.YearLevel.Name,
-									Curriculum.SECTION[indicies.Section],
-									selected_room.RoomID, selected_room.Name,
-									selected_instructor.InstructorID, selected_instructor.LastName,
-									errs,
-								)
-							}
-
-							if IsEqualEncodingResource(encoding_resource, rc_encoding_resource) {
-								// TODO: if tested many times, and there is no instance of this panic, then directly use
-								log.Fatal("EncodeIndividual: AFTER SUBJECT TIME SLOT ASSIGNMENT THIS SHOULD NOT BE EQUAL ANYMORE")
-							}
-
 							time_slot_assignment_sanity_counter++
 						}
 
@@ -625,11 +591,11 @@ func EncodeIndividualGenome(
 						}
 
 						if !is_subject_type_added_once {
-							encoding_resource.IdToInstructor[selected_instructor.InstructorID].AssignedSubjects++
+							selected_instructor.AssignedSubjects++
 							is_subject_type_added_once = true
 						}
 
-						encoding_resource.IdToInstructor[selected_instructor.InstructorID].TotalTeachingHours += float32(subject_hours)
+						selected_instructor.TotalTeachingHours += float32(subject_hours)
 
 						subject_recorder[subject.ID] = subject
 
@@ -637,20 +603,12 @@ func EncodeIndividualGenome(
 						//                                  EXIT THE LOOP AFTER SUCCESSFUL ASSIGNMENT
 						/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-						if errs := ValidateEncodingResource(university_schedules, encoding_resource, curriculums, selected_semester); errs != nil {
-							log.Fatalf(
-								"EncodeIndividual: AFTER SUBJECT ASSIGNMENT [usi:%d] - %s %s %s - error %s: ",
-								indicies.Usi,
-								values.Curriculum.CurriculumCode, values.YearLevel.Name,
-								Curriculum.SECTION[indicies.Section],
-								errs,
-							)
-						}
-
-						if IsEqualEncodingResource(encoding_resource, rc_encoding_resource) {
-							// TODO: if tested many times, and there is no instance of this panic, then directly use
-							log.Fatal("EncodeIndividual: AFTER SUBJECT ASSIGNMENT THIS SHOULD NOT BE EQUAL ANYMORE")
-						}
+						// fmt.Printf("assigned instructor %d|%s, %s %s\t\t\t\tassigned room %d|%s\t\t\td(%d), t(%d-%d)\n",
+						// 	selected_instructor.InstructorID,
+						// 	selected_instructor.LastName, selected_instructor.FirstName, selected_instructor.MiddleInitial,
+						// 	selected_room.RoomID, selected_room.Name,
+						// 	day, time_slot, time_slot+subject_total_time_slots,
+						// )
 
 						break
 					}
@@ -691,8 +649,7 @@ func EncodeIndividualGenome(
 				return_uni_time_table = university_schedules
 				return_encoding_resource = nil
 				return_error = fmt.Errorf(
-					"[usi:%d] error encode individual genome, there are some subjects in %s, %s, %s, %s, that was not assigned for some reason s(%d/%d), i(%d), r(%d), IvsR(%d/%d)",
-					indicies.Usi,
+					"error encode individual genome, there are some subjects in %s, %s, %s, %s, that was not assigned for some reason s(%d/%d), i(%d), r(%d), IvsR(%d/%d)",
 					ro_dept_id_to_department[curriculum.DepartmentID].Code,
 					curriculum.CurriculumCode,
 					year_level.Name,
@@ -718,14 +675,26 @@ func EncodeIndividualGenome(
 		return return_uni_time_table, return_encoding_resource, return_error
 	}
 
-	if errs := ValidateEncodingResource(university_schedules, encoding_resource, curriculums, selected_semester); errs != nil {
-		log.Fatal("EncodeIndividual: AFTER ENCODING INDIVIDUAL: ", errs)
+	flatten_room_id_to_room := make(map[uint16]*Rooms.Room)
+
+	for out_key, out_v := range encoding_resource.DeptIdToRoomtypeToRooms {
+		for in_key, in_v := range out_v {
+			for room_idx, room := range in_v {
+				flatten_room_id_to_room[room.RoomID] = &encoding_resource.DeptIdToRoomtypeToRooms[out_key][in_key][room_idx]
+			}
+		}
 	}
 
-	if IsEqualEncodingResource(encoding_resource, rc_encoding_resource) {
-		// TODO: if tested many times, and there is no instance of this panic, then directly use
-		log.Fatal("EncodeIndividual: THIS SHOULD NOT BE EQUAL ANYMORE")
+	flatten_instructor_id_to_instructor := make(map[uint16]*Instructors.Instructor)
+
+	for k, v := range encoding_resource.DeptIdToInstructors {
+		for instructor_idx, instructor := range v {
+			flatten_instructor_id_to_instructor[instructor.InstructorID] = &encoding_resource.DeptIdToInstructors[k][instructor_idx]
+		}
 	}
+
+	encoding_resource.IdToRoom = flatten_room_id_to_room
+	encoding_resource.IdToInstructor = flatten_instructor_id_to_instructor
 
 	return university_schedules, encoding_resource, nil
 }
