@@ -98,7 +98,7 @@ func EncodeIndividualGenome(
 	////////////////////////////////////////////////////////////////////////////////////////
 
 	var room_type_to_rooms map[uint16][]Rooms.Room
-	var instructors []Instructors.Instructor
+	var instructors []*Instructors.Instructor
 
 	room_type_to_general_rooms := encoding_resource.DeptIdToRoomtypeToRooms[0]
 
@@ -115,7 +115,12 @@ func EncodeIndividualGenome(
 			curriculum := values.Curriculum
 
 			room_type_to_rooms = encoding_resource.DeptIdToRoomtypeToRooms[curriculum.DepartmentID]
-			instructors = encoding_resource.DeptIdToInstructors[curriculum.DepartmentID]
+
+			instructors := make([]*Instructors.Instructor, 0, len(encoding_resource.DeptIdToInstructors))
+
+			for i := range len(encoding_resource.DeptIdToInstructors[curriculum.DepartmentID]) {
+				instructors = append(instructors, &encoding_resource.DeptIdToInstructors[curriculum.DepartmentID][i])
+			}
 
 			return IterProceed
 		},
@@ -193,7 +198,7 @@ func EncodeIndividualGenome(
 					instructor_id_to_instructor := make(map[uint16]*Instructors.Instructor)
 
 					for i := range instructors {
-						instructor_id_to_instructor[instructors[i].InstructorID] = &instructors[i]
+						instructor_id_to_instructor[instructors[i].InstructorID] = instructors[i]
 					}
 
 					for i := range encoding_resource.DeptIdToInstructors[0] {
@@ -553,7 +558,7 @@ func EncodeIndividualGenome(
 							if subject.DesignatedInstructors != nil {
 								selected_instructor = specialized_instructors[selected_instructor_idx]
 							} else {
-								selected_instructor = &instructors[selected_instructor_idx]
+								selected_instructor = instructors[selected_instructor_idx]
 							}
 						}
 
@@ -577,7 +582,8 @@ func EncodeIndividualGenome(
 							}
 
 							selected_instructor.Time.SetAvailability(false, day, selected_time_slot)
-							selected_room.IncTimeSlotClassCount(day, selected_time_slot)
+							// selected_room.IncTimeSlotClassCount(day, selected_time_slot)
+							encoding_resource.IdToRoom[selected_room.RoomID].IncTimeSlotClassCount(day, selected_time_slot)
 
 							if subject.ID == 0 {
 								panic(fmt.Sprintf(
@@ -592,7 +598,7 @@ func EncodeIndividualGenome(
 
 							if errs := ValidateEncodingResource(university_schedules, encoding_resource, curriculums, selected_semester); errs != nil {
 								log.Fatalf(
-									"EncodeIndividual: (d:%d, t:%d) AFTER SUBJECT TIME SLOT ASSIGNMENT %s(tsize:%d) [usi:%d] - %s %s %s | (room:%d|%s), (instructor:%d|%s) \n\nerror:\n\n %s: ",
+									"EncodeIndividual: (d:%d, t:%d) AFTER SUBJECT TIME SLOT ASSIGNMENT %s(tsize:%d) [usi:%d] - %s %s section %s | (room:%d|%s), (instructor:%d|%s) \n\nerror:\n\n %s: ",
 									day, selected_time_slot,
 									subject.Code, subject_total_time_slots, indicies.Usi,
 									values.Curriculum.CurriculumCode, values.YearLevel.Name,
