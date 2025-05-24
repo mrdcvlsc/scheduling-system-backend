@@ -88,6 +88,15 @@ func ValidateEncodingResource(
 
 					// check instructor encoding resource correctness
 
+					if _, has_instructor_id := encoding_resource.IdToInstructor[id_instructor]; !has_instructor_id {
+						err_return = fmt.Errorf(
+							"ValidateEncodingResource: the instructor id [%d] detected in university schedule is not found in the encoding resource",
+							id_instructor,
+						)
+
+						return IterBreakCurriculumLoop
+					}
+
 					is_instructor_available := encoding_resource.IdToInstructor[id_instructor].Time.GetAvailability(day, time_slot)
 
 					if is_instructor_available {
@@ -105,6 +114,15 @@ func ValidateEncodingResource(
 					}
 
 					// check room encoding resource correctness
+
+					if _, has_room_id := encoding_resource.IdToRoom[id_room]; !has_room_id {
+						err_return = fmt.Errorf(
+							"ValidateEncodingResource: the room id [%d] detected in university schedule is not found in the encoding resource",
+							id_room,
+						)
+
+						return IterBreakCurriculumLoop
+					}
 
 					if _, has_id := room_id_to_count[id_room]; !has_id {
 						room_id_to_count[id_room] = 0
