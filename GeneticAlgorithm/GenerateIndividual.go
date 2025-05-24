@@ -677,6 +677,15 @@ func EncodeIndividualGenome(
 		return return_uni_time_table, return_encoding_resource, return_error
 	}
 
+	if errs := ValidateEncodingResource(university_schedules, encoding_resource, curriculums, selected_semester); errs != nil {
+		log.Fatal("EncodeIndividual: AFTER ENCODING INDIVIDUAL: ", errs)
+	}
+
+	if IsEqualEncodingResource(encoding_resource, rc_encoding_resource) {
+		// TODO: if tested many times, and there is no instance of this panic, then directly use
+		log.Fatal("EncodeIndividual: THIS SHOULD NOT BE EQUAL ANYMORE")
+	}
+
 	return university_schedules, encoding_resource, nil
 }
 
