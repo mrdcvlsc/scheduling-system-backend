@@ -527,6 +527,7 @@ new_population_loop:
 				}
 
 				if errs := GeneticAlgorithm.ValidateEncodingResource(output_schedules, output_resources, curriculums, target_semester); errs != nil {
+					t.Logf("currently at department %s", department.Code)
 					t.Fatal(errs)
 				}
 

@@ -133,21 +133,24 @@ func ValidateEncodingResource(
 
 					room_id_to_count[id_room]++
 
+					for id_room, allocation_count := range room_id_to_count {
+						encoding_allocation_count := encoding_resource.IdToRoom[id_room].GetTimeSlotClassCount(day, time_slot)
+						if encoding_allocation_count != uint8(allocation_count) {
+							err_return = fmt.Errorf(
+								"ValidateEncodingResource: [usi:%d] wrong room allocation of [%d]-%s in day(%d), timeslot(%d), encoding has %d, validation detected %d",
+								indicies.Usi,
+								encoding_resource.IdToRoom[id_room].RoomID,
+								encoding_resource.IdToRoom[id_room].Name,
+								day, time_slot, encoding_allocation_count, allocation_count,
+							)
+
+							return IterBreakCurriculumLoop
+						}
+					}
+
 					return IterProceed
 				},
 			)
-
-			for id_room, allocation_count := range room_id_to_count {
-				encoding_allocation_count := encoding_resource.IdToRoom[id_room].GetTimeSlotClassCount(day, time_slot)
-				if encoding_allocation_count != uint8(allocation_count) {
-					return fmt.Errorf(
-						"ValidateEncodingResource: wrong room allocation of [%d]-%s in day(%d), timeslot(%d), encoding has %d, validation detected %d",
-						encoding_resource.IdToRoom[id_room].RoomID,
-						encoding_resource.IdToRoom[id_room].Name,
-						day, time_slot, encoding_allocation_count, allocation_count,
-					)
-				}
-			}
 		}
 	}
 
