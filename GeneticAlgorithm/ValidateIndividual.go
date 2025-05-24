@@ -8,6 +8,131 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 )
 
+func ValidateEncodingResource(
+	sched Schedule.UniTimeTables, encoding_resource *EncodingResource,
+	curriculums []Curriculum.Curriculum, selected_semester int,
+) error {
+	var err_return error = nil
+
+	for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
+		for time_slot := 0; time_slot < Const.N_DAILY_SCHOOL_HOURS; time_slot++ {
+
+			room_id_to_count := make(map[uint16]int)
+
+			IterateSectionsWeekSchedule(sched, curriculums, selected_semester, nil, nil,
+				func(indicies IterIndices, values IterValues) IterReturnType {
+
+					id_subject := sched[indicies.Usi][day][time_slot].GetSubjectID()
+					id_instructor := sched[indicies.Usi][day][time_slot].GetInstructorID()
+					id_room := sched[indicies.Usi][day][time_slot].GetRoomID()
+
+					// resource dangling cases
+
+					if id_subject == 0 && id_instructor > 0 {
+						err_return = fmt.Errorf(
+							"ValidateEncodingResource: dangling instructor - [%d] %s %s %s in %s %s section %s => usi(%d), day(%d), timeslot(%d)",
+							id_instructor,
+							encoding_resource.IdToInstructor[id_instructor].FirstName,
+							encoding_resource.IdToInstructor[id_instructor].MiddleInitial,
+							encoding_resource.IdToInstructor[id_instructor].LastName,
+							values.Curriculum.CurriculumCode, values.Semester.Name, Curriculum.SECTION[indicies.Section],
+							indicies.Usi, day, time_slot,
+						)
+
+						return IterBreakCurriculumLoop
+					}
+
+					if id_subject == 0 && id_room > 0 {
+						err_return = fmt.Errorf(
+							"ValidateEncodingResource: dangling room - [%d] %s in %s %s section %s => usi(%d), day(%d), timeslot(%d)",
+							id_room,
+							encoding_resource.IdToRoom[id_room].Name,
+							values.Curriculum.CurriculumCode, values.Semester.Name, Curriculum.SECTION[indicies.Section],
+							indicies.Usi, day, time_slot,
+						)
+
+						return IterBreakCurriculumLoop
+					}
+
+					// subject dangling cases
+
+					if id_subject > 0 && id_instructor == 0 {
+						err_return = fmt.Errorf(
+							"ValidateEncodingResource: missing instructor - [%d] %s %s %s in %s %s section %s => usi(%d), day(%d), timeslot(%d)",
+							id_instructor,
+							encoding_resource.IdToInstructor[id_instructor].FirstName,
+							encoding_resource.IdToInstructor[id_instructor].MiddleInitial,
+							encoding_resource.IdToInstructor[id_instructor].LastName,
+							values.Curriculum.CurriculumCode, values.Semester.Name, Curriculum.SECTION[indicies.Section],
+							indicies.Usi, day, time_slot,
+						)
+
+						return IterBreakCurriculumLoop
+					}
+
+					if id_subject > 0 && id_room == 0 {
+						err_return = fmt.Errorf(
+							"ValidateEncodingResource: missing room - [%d] %s in %s %s section %s => usi(%d), day(%d), timeslot(%d)",
+							id_room,
+							encoding_resource.IdToRoom[id_room].Name,
+							values.Curriculum.CurriculumCode, values.Semester.Name, Curriculum.SECTION[indicies.Section],
+							indicies.Usi, day, time_slot,
+						)
+
+						return IterBreakCurriculumLoop
+					}
+
+					if id_subject == 0 {
+						return IterProceed
+					}
+
+					// check instructor encoding resource correctness
+
+					is_instructor_available := encoding_resource.IdToInstructor[id_instructor].Time.GetAvailability(day, time_slot)
+
+					if is_instructor_available {
+						err_return = fmt.Errorf(
+							"ValidateEncodingResource: [%d] %s %s %s in %s %s section %s should not be available in this time slot => usi(%d), day(%d), timeslot(%d)",
+							id_instructor,
+							encoding_resource.IdToInstructor[id_instructor].FirstName,
+							encoding_resource.IdToInstructor[id_instructor].MiddleInitial,
+							encoding_resource.IdToInstructor[id_instructor].LastName,
+							values.Curriculum.CurriculumCode, values.Semester.Name, Curriculum.SECTION[indicies.Section],
+							indicies.Usi, day, time_slot,
+						)
+
+						return IterBreakCurriculumLoop
+					}
+
+					// check room encoding resource correctness
+
+					if _, has_id := room_id_to_count[id_room]; !has_id {
+						room_id_to_count[id_room] = 0
+					}
+
+					room_id_to_count[id_room]++
+
+					return IterProceed
+				},
+			)
+
+			for id_room, allocation_count := range room_id_to_count {
+				encoding_allocation_count := encoding_resource.IdToRoom[id_room].GetTimeSlotClassCount(day, time_slot)
+				if encoding_allocation_count != uint8(allocation_count) {
+					return fmt.Errorf(
+						"ValidateEncodingResource: wrong room allocation of [%d]-%s in day(%d), timeslot(%d), encoding has %d, validation detected %d",
+						encoding_resource.IdToRoom[id_room].RoomID,
+						encoding_resource.IdToRoom[id_room].Name,
+						day, time_slot, encoding_allocation_count, allocation_count,
+					)
+				}
+			}
+		}
+	}
+
+	return err_return
+}
+
 /*
 validate assigned subjects to every section schedules in the whole university.
 
@@ -67,6 +192,36 @@ func HorizontalValidation(
 				subject_id := university_sched[usi][day][time_slot].GetSubjectID()
 
 				if subject_id == 0 {
+					if university_sched[usi][day][time_slot].GetInstructorID() > 0 {
+						errs_slice = append(
+							errs_slice,
+							fmt.Errorf(
+								"dangling instructor id detected in %s %s %s %s [usi:%d] - day(%d), timeslot(%d)",
+								curriculum.CurriculumCode, year_level.Name, semester.Name,
+								Curriculum.SEMESTER_INDEX_NAME[indicies.Section],
+								indicies.Usi, day, time_slot,
+							),
+						)
+
+						return IterBreakCurriculumLoop
+					}
+					continue
+				}
+
+				if subject_id == 0 {
+					if university_sched[usi][day][time_slot].GetRoomID() > 0 {
+						errs_slice = append(
+							errs_slice,
+							fmt.Errorf(
+								"dangling room id detected in %s %s %s %s [usi:%d] - day(%d), timeslot(%d)",
+								curriculum.CurriculumCode, year_level.Name, semester.Name,
+								Curriculum.SEMESTER_INDEX_NAME[indicies.Section],
+								indicies.Usi, day, time_slot,
+							),
+						)
+
+						return IterBreakCurriculumLoop
+					}
 					continue
 				}
 
