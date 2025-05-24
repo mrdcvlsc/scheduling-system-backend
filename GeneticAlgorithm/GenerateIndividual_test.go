@@ -273,6 +273,12 @@ func GeneratePopulations(t *testing.T, target_semester int) int {
 			}
 		}
 
+		errs_encoding_validation := GeneticAlgorithm.ValidateEncodingResource(university_schedules, encoding_resource, curriculums, target_semester)
+
+		if errs_encoding_validation != nil {
+			t.Fatal(errs_encoding_validation)
+		}
+
 		/////////////////
 
 		if err == nil {
@@ -538,6 +544,12 @@ new_population_loop:
 			for _, e := range err_vertical_validations {
 				t.Error(e)
 				err_list_validation = append(err_list_validation, e)
+			}
+
+			errs_encoding_validation := GeneticAlgorithm.ValidateEncodingResource(track_schedules, track_resources, curriculums, target_semester)
+
+			if errs_encoding_validation != nil {
+				t.Fatal(errs_encoding_validation)
 			}
 
 			///////////////////////
