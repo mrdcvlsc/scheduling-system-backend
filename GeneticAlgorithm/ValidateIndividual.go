@@ -2,6 +2,7 @@ package GeneticAlgorithm
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
@@ -87,6 +88,10 @@ func ValidateEncodingResource(
 					}
 
 					// check instructor encoding resource correctness
+
+					if encoding_resource.IdToInstructor == nil {
+						log.Panic("ValidateEncodingResource: encoding_resource.IdToInstructor is nil")
+					}
 
 					if _, has_instructor_id := encoding_resource.IdToInstructor[id_instructor]; !has_instructor_id {
 						err_return = fmt.Errorf(

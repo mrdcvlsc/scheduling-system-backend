@@ -417,6 +417,8 @@ func ApplyRandomSubjectTimeSlotNudge(
 
 			for i_ts := 0; i_ts < rnd_subject.TimeSlotSize; i_ts++ {
 
+				log.Println("==============================")
+
 				log.Printf(
 					"\n\n[%d] Room Availability (%d, %d) = %t\n\n[%d] Inst Availability (%d, %d) = %t\n\n",
 					i_ts, rnd_subject.Day, (rnd_subject.StartingTimeSlot + nudge_value + i_ts),
