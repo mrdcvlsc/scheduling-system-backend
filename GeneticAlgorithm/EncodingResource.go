@@ -135,6 +135,47 @@ func IsEqualEncodingResource(a, b *EncodingResource) bool {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
+	if len(a.DeptIdToInstructors) != len(b.DeptIdToInstructors) {
+		log.Print("IsEqualEncodingResource: not equal DeptIdToInstructors - case 1")
+		return false
+	}
+
+	for a_k, a_v := range a.DeptIdToInstructors {
+
+		b_v, has_b_k := b.DeptIdToInstructors[a_k]
+
+		if !has_b_k {
+			log.Print("IsEqualEncodingResource: not equal DeptIdToInstructors - case 2")
+			return false
+		}
+
+		if len(a_v) != len(b_v) {
+			log.Print("IsEqualEncodingResource: not equal DeptIdToInstructors - case 3")
+			return false
+		}
+
+		sort.Slice(a_v, func(i, j int) bool {
+			return a_v[i].InstructorID < a_v[j].InstructorID
+		})
+
+		sort.Slice(b_v, func(i, j int) bool {
+			return b_v[i].InstructorID < b_v[j].InstructorID
+		})
+
+		for instructor_idx, instructor := range a_v {
+			if instructor != b_v[instructor_idx] {
+				log.Printf(
+					"IsEqualEncodingResource: not equal DeptIdToInstructors department id (%d) - case 4, \ninstructor:\n%+v\n\nb_v[instructor_idx]\n:%+v\n",
+					a_k, instructor, b_v[instructor_idx],
+				)
+
+				return false
+			}
+		}
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
 	for a_out_k, a_out_v := range a.DeptIdToRoomtypeToRooms {
 		b_out_v, has_b_out_k := b.DeptIdToRoomtypeToRooms[a_out_k]
 
@@ -191,47 +232,6 @@ func IsEqualEncodingResource(a, b *EncodingResource) bool {
 					log.Print("IsEqualEncodingResource: not equal DeptIdToRoomtypeToRooms - case 5")
 					return false
 				}
-			}
-		}
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////
-
-	if len(a.DeptIdToInstructors) != len(b.DeptIdToInstructors) {
-		log.Print("IsEqualEncodingResource: not equal DeptIdToInstructors - case 1")
-		return false
-	}
-
-	for a_k, a_v := range a.DeptIdToInstructors {
-
-		b_v, has_b_k := b.DeptIdToInstructors[a_k]
-
-		if !has_b_k {
-			log.Print("IsEqualEncodingResource: not equal DeptIdToInstructors - case 2")
-			return false
-		}
-
-		if len(a_v) != len(b_v) {
-			log.Print("IsEqualEncodingResource: not equal DeptIdToInstructors - case 3")
-			return false
-		}
-
-		sort.Slice(a_v, func(i, j int) bool {
-			return a_v[i].InstructorID < a_v[j].InstructorID
-		})
-
-		sort.Slice(b_v, func(i, j int) bool {
-			return b_v[i].InstructorID < b_v[j].InstructorID
-		})
-
-		for instructor_idx, instructor := range a_v {
-			if instructor != b_v[instructor_idx] {
-				log.Printf(
-					"IsEqualEncodingResource: not equal DeptIdToInstructors department id (%d) - case 4, \ninstructor:\n%+v\n\nb_v[instructor_idx]\n:%+v\n",
-					a_k, instructor, b_v[instructor_idx],
-				)
-
-				return false
 			}
 		}
 	}
