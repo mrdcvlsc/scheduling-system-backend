@@ -357,14 +357,16 @@ func ApplyRandomSubjectTimeSlotNudge(
 				id_to_room[rnd_subject.RoomID].DecTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot + i_ts))
 				next_room_val := int(id_to_room[rnd_subject.RoomID].GetTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot + i_ts)))
 
-				if prev_room_val == 0 {
-					if next_room_val != 0 {
-						log.Panic("decrement is wrong for zero values")
+				if !(prev_room_val == 0 && next_room_val == 0) {
+					if prev_room_val == 0 {
+						if next_room_val != 0 {
+							log.Panic("decrement is wrong for zero values")
+						}
 					}
-				}
 
-				if next_room_val != prev_room_val-1 {
-					log.Panicf("decrement is wrong for normal values : previous = %d, next = %d", prev_room_val, next_room_val)
+					if next_room_val != prev_room_val-1 {
+						log.Panicf("decrement is wrong for normal values : previous = %d, next = %d", prev_room_val, next_room_val)
+					}
 				}
 			}
 
