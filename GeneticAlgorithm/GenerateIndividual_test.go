@@ -526,6 +526,10 @@ new_population_loop:
 					continue
 				}
 
+				if errs := GeneticAlgorithm.ValidateEncodingResource(output_schedules, output_resources, curriculums, target_semester); errs != nil {
+					t.Fatal(errs)
+				}
+
 				track_schedules = output_schedules
 				track_resources = output_resources
 				break // department schedule generated - end retry loop

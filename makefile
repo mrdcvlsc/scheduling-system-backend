@@ -55,7 +55,82 @@ clean:
 
 test:
 	go clean -testcache
-	go test ./... -p 1 -timeout 0
+	echo "running generate schedule test encoding individual"
+
+	rm -rf scheduling-system-temporary-data
+	cd ../scheduling-system-temporary-data && python unify-subjects.py && python pack.py && mv release.zip ../scheduling-system-backend
+	unzip release.zip -d ./scheduling-system-temporary-data
+	go clean -testcache && go test -run TestEstimateResourceAvailabilityFirstSem ./GeneticAlgorithm -timeout 0
+
+	rm -rf scheduling-system-temporary-data
+	cd ../scheduling-system-temporary-data && python unify-subjects.py && python pack.py && mv release.zip ../scheduling-system-backend
+	unzip release.zip -d ./scheduling-system-temporary-data
+	go clean -testcache && go test -run TestEstimateResourceAvailabilitySecondSem ./GeneticAlgorithm -timeout 0
+
+	rm -rf scheduling-system-temporary-data
+	cd ../scheduling-system-temporary-data && python unify-subjects.py && python pack.py && mv release.zip ../scheduling-system-backend
+	unzip release.zip -d ./scheduling-system-temporary-data
+	go clean -testcache && go test -run TestNewPopulationFirstSem ./GeneticAlgorithm -timeout 0
+
+	rm -rf scheduling-system-temporary-data
+	cd ../scheduling-system-temporary-data && python unify-subjects.py && python pack.py && mv release.zip ../scheduling-system-backend
+	unzip release.zip -d ./scheduling-system-temporary-data
+	go clean -testcache && go test -run TestNewPopulationSecondSem ./GeneticAlgorithm -timeout 0
+
+	rm -rf scheduling-system-temporary-data
+	cd ../scheduling-system-temporary-data && python unify-subjects.py && python pack.py && mv release.zip ../scheduling-system-backend
+	unzip release.zip -d ./scheduling-system-temporary-data
+	go clean -testcache && go test -run TestNewPopulation1stSemWithDepartmentSelection ./GeneticAlgorithm -timeout 0
+
+	rm -rf scheduling-system-temporary-data
+	cd ../scheduling-system-temporary-data && python unify-subjects.py && python pack.py && mv release.zip ../scheduling-system-backend
+	unzip release.zip -d ./scheduling-system-temporary-data
+	go clean -testcache && go test -run TestNewPopulation2ndSemWithDepartmentSelection ./GeneticAlgorithm -timeout 0
+
+	echo "running test resource methods"
+
+	rm -rf scheduling-system-temporary-data
+	cd ../scheduling-system-temporary-data && python unify-subjects.py && python pack.py && mv release.zip ../scheduling-system-backend
+	unzip release.zip -d ./scheduling-system-temporary-data
+	go clean -testcache && go test -run Test ./Resources/Curriculum -timeout 0
+
+	rm -rf scheduling-system-temporary-data
+	cd ../scheduling-system-temporary-data && python unify-subjects.py && python pack.py && mv release.zip ../scheduling-system-backend
+	unzip release.zip -d ./scheduling-system-temporary-data
+	go clean -testcache && go test -run Test ./Resources/Instructors -timeout 0
+
+	rm -rf scheduling-system-temporary-data
+	cd ../scheduling-system-temporary-data && python unify-subjects.py && python pack.py && mv release.zip ../scheduling-system-backend
+	unzip release.zip -d ./scheduling-system-temporary-data
+	go clean -testcache && go test -run Test ./Resources/Rooms -timeout 0
+
+	echo "running test schedule data structures"
+
+	rm -rf scheduling-system-temporary-data
+	cd ../scheduling-system-temporary-data && python unify-subjects.py && python pack.py && mv release.zip ../scheduling-system-backend
+	unzip release.zip -d ./scheduling-system-temporary-data
+	go clean -testcache && go test -run Test ./Schedule -timeout 0
+
+	echo "running test persistence methods"
+
+	rm -rf scheduling-system-temporary-data
+	cd ../scheduling-system-temporary-data && python unify-subjects.py && python pack.py && mv release.zip ../scheduling-system-backend
+	unzip release.zip -d ./scheduling-system-temporary-data
+	go clean -testcache && go test -run Test ./StorageResources -timeout 0
+
+	rm -rf scheduling-system-temporary-data
+	cd ../scheduling-system-temporary-data && python unify-subjects.py && python pack.py && mv release.zip ../scheduling-system-backend
+	unzip release.zip -d ./scheduling-system-temporary-data
+	go clean -testcache && go test -run Test ./StorageSchedule -timeout 0
+
+	echo "running test others"
+
+	rm -rf scheduling-system-temporary-data
+	cd ../scheduling-system-temporary-data && python unify-subjects.py && python pack.py && mv release.zip ../scheduling-system-backend
+	unzip release.zip -d ./scheduling-system-temporary-data
+	go clean -testcache && go test -run Test ./Tests/schedule_datastructure_basic -timeout 0
+
+	go clean -testcache && go test -run Test ./Utils -timeout 0
 
 testv:
 	go clean -testcache
