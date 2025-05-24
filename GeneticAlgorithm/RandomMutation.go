@@ -333,6 +333,14 @@ func ApplyRandomSubjectTimeSlotNudge(
 					continue
 				}
 
+				if _, has_instructor := id_to_instructor[rnd_subject.InstructorID]; !has_instructor {
+					log.Panicf("that instructor id does not exist id = %d ", rnd_subject.InstructorID)
+				}
+
+				if _, has_room := id_to_room[rnd_subject.RoomID]; !has_room {
+					log.Panicf("that room id does not exist id = %d ", rnd_subject.RoomID)
+				}
+
 				is_empty_slot := nudge_slot.GetSubjectID() == 0
 				is_instructor_available := id_to_instructor[rnd_subject.InstructorID].Time.GetAvailability(rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value+i_ts)
 				is_room_available := id_to_room[rnd_subject.RoomID].GetTimeSlotClassCount(rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value+i_ts) < uint8(id_to_room[rnd_subject.RoomID].Capacity)
