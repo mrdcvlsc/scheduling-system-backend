@@ -6,6 +6,8 @@ import (
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 )
 
@@ -13,6 +15,28 @@ func ValidateEncodingResource(
 	sched Schedule.UniTimeTables, encoding_resource *EncodingResource,
 	curriculums []Curriculum.Curriculum, selected_semester int,
 ) error {
+
+	room_id_to_room := make(map[uint16]*Rooms.Room)
+
+	for out_key, out_v := range encoding_resource.DeptIdToRoomtypeToRooms {
+		for in_key, in_v := range out_v {
+			for room_idx, room := range in_v {
+				room_id_to_room[room.RoomID] = &encoding_resource.DeptIdToRoomtypeToRooms[out_key][in_key][room_idx]
+			}
+		}
+	}
+
+	instructor_id_to_instructor := make(map[uint16]*Instructors.Instructor)
+
+	for k, v := range encoding_resource.DeptIdToInstructors {
+		for instructor_idx, instructor := range v {
+			instructor_id_to_instructor[instructor.InstructorID] = &encoding_resource.DeptIdToInstructors[k][instructor_idx]
+		}
+	}
+
+	encoding_resource.IdToRoom = room_id_to_room
+	encoding_resource.IdToInstructor = instructor_id_to_instructor
+
 	var err_return error = nil
 
 	for day := range Const.N_WEEKLY_SCHOOL_DAYS {
@@ -93,7 +117,7 @@ func ValidateEncodingResource(
 
 					if _, has_instructor_id := encoding_resource.IdToInstructor[id_instructor]; !has_instructor_id {
 						err_return = fmt.Errorf(
-							"ValidateEncodingResource: the instructor id [%d] detected in university schedule is not found in the encoding resource",
+							"ValidateEncodingResource: the instructor id = %d detected in university schedule is not found in the encoding resource",
 							id_instructor,
 						)
 
@@ -104,7 +128,7 @@ func ValidateEncodingResource(
 
 					if is_instructor_available {
 						err_return = fmt.Errorf(
-							"ValidateEncodingResource: [%d] %s %s %s in %s %s section %s should not be available in this time slot => usi(%d), day(%d), timeslot(%d)",
+							"ValidateEncodingResource: (%d|%s %s %s) in %s %s section %s should not be available in this time slot => usi(%d), day(%d), timeslot(%d)",
 							id_instructor,
 							encoding_resource.IdToInstructor[id_instructor].FirstName,
 							encoding_resource.IdToInstructor[id_instructor].MiddleInitial,
@@ -120,7 +144,7 @@ func ValidateEncodingResource(
 
 					if _, has_room_id := encoding_resource.IdToRoom[id_room]; !has_room_id {
 						err_return = fmt.Errorf(
-							"ValidateEncodingResource: the room id [%d] detected in university schedule is not found in the encoding resource",
+							"ValidateEncodingResource: the room id = %d detected in university schedule is not found in the encoding resource",
 							id_room,
 						)
 
@@ -156,7 +180,7 @@ func ValidateEncodingResource(
 				encoding_allocation_count := encoding_resource.IdToRoom[id_room].GetTimeSlotClassCount(day, time_slot)
 				if encoding_allocation_count != uint8(allocation_count) {
 					return fmt.Errorf(
-						"ValidateEncodingResource: wrong room allocation of [%d]-%s in day(%d), timeslot(%d), encoding has %d, validation detected %d",
+						"ValidateEncodingResource: wrong room allocation of (%d|%s) in day(%d), timeslot(%d), encoding has %d, validation detected %d",
 						encoding_resource.IdToRoom[id_room].RoomID,
 						encoding_resource.IdToRoom[id_room].Name,
 						day, time_slot, encoding_allocation_count, allocation_count,
