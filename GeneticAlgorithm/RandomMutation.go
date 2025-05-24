@@ -413,12 +413,14 @@ func ApplyRandomSubjectTimeSlotNudge(
 
 			///////////////
 
+			log.Printf("subject time slot size = %d\n\n", rnd_subject.TimeSlotSize)
+
 			for i_ts := 0; i_ts < rnd_subject.TimeSlotSize; i_ts++ {
 
 				log.Printf(
-					"\n\nRoom Availability = %t\n\nInst Availability = %t\n\n",
-					(id_to_room[rnd_subject.RoomID].GetTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot+nudge_value+i_ts))) < uint8(id_to_room[rnd_subject.RoomID].Capacity),
-					id_to_instructor[rnd_subject.InstructorID].Time.GetAvailability(rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value+i_ts),
+					"\n\n[%d] Room Availability = %t\n\n[%d] Inst Availability = %t\n\n",
+					i_ts, (id_to_room[rnd_subject.RoomID].GetTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot+nudge_value+i_ts))) < uint8(id_to_room[rnd_subject.RoomID].Capacity),
+					i_ts, id_to_instructor[rnd_subject.InstructorID].Time.GetAvailability(rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value+i_ts),
 				)
 
 				nudge_slot := sched[usi][rnd_subject.Day].GetTimeSlot(rnd_subject.StartingTimeSlot + nudge_value + i_ts)
