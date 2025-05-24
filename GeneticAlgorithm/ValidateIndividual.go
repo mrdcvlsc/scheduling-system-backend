@@ -89,6 +89,10 @@ func ValidateEncodingResource(
 
 					// check instructor encoding resource correctness
 
+					if encoding_resource == nil {
+						log.Panic("ValidateEncodingResource: encoding_resource is nil")
+					}
+
 					if encoding_resource.IdToInstructor == nil {
 						log.Panic("ValidateEncodingResource: encoding_resource.IdToInstructor is nil")
 					}
