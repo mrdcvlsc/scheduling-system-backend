@@ -15,8 +15,8 @@ func ValidateEncodingResource(
 ) error {
 	var err_return error = nil
 
-	for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
-		for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
+	for day := range Const.N_WEEKLY_SCHOOL_DAYS {
+		for time_slot := range Const.N_DAILY_TIME_SLOTS {
 
 			room_id_to_count := make(map[uint16]int)
 
@@ -59,11 +59,7 @@ func ValidateEncodingResource(
 
 					if id_subject > 0 && id_instructor == 0 {
 						err_return = fmt.Errorf(
-							"ValidateEncodingResource: missing instructor - [%d] %s %s %s in %s %s section %s => usi(%d), day(%d), timeslot(%d)",
-							id_instructor,
-							encoding_resource.IdToInstructor[id_instructor].FirstName,
-							encoding_resource.IdToInstructor[id_instructor].MiddleInitial,
-							encoding_resource.IdToInstructor[id_instructor].LastName,
+							"ValidateEncodingResource: missing instructor in %s %s section %s => usi(%d), day(%d), timeslot(%d)",
 							values.Curriculum.CurriculumCode, values.Semester.Name, Curriculum.SECTION[indicies.Section],
 							indicies.Usi, day, time_slot,
 						)
@@ -73,9 +69,7 @@ func ValidateEncodingResource(
 
 					if id_subject > 0 && id_room == 0 {
 						err_return = fmt.Errorf(
-							"ValidateEncodingResource: missing room - [%d] %s in %s %s section %s => usi(%d), day(%d), timeslot(%d)",
-							id_room,
-							encoding_resource.IdToRoom[id_room].Name,
+							"ValidateEncodingResource: missing room in %s %s section %s => usi(%d), day(%d), timeslot(%d)",
 							values.Curriculum.CurriculumCode, values.Semester.Name, Curriculum.SECTION[indicies.Section],
 							indicies.Usi, day, time_slot,
 						)
