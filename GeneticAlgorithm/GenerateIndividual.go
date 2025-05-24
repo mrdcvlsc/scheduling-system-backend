@@ -345,11 +345,11 @@ func EncodeIndividualGenome(
 
 								if selected_instructor == nil {
 									for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
-										is_available_instructor = is_available_instructor && specialized_instructors[instructor_idx].Time.GetAvailability(day, instructor_time_slot)
+										is_available_instructor = is_available_instructor && encoding_resource.IdToInstructor[specialized_instructors[instructor_idx].InstructorID].Time.GetAvailability(day, instructor_time_slot)
 									}
 								} else {
 									for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
-										is_available_instructor = is_available_instructor && selected_instructor.Time.GetAvailability(day, instructor_time_slot)
+										is_available_instructor = is_available_instructor && encoding_resource.IdToInstructor[selected_instructor.InstructorID].Time.GetAvailability(day, instructor_time_slot)
 									}
 								}
 
@@ -391,12 +391,12 @@ func EncodeIndividualGenome(
 
 								if selected_instructor == nil {
 									for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
-										is_available_instructor = is_available_instructor && instructors[instructor_idx].Time.GetAvailability(day, instructor_time_slot)
+										is_available_instructor = is_available_instructor && encoding_resource.IdToInstructor[instructors[instructor_idx].InstructorID].Time.GetAvailability(day, instructor_time_slot)
 									}
 
 								} else {
 									for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
-										is_available_instructor = is_available_instructor && selected_instructor.Time.GetAvailability(day, instructor_time_slot)
+										is_available_instructor = is_available_instructor && encoding_resource.IdToInstructor[selected_instructor.InstructorID].Time.GetAvailability(day, instructor_time_slot)
 									}
 								}
 
@@ -459,7 +459,7 @@ func EncodeIndividualGenome(
 								has_available_room = true
 
 								for room_time_slot := time_slot; room_time_slot < (time_slot + subject_total_time_slots); room_time_slot++ {
-									has_available_room = has_available_room && gym[room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(gym[room_idx].Capacity)
+									has_available_room = has_available_room && encoding_resource.IdToRoom[gym[room_idx].RoomID].GetTimeSlotClassCount(day, room_time_slot) < uint8(gym[room_idx].Capacity)
 								}
 
 								if !has_available_room {
@@ -482,7 +482,7 @@ func EncodeIndividualGenome(
 								has_available_room = true
 
 								for room_time_slot := time_slot; room_time_slot < (time_slot + subject_total_time_slots); room_time_slot++ {
-									has_available_room = has_available_room && room_type_to_rooms[room_type][room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(room_type_to_rooms[room_type][room_idx].Capacity)
+									has_available_room = has_available_room && encoding_resource.IdToRoom[room_type_to_rooms[room_type][room_idx].RoomID].GetTimeSlotClassCount(day, room_time_slot) < uint8(room_type_to_rooms[room_type][room_idx].Capacity)
 								}
 
 								if !has_available_room {
@@ -508,7 +508,7 @@ func EncodeIndividualGenome(
 									has_available_room = true
 
 									for room_time_slot := time_slot; room_time_slot < (time_slot + subject_total_time_slots); room_time_slot++ {
-										has_available_room = has_available_room && room_type_to_general_rooms[room_type][room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(room_type_to_general_rooms[room_type][room_idx].Capacity)
+										has_available_room = has_available_room && encoding_resource.IdToRoom[room_type_to_general_rooms[room_type][room_idx].RoomID].GetTimeSlotClassCount(day, room_time_slot) < uint8(room_type_to_general_rooms[room_type][room_idx].Capacity)
 									}
 
 									if !has_available_room {
@@ -581,7 +581,8 @@ func EncodeIndividualGenome(
 								panic("woah woah woah! you are overwriting a room allocated in that time slot")
 							}
 
-							selected_instructor.Time.SetAvailability(false, day, selected_time_slot)
+							// selected_instructor.Time.SetAvailability(false, day, selected_time_slot)
+							encoding_resource.IdToInstructor[selected_instructor.InstructorID].Time.SetAvailability(false, day, selected_time_slot)
 							// selected_room.IncTimeSlotClassCount(day, selected_time_slot)
 							encoding_resource.IdToRoom[selected_room.RoomID].IncTimeSlotClassCount(day, selected_time_slot)
 
@@ -619,11 +620,11 @@ func EncodeIndividualGenome(
 						}
 
 						if !is_subject_type_added_once {
-							selected_instructor.AssignedSubjects++
+							encoding_resource.IdToInstructor[selected_instructor.InstructorID].AssignedSubjects++
 							is_subject_type_added_once = true
 						}
 
-						selected_instructor.TotalTeachingHours += float32(subject_hours)
+						encoding_resource.IdToInstructor[selected_instructor.InstructorID].TotalTeachingHours += float32(subject_hours)
 
 						subject_recorder[subject.ID] = subject
 
