@@ -590,6 +590,17 @@ func EncodeIndividualGenome(
 							day_sched.GetTimeSlot(selected_time_slot).SetInstructorID(selected_instructor.InstructorID)
 							day_sched.GetTimeSlot(selected_time_slot).SetRoomID(selected_room.RoomID)
 
+							if errs := ValidateEncodingResource(university_schedules, encoding_resource, curriculums, selected_semester); errs != nil {
+								log.Fatalf(
+									"EncodeIndividual: (d:%d, t:%d) AFTER SUBJECT TIME SLOT ASSIGNMENT %s(tsize:%d) [usi:%d] - %s %s %s - error %s: ",
+									day, selected_time_slot,
+									subject.Code, subject_total_time_slots, indicies.Usi,
+									values.Curriculum.CurriculumCode, values.YearLevel.Name,
+									Curriculum.SECTION[indicies.Section],
+									errs,
+								)
+							}
+
 							time_slot_assignment_sanity_counter++
 						}
 
@@ -611,6 +622,16 @@ func EncodeIndividualGenome(
 						/////////////////////////////////////////////////////////////////////////////////////////////////////////
 						//                                  EXIT THE LOOP AFTER SUCCESSFUL ASSIGNMENT
 						/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+						if errs := ValidateEncodingResource(university_schedules, encoding_resource, curriculums, selected_semester); errs != nil {
+							log.Fatalf(
+								"EncodeIndividual: AFTER SUBJECT ASSIGNMENT [usi:%d] - %s %s %s - error %s: ",
+								indicies.Usi,
+								values.Curriculum.CurriculumCode, values.YearLevel.Name,
+								Curriculum.SECTION[indicies.Section],
+								errs,
+							)
+						}
 
 						break
 					}
