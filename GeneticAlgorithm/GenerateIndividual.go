@@ -86,6 +86,15 @@ func EncodeIndividualGenome(
 		return nil, nil, fmt.Errorf("error encode individual genome, caused by: %s", err_make_copy.Error())
 	}
 
+	if errs := ValidateEncodingResource(university_schedules, encoding_resource, curriculums, selected_semester); errs != nil {
+		log.Fatal(errs)
+	}
+
+	if !IsEqualEncodingResource(encoding_resource, rc_encoding_resource) {
+		// TODO: if tested many times, and there is no instance of this panic, then directly use
+		log.Fatal("EncodeIndividual: encoding resource copy not equal")
+	}
+
 	////////////////////////////////////////////////////////////////////////////////////////
 
 	var room_type_to_rooms map[uint16][]Rooms.Room
