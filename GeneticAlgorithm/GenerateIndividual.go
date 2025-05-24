@@ -681,7 +681,8 @@ func EncodeIndividualGenome(
 				return_uni_time_table = university_schedules
 				return_encoding_resource = nil
 				return_error = fmt.Errorf(
-					"error encode individual genome, there are some subjects in %s, %s, %s, %s, that was not assigned for some reason s(%d/%d), i(%d), r(%d), IvsR(%d/%d)",
+					"[usi:%d] error encode individual genome, there are some subjects in %s, %s, %s, %s, that was not assigned for some reason s(%d/%d), i(%d), r(%d), IvsR(%d/%d)",
+					indicies.Usi,
 					ro_dept_id_to_department[curriculum.DepartmentID].Code,
 					curriculum.CurriculumCode,
 					year_level.Name,
