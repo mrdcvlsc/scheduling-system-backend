@@ -434,20 +434,26 @@ func ApplyRandomSubjectTimeSlotNudge(
 				if next_room_val != prev_room_val+1 {
 					log.Panicf("increment is wrong for normal values: previous = %d, next = %d", prev_room_val, next_room_val)
 				}
+
+				///////////////////
+
+				err_v2_val := sched.VerticalValidation(rooms)
+
+				if len(err_v2_val) > 0 {
+					log.Printf(
+						"\n\nsubject time slot = D(%d), T(%d-%d)\n  nudge time slot = D(%d), T(%d-%d)\n\ncurrent time slot = T(%d)\n\n",
+						rnd_subject.Day, rnd_subject.StartingTimeSlot, rnd_subject.StartingTimeSlot+rnd_subject.TimeSlotSize-1,
+						rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value, rnd_subject.StartingTimeSlot+nudge_value+rnd_subject.TimeSlotSize-1,
+						i_ts,
+					)
+
+					log.Panicf("OPPSv-Spc2!  THERE IS SOMETHING WRONG (VARTICAL VALIDATION) - USI[%d]\n\n%v\n\n", usi, err_v2_val)
+				}
+
+				/////
 			}
 
-			///////////////////
-
-			err_v2_val := sched.VerticalValidation(rooms)
-
-			if len(err_v2_val) > 0 {
-				log.Printf(
-					"\n\nsubject time slot = D(%d), T(%d-%d)\n  nudge time slot = D(%d), T(%d-%d)\n\n",
-					rnd_subject.Day, rnd_subject.StartingTimeSlot, rnd_subject.StartingTimeSlot+rnd_subject.TimeSlotSize-1,
-					rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value, rnd_subject.StartingTimeSlot+nudge_value+rnd_subject.TimeSlotSize-1,
-				)
-				log.Panicf("OPPSv-Spc2!  THERE IS SOMETHING WRONG (VARTICAL VALIDATION) - USI[%d]\n\n%v\n\n", usi, err_v2_val)
-			}
+			////
 
 			err_h2_val := HorizontalValidation(sched, all_curriculums, department_to_encode, selected_semester)
 
@@ -455,7 +461,7 @@ func ApplyRandomSubjectTimeSlotNudge(
 				log.Panicf("OPPSv-Spc2!  THERE IS SOMETHING WRONG (HORIZONTAL VALIDATION) - USI[%d]\n\n%v\n\n", usi, err_h2_val)
 			}
 
-			/////
+			////
 
 			successful_subject_time_slot_nudge++
 		}
