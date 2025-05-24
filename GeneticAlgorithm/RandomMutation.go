@@ -408,7 +408,7 @@ func ApplyRandomSubjectTimeSlotNudge(
 			err_v1_val := sched.VerticalValidation(rooms)
 
 			if len(err_v1_val) > 0 {
-				log.Panicf("OPPSv-Spc1!  THERE IS SOMETHING WRONG (VARTICAL VALIDATION) - USI[%d]\n\n%v", usi, err_v1_val)
+				log.Panicf("OPPSv-Spc1!  THERE IS SOMETHING WRONG (VARTICAL VALIDATION) - USI[%d]\n\n%v\n\n", usi, err_v1_val)
 			}
 
 			///////////////
@@ -441,13 +441,18 @@ func ApplyRandomSubjectTimeSlotNudge(
 			err_v2_val := sched.VerticalValidation(rooms)
 
 			if len(err_v2_val) > 0 {
-				log.Panicf("OPPSv-Spc2!  THERE IS SOMETHING WRONG (VARTICAL VALIDATION) - USI[%d]\n\n%v", usi, err_v2_val)
+				log.Printf(
+					"\n\nsubject time slot = D(%d), T(%d-%d)\n  nudge time slot = D(%d), T(%d-%d)\n\n",
+					rnd_subject.Day, rnd_subject.StartingTimeSlot, rnd_subject.StartingTimeSlot+rnd_subject.TimeSlotSize-1,
+					rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value, rnd_subject.StartingTimeSlot+nudge_value+rnd_subject.TimeSlotSize-1,
+				)
+				log.Panicf("OPPSv-Spc2!  THERE IS SOMETHING WRONG (VARTICAL VALIDATION) - USI[%d]\n\n%v\n\n", usi, err_v2_val)
 			}
 
 			err_h2_val := HorizontalValidation(sched, all_curriculums, department_to_encode, selected_semester)
 
 			if len(err_h2_val) > 0 {
-				log.Panicf("OPPSv-Spc2!  THERE IS SOMETHING WRONG (HORIZONTAL VALIDATION) - USI[%d]\n\n%v", usi, err_h2_val)
+				log.Panicf("OPPSv-Spc2!  THERE IS SOMETHING WRONG (HORIZONTAL VALIDATION) - USI[%d]\n\n%v\n\n", usi, err_h2_val)
 			}
 
 			/////
