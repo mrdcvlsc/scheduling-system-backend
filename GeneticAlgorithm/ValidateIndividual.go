@@ -16,7 +16,7 @@ func ValidateEncodingResource(
 	var err_return error = nil
 
 	for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
-		for time_slot := 0; time_slot < Const.N_DAILY_SCHOOL_HOURS; time_slot++ {
+		for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
 
 			room_id_to_count := make(map[uint16]int)
 
