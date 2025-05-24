@@ -320,6 +320,22 @@ func ApplyRandomSubjectTimeSlotNudge(
 				continue
 			}
 
+			if (rnd_subject.StartingTimeSlot + nudge_value) >= Const.N_DAILY_TIME_SLOTS {
+				panic("WEEEEEEEEEEEEEEEEEEEEEE")
+			}
+
+			if (rnd_subject.StartingTimeSlot + nudge_value + rnd_subject.TimeSlotSize - 1) >= Const.N_DAILY_TIME_SLOTS {
+				panic("WOOOOOOOOOOOOOOOOOOOOOO")
+			}
+
+			if (rnd_subject.StartingTimeSlot + nudge_value) < 0 {
+				panic("HAAAAAAAAAAAAAAAAAAAAAA")
+			}
+
+			if (rnd_subject.StartingTimeSlot + nudge_value + rnd_subject.TimeSlotSize - 1) < 0 {
+				panic("RAAHHHHHHHHHHHHHHHHHHHH")
+			}
+
 			is_free_time_slot := true
 
 			for i_ts := 0; i_ts < rnd_subject.TimeSlotSize; i_ts++ {
@@ -343,7 +359,7 @@ func ApplyRandomSubjectTimeSlotNudge(
 
 				is_empty_slot := nudge_slot.GetSubjectID() == 0
 				is_instructor_available := id_to_instructor[rnd_subject.InstructorID].Time.GetAvailability(rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value+i_ts)
-				is_room_available := id_to_room[rnd_subject.RoomID].GetTimeSlotClassCount(rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value+i_ts) < uint8(id_to_room[rnd_subject.RoomID].Capacity)
+				is_room_available := (id_to_room[rnd_subject.RoomID].GetTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot + nudge_value + i_ts))) < uint8(id_to_room[rnd_subject.RoomID].Capacity)
 
 				if !(is_empty_slot && is_instructor_available && is_room_available) {
 					is_free_time_slot = false
