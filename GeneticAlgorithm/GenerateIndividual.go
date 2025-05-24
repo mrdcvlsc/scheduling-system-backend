@@ -610,6 +610,11 @@ func EncodeIndividualGenome(
 								)
 							}
 
+							if IsEqualEncodingResource(encoding_resource, rc_encoding_resource) {
+								// TODO: if tested many times, and there is no instance of this panic, then directly use
+								log.Fatal("EncodeIndividual: AFTER SUBJECT TIME SLOT ASSIGNMENT THIS SHOULD NOT BE EQUAL ANYMORE")
+							}
+
 							time_slot_assignment_sanity_counter++
 						}
 
@@ -640,6 +645,11 @@ func EncodeIndividualGenome(
 								Curriculum.SECTION[indicies.Section],
 								errs,
 							)
+						}
+
+						if IsEqualEncodingResource(encoding_resource, rc_encoding_resource) {
+							// TODO: if tested many times, and there is no instance of this panic, then directly use
+							log.Fatal("EncodeIndividual: AFTER SUBJECT ASSIGNMENT THIS SHOULD NOT BE EQUAL ANYMORE")
 						}
 
 						break
