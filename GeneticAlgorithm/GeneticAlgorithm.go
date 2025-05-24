@@ -321,7 +321,7 @@ func RunGeneticAlgorithm(
 
 			// ApplyRandomDaySwapTimeSlots(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
 			// ApplyRandomSubjectDaySwap(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
-			ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
+			ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester, rooms, department_to_encode)
 			// ApplyRandomSubjectTimeSlotAndDayNudge(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
 
 			err_v2_val := population[i].UniSched.VerticalValidation(rooms)

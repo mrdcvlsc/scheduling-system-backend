@@ -8,6 +8,7 @@ import (
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
@@ -245,6 +246,8 @@ func ApplyRandomSubjectTimeSlotNudge(
 	sched Schedule.UniTimeTables, encoding_resource *EncodingResource,
 	all_curriculums []Curriculum.Curriculum,
 	department_id uint16, selected_semester int,
+
+	rooms []Rooms.Room, department_to_encode map[uint16]bool,
 ) {
 	rng := rand.New(rand.NewSource(time.Now().UnixMilli()))
 
@@ -400,6 +403,16 @@ func ApplyRandomSubjectTimeSlotNudge(
 				}
 			}
 
+			///////////////////
+
+			err_v1_val := sched.VerticalValidation(rooms)
+
+			if len(err_v1_val) > 0 {
+				log.Panicf("OPPSv-Spc1!  THERE IS SOMETHING WRONG (VARTICAL VALIDATION) - USI[%d]\n\n%v", usi, err_v1_val)
+			}
+
+			///////////////
+
 			for i_ts := 0; i_ts < rnd_subject.TimeSlotSize; i_ts++ {
 				nudge_slot := sched[usi][rnd_subject.Day].GetTimeSlot(rnd_subject.StartingTimeSlot + nudge_value + i_ts)
 				nudge_slot.Set(rnd_subject.SubjectID, rnd_subject.InstructorID, rnd_subject.RoomID)
@@ -422,6 +435,22 @@ func ApplyRandomSubjectTimeSlotNudge(
 					log.Panicf("increment is wrong for normal values: previous = %d, next = %d", prev_room_val, next_room_val)
 				}
 			}
+
+			///////////////////
+
+			err_v2_val := sched.VerticalValidation(rooms)
+
+			if len(err_v2_val) > 0 {
+				log.Panicf("OPPSv-Spc2!  THERE IS SOMETHING WRONG (VARTICAL VALIDATION) - USI[%d]\n\n%v", usi, err_v2_val)
+			}
+
+			err_h2_val := HorizontalValidation(sched, all_curriculums, department_to_encode, selected_semester)
+
+			if len(err_h2_val) > 0 {
+				log.Panicf("OPPSv-Spc2!  THERE IS SOMETHING WRONG (HORIZONTAL VALIDATION) - USI[%d]\n\n%v", usi, err_h2_val)
+			}
+
+			/////
 
 			successful_subject_time_slot_nudge++
 		}
