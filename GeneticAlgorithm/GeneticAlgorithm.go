@@ -327,13 +327,13 @@ func RunGeneticAlgorithm(
 			err_v2_val := population[i].UniSched.VerticalValidation(rooms)
 
 			if len(err_v2_val) > 0 {
-				log.Panicf("OPPSv2!  THERE IS SOMETHING WRONG (VARTICAL VALIDATION) - RANDOM MUTATION INDEX [%d]", i)
+				log.Panicf("OPPSv2!  THERE IS SOMETHING WRONG (VARTICAL VALIDATION) - RANDOM MUTATION INDEX [%d]\n\n%v", i, err_v2_val)
 			}
 
 			err_h2_val := HorizontalValidation(population[i].UniSched, curriculums, department_to_encode, selected_semester)
 
 			if len(err_h2_val) > 0 {
-				log.Panicf("OPPSv2!  THERE IS SOMETHING WRONG (HORIZONTAL VALIDATION) - RANDOM MUTATION INDEX [%d]", i)
+				log.Panicf("OPPSv2!  THERE IS SOMETHING WRONG (HORIZONTAL VALIDATION) - RANDOM MUTATION INDEX [%d]\n\n%v", i, err_h2_val)
 			}
 
 			// repair broken genome after mutations
