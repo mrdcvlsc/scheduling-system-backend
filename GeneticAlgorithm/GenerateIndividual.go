@@ -19,6 +19,7 @@ import (
 const (
 	TERM_1ST_SEMESTER int = 0 // `selected_semester` option.
 	TERM_2ND_SEMESTER int = 1 // `selected_semester` option.
+	TERM_MIDYEAR      int = 2 // `selected_semester` option.
 )
 
 const (
