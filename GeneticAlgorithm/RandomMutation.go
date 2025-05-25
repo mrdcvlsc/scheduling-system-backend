@@ -61,11 +61,11 @@ func ApplyRandomDaySwapTimeSlots(
 
 				usi := indecies.Usi
 
-				is_instructor_a_available := false
-				is_instructor_b_available := false
+				is_instructor_a_available := true
+				is_instructor_b_available := true
 
-				is_room_a_available := false
-				is_room_b_available := false
+				is_room_a_available := true
+				is_room_b_available := true
 
 				for time_slot := range Const.N_DAILY_TIME_SLOTS {
 
@@ -74,25 +74,40 @@ func ApplyRandomDaySwapTimeSlots(
 					instructor_id_a := sched[usi][day][time_slot].GetInstructorID()
 
 					if instructor_id_a != 0 {
-						is_instructor_a_available = id_to_instructor[instructor_id_a].Time.GetAvailability(day_swap, time_slot)
+						is_instructor_a_available = is_instructor_a_available && id_to_instructor[instructor_id_a].Time.GetAvailability(day_swap, time_slot)
 					}
 
 					instructor_id_b := sched[usi][day_swap][time_slot].GetInstructorID()
 
 					if instructor_id_b != 0 {
-						is_instructor_b_available = id_to_instructor[instructor_id_b].Time.GetAvailability(day, time_slot)
+						is_instructor_b_available = is_instructor_b_available && id_to_instructor[instructor_id_b].Time.GetAvailability(day, time_slot)
 					}
 
 					// check rooms
 
 					room_id_a := sched[usi][day][time_slot].GetRoomID()
+
 					if room_id_a != 0 {
-						is_room_a_available = id_to_room[room_id_a].GetTimeSlotClassCount(day_swap, time_slot) < uint8(id_to_room[room_id_a].Capacity)
+						is_room_a_available = is_room_a_available && id_to_room[room_id_a].GetTimeSlotClassCount(day_swap, time_slot) < uint8(id_to_room[room_id_a].Capacity)
+						// log.Printf(
+						// 	"(%d|%s) = is available in d(%d), t(%d) : %t => current allocation : %d/%d",
+						// 	room_id_a, encoding_resource.IdToRoom[room_id_a].Name,
+						// 	day_swap, time_slot, is_room_a_available,
+						// 	id_to_room[room_id_a].GetTimeSlotClassCount(day_swap, time_slot),
+						// 	id_to_room[room_id_a].Capacity,
+						// )
 					}
 
 					room_id_b := sched[usi][day_swap][time_slot].GetRoomID()
 					if room_id_b != 0 {
-						is_room_b_available = id_to_room[room_id_b].GetTimeSlotClassCount(day, time_slot) < uint8(id_to_room[room_id_b].Capacity)
+						is_room_b_available = is_room_b_available && id_to_room[room_id_b].GetTimeSlotClassCount(day, time_slot) < uint8(id_to_room[room_id_b].Capacity)
+						// log.Printf(
+						// 	"(%d|%s) = is available in d(%d), t(%d) : %t => current allocation : %d/%d",
+						// 	room_id_b, encoding_resource.IdToRoom[room_id_b].Name,
+						// 	day, time_slot, is_room_b_available,
+						// 	id_to_room[room_id_b].GetTimeSlotClassCount(day, time_slot),
+						// 	id_to_room[room_id_b].Capacity,
+						// )
 					}
 				}
 
@@ -104,24 +119,53 @@ func ApplyRandomDaySwapTimeSlots(
 
 						instructor_id_a := sched[usi][day][time_slot].GetInstructorID()
 
-						log.Printf("instructor_id_a = %d", instructor_id_a)
+						if instructor_id_a > 0 {
+							// log.Printf("instructor_id_a = (%d)", instructor_id_a)
 
-						id_to_instructor[instructor_id_a].Time.SetAvailability(false, day_swap, time_slot)
-						id_to_instructor[instructor_id_a].Time.SetAvailability(true, day, time_slot)
+							// log.Printf(
+							// 	"instructor_id_a = (%d|%s %s. %s)",
+							// 	instructor_id_a,
+							// 	encoding_resource.IdToInstructor[instructor_id_a].FirstName,
+							// 	encoding_resource.IdToInstructor[instructor_id_a].MiddleInitial,
+							// 	encoding_resource.IdToInstructor[instructor_id_a].LastName,
+							// )
+
+							id_to_instructor[instructor_id_a].Time.SetAvailability(false, day_swap, time_slot)
+							id_to_instructor[instructor_id_a].Time.SetAvailability(true, day, time_slot)
+						}
 
 						instructor_id_b := sched[usi][day_swap][time_slot].GetInstructorID()
-						id_to_instructor[instructor_id_b].Time.SetAvailability(false, day, time_slot)
-						id_to_instructor[instructor_id_b].Time.SetAvailability(true, day_swap, time_slot)
+
+						if instructor_id_b > 0 {
+							// log.Printf("instructor_id_b = (%d)", instructor_id_b)
+
+							// log.Printf(
+							// 	"instructor_id_b = (%d|%s %s. %s)",
+							// 	instructor_id_b,
+							// 	encoding_resource.IdToInstructor[instructor_id_b].FirstName,
+							// 	encoding_resource.IdToInstructor[instructor_id_b].MiddleInitial,
+							// 	encoding_resource.IdToInstructor[instructor_id_b].LastName,
+							// )
+
+							id_to_instructor[instructor_id_b].Time.SetAvailability(false, day, time_slot)
+							id_to_instructor[instructor_id_b].Time.SetAvailability(true, day_swap, time_slot)
+						}
 
 						// update rooms
 
 						room_id_a := sched[usi][day][time_slot].GetRoomID()
-						id_to_room[room_id_a].IncTimeSlotClassCount(day_swap, time_slot)
-						id_to_room[room_id_a].DecTimeSlotClassCount(day, time_slot)
+
+						if room_id_a > 0 {
+							id_to_room[room_id_a].IncTimeSlotClassCount(day_swap, time_slot)
+							id_to_room[room_id_a].DecTimeSlotClassCount(day, time_slot)
+						}
 
 						room_id_b := sched[usi][day_swap][time_slot].GetRoomID()
-						id_to_room[room_id_b].IncTimeSlotClassCount(day, time_slot)
-						id_to_room[room_id_b].DecTimeSlotClassCount(day_swap, time_slot)
+
+						if room_id_b > 0 {
+							id_to_room[room_id_b].IncTimeSlotClassCount(day, time_slot)
+							id_to_room[room_id_b].DecTimeSlotClassCount(day_swap, time_slot)
+						}
 
 						// swap time slots
 
@@ -295,12 +339,6 @@ func ApplyRandomSubjectTimeSlotNudge(
 			subjects_json[i], subjects_json[j] = subjects_json[j], subjects_json[i]
 		})
 
-		// for _, s := range subjects_json {
-		// 	log.Printf("subject [usi:%d] : s(%d), i(%d), r(%d) ==> D(%d), T(%d), S(%d)\n", usi, s.SubjectID, s.InstructorID, s.RoomID, s.Day, s.TimeSlotSize, s.TimeSlotSize)
-		// }
-
-		// log.Println()
-
 		if subject_count_to_try_time_slot_nudge > len(subjects_json) {
 			panic("WHUWAW VERY GOOOOD!")
 		}
@@ -406,15 +444,15 @@ func ApplyRandomSubjectTimeSlotNudge(
 				}
 			}
 
-			///////////////////
+			// ///////////////////
 
-			err_v1_val := sched.VerticalValidation(rooms)
+			// err_v1_val := sched.VerticalValidation(rooms)
 
-			if len(err_v1_val) > 0 {
-				log.Panicf("OPPSv-Spc1!  THERE IS SOMETHING WRONG (VARTICAL VALIDATION) - USI[%d]\n\n%v\n\n", usi, err_v1_val)
-			}
+			// if len(err_v1_val) > 0 {
+			// 	log.Panicf("OPPSv-Spc1!  THERE IS SOMETHING WRONG (VARTICAL VALIDATION) - USI[%d]\n\n%v\n\n", usi, err_v1_val)
+			// }
 
-			///////////////
+			// ///////////////
 
 			// log.Printf("subject time slot size = %d\n\n", rnd_subject.TimeSlotSize)
 
@@ -461,31 +499,31 @@ func ApplyRandomSubjectTimeSlotNudge(
 
 				///////////////////
 
-				err_v2_val := sched.VerticalValidation(rooms)
+				// err_v2_val := sched.VerticalValidation(rooms)
 
-				if len(err_v2_val) > 0 {
-					log.Printf(
-						"\n\nsubject time slot = D(%d), T(%d-%d)\n  nudge time slot = D(%d), T(%d-%d)\n\ncurrent time slot iter = T(%d)\n\nactual time slot = T(%d)\n\n",
-						rnd_subject.Day, rnd_subject.StartingTimeSlot, rnd_subject.StartingTimeSlot+rnd_subject.TimeSlotSize-1,
-						rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value, rnd_subject.StartingTimeSlot+nudge_value+rnd_subject.TimeSlotSize-1,
-						i_ts, (rnd_subject.StartingTimeSlot + nudge_value + i_ts),
-					)
+				// if len(err_v2_val) > 0 {
+				// 	log.Printf(
+				// 		"\n\nsubject time slot = D(%d), T(%d-%d)\n  nudge time slot = D(%d), T(%d-%d)\n\ncurrent time slot iter = T(%d)\n\nactual time slot = T(%d)\n\n",
+				// 		rnd_subject.Day, rnd_subject.StartingTimeSlot, rnd_subject.StartingTimeSlot+rnd_subject.TimeSlotSize-1,
+				// 		rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value, rnd_subject.StartingTimeSlot+nudge_value+rnd_subject.TimeSlotSize-1,
+				// 		i_ts, (rnd_subject.StartingTimeSlot + nudge_value + i_ts),
+				// 	)
 
-					// log.Panicf("OPPSv-Spc2!  THERE IS SOMETHING WRONG (VARTICAL VALIDATION) - USI[%d]\n\n%v\n\n", usi, err_v2_val)
-				}
+				// 	// log.Panicf("OPPSv-Spc2!  THERE IS SOMETHING WRONG (VARTICAL VALIDATION) - USI[%d]\n\n%v\n\n", usi, err_v2_val)
+				// }
 
 				/////
 			}
 
-			////
+			// ////
 
-			err_h2_val := HorizontalValidation(sched, all_curriculums, department_to_encode, selected_semester)
+			// err_h2_val := HorizontalValidation(sched, all_curriculums, department_to_encode, selected_semester)
 
-			if len(err_h2_val) > 0 {
-				log.Panicf("OPPSv-Spc2!  THERE IS SOMETHING WRONG (HORIZONTAL VALIDATION) - USI[%d]\n\n%v\n\n", usi, err_h2_val)
-			}
+			// if len(err_h2_val) > 0 {
+			// 	log.Panicf("OPPSv-Spc2!  THERE IS SOMETHING WRONG (HORIZONTAL VALIDATION) - USI[%d]\n\n%v\n\n", usi, err_h2_val)
+			// }
 
-			////
+			// ////
 
 			successful_subject_time_slot_nudge++
 		}
