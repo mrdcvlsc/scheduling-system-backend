@@ -63,6 +63,9 @@ jobs:
           make devr
           go clean -testcache && go test -run TestNewPopulation2ndSemWithDepartmentSelection ./GeneticAlgorithm -timeout 0
 
+          make devr
+          go clean -testcache && go test -run TestRandomMutations ./GeneticAlgorithm -timeout 0
+
           echo "running test resource methods"
 
           make devr
