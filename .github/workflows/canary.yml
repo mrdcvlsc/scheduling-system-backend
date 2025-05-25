@@ -35,8 +35,61 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
 
-      - name: run Tests
-        run: make gh_test
+      - name: Unit Tests
+        run: |
+          echo "running generate schedule test encoding individual"
+
+          make devr
+          go clean -testcache && go test -run TestEstimateResourceAvailabilityFirstSem ./GeneticAlgorithm -timeout 0
+
+          make devr
+          go clean -testcache && go test -run TestEstimateResourceAvailabilitySecondSem ./GeneticAlgorithm -timeout 0
+
+          make devr
+          go clean -testcache && go test -run TestNewPopulationFirstSem ./GeneticAlgorithm -timeout 0
+
+          make devr
+          go clean -testcache && go test -run TestNewPopulationSecondSem ./GeneticAlgorithm -timeout 0
+
+          make devr
+          go clean -testcache && go test -run TestNewPopulation1stSemWithDepartmentSelection ./GeneticAlgorithm -timeout 0
+
+          make devr
+          go clean -testcache && go test -run TestNewPopulation2ndSemWithDepartmentSelection ./GeneticAlgorithm -timeout 0
+
+          make devr
+          go clean -testcache && go test -run TestRandomMutations ./GeneticAlgorithm -timeout 0
+
+          echo "running test resource methods"
+
+          make devr
+          go clean -testcache && go test -run Test ./Resources/Curriculum -timeout 0
+
+          make devr
+          go clean -testcache && go test -run Test ./Resources/Instructors -timeout 0
+
+          make devr
+          go clean -testcache && go test -run Test ./Resources/Rooms -timeout 0
+
+          echo "running test schedule data structures"
+
+          make devr
+          go clean -testcache && go test -run Test ./Schedule -timeout 0
+
+          echo "running test persistence methods"
+
+          make devr
+          go clean -testcache && go test -run Test ./StorageResources -timeout 0
+
+          make devr
+          go clean -testcache && go test -run Test ./StorageSchedule -timeout 0
+
+          echo "running test others"
+
+          make devr
+          go clean -testcache && go test -run Test ./Tests/schedule_datastructure_basic -timeout 0
+
+          go clean -testcache && go test -run Test ./Utils -timeout 0
         env:
           GITHUB_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
           LOG_MODE: verbose
