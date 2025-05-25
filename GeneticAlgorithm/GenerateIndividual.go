@@ -665,7 +665,45 @@ func EncodeIndividualGenome(
 	)
 
 	if is_to_return {
+		if return_encoding_resource != nil {
+			flatten_room_id_to_room := make(map[uint16]*Rooms.Room)
+
+			for out_key, out_v := range return_encoding_resource.DeptIdToRoomtypeToRooms {
+				for in_key, in_v := range out_v {
+					for room_idx, room := range in_v {
+						flatten_room_id_to_room[room.RoomID] = &return_encoding_resource.DeptIdToRoomtypeToRooms[out_key][in_key][room_idx]
+					}
+				}
+			}
+
+			flatten_instructor_id_to_instructor := make(map[uint16]*Instructors.Instructor)
+
+			for k, v := range return_encoding_resource.DeptIdToInstructors {
+				for instructor_idx, instructor := range v {
+					flatten_instructor_id_to_instructor[instructor.InstructorID] = &return_encoding_resource.DeptIdToInstructors[k][instructor_idx]
+				}
+			}
+		}
+
 		return return_uni_time_table, return_encoding_resource, return_error
+	} else {
+		flatten_room_id_to_room := make(map[uint16]*Rooms.Room)
+
+		for out_key, out_v := range encoding_resource.DeptIdToRoomtypeToRooms {
+			for in_key, in_v := range out_v {
+				for room_idx, room := range in_v {
+					flatten_room_id_to_room[room.RoomID] = &encoding_resource.DeptIdToRoomtypeToRooms[out_key][in_key][room_idx]
+				}
+			}
+		}
+
+		flatten_instructor_id_to_instructor := make(map[uint16]*Instructors.Instructor)
+
+		for k, v := range encoding_resource.DeptIdToInstructors {
+			for instructor_idx, instructor := range v {
+				flatten_instructor_id_to_instructor[instructor.InstructorID] = &encoding_resource.DeptIdToInstructors[k][instructor_idx]
+			}
+		}
 	}
 
 	return university_schedules, encoding_resource, nil
