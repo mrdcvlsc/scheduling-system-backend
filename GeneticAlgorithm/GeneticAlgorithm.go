@@ -305,6 +305,12 @@ func RunGeneticAlgorithm(
 
 		for i := 1; i < len(population); i++ {
 
+			prev_encoding_resource, err_copy_enc_re := population[i].Resources.MakeCopy()
+
+			if err_copy_enc_re != nil {
+				log.Panic("error copying encoding resource in random mutation : ", err_copy_enc_re)
+			}
+
 			err_v_val := population[i].UniSched.VerticalValidation(rooms)
 
 			if len(err_v_val) > 0 {
@@ -359,11 +365,19 @@ func RunGeneticAlgorithm(
 				}
 
 				if !IsEqualEncodingResource(generated_encoding_resource, population[i].Resources) {
+
+					if IsEqualEncodingResource(prev_encoding_resource, population[i].Resources) {
+						log.Printf(
+							"RunGeneticAlgorithm: [Random Mutation][%d] PREVIOUS encoding resource after crossover should NOT be equal to the population encoding resource, why is this one equal? ERROR DETECTED!",
+							i,
+						)
+					}
+
 					// TODO: if tested many times, and there is no instance of this panic, then directly use
-					panic(fmt.Sprintf(
+					log.Panicf(
 						"RunGeneticAlgorithm: [Random Mutation][%d] encoding resource after crossover should be equal to the generated encoding resource, why is this one not? ERROR DETECTED!",
 						i,
-					))
+					)
 				}
 
 				repaired_uni_sched, repaired_encoding_resource, err_repair_schedule := EncodeIndividualGenome(

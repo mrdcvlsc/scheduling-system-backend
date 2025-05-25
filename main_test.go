@@ -751,6 +751,9 @@ func BenchmarkIntegrationStressTest(b *testing.B) {
 		}
 	}
 
+	fmt.Println("wait...")
+	time.Sleep(120 * time.Second)
+
 	///
 
 	fmt.Println("patch request edited curriculums")
@@ -772,6 +775,34 @@ func BenchmarkIntegrationStressTest(b *testing.B) {
 
 		if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
 			b.Fatalf("Failed to edit curriculum sections: status code %d, body: %s", response.Code, response.Body.String())
+		}
+	}
+
+	fmt.Println("wait...")
+
+	for {
+		time.Sleep(30 * time.Second)
+		b.Log("Waiting for schedule generation to finish...")
+
+		request := httptest.NewRequest(http.MethodGet, "/v1/gen_status", nil)
+		response := httptest.NewRecorder()
+
+		router.ServeHTTP(response, request)
+
+		if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
+			b.Fatalf("Failed to check generation status: status code %d, body: %s", response.Code, response.Body.String())
+		}
+
+		var get_body struct {
+			IsGenerating bool `json:"status"`
+		}
+
+		if err := json.Unmarshal(response.Body.Bytes(), &get_body); err != nil {
+			b.Fatalf("Failed to parse generation status response: %v", err)
+		}
+
+		if !get_body.IsGenerating {
+			break
 		}
 	}
 
@@ -882,6 +913,34 @@ func BenchmarkIntegrationStressTest(b *testing.B) {
 
 				if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
 					b.Fatalf("Failed to generate schedules: status code %d, body: %s", response.Code, response.Body.String())
+				}
+			}
+
+			fmt.Println("wait...")
+
+			for {
+				time.Sleep(5 * time.Second)
+				b.Log("Waiting for schedule generation to finish...")
+
+				request := httptest.NewRequest(http.MethodGet, "/v1/gen_status", nil)
+				response := httptest.NewRecorder()
+
+				router.ServeHTTP(response, request)
+
+				if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
+					b.Fatalf("Failed to check generation status: status code %d, body: %s", response.Code, response.Body.String())
+				}
+
+				var get_body struct {
+					IsGenerating bool `json:"status"`
+				}
+
+				if err := json.Unmarshal(response.Body.Bytes(), &get_body); err != nil {
+					b.Fatalf("Failed to parse generation status response: %v", err)
+				}
+
+				if !get_body.IsGenerating {
+					break
 				}
 			}
 
