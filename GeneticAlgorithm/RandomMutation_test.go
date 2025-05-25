@@ -196,15 +196,38 @@ func TestRandomMutations(t *testing.T) {
 				t.Fatal("Test No Changes : error encoding resource equal test failed")
 			}
 
-			errs_encoding_validation := GeneticAlgorithm.ValidateEncodingResource(university_schedules, encoding_resource, curriculums, target_semester)
-
-			if errs_encoding_validation != nil {
-				t.Fatal(errs_encoding_validation)
+			if err := GeneticAlgorithm.ValidateEncodingResource(university_schedules, encoding_resource, curriculums, target_semester); err != nil {
+				t.Fatal(err)
 			}
-		}
 
-		for _, department := range departments {
-			GeneticAlgorithm.ApplyRandomDaySwapTimeSlots(university_schedules, encoding_resource, curriculums, department.DepartmentID, target_semester)
+			for _, department := range departments {
+				dept_to_encode := make(map[uint16]bool)
+				dept_to_encode[department.DepartmentID] = true
+
+				GeneticAlgorithm.ApplyRandomDaySwapTimeSlots(university_schedules, encoding_resource, curriculums, department.DepartmentID, target_semester)
+				GeneticAlgorithm.ApplyRandomSubjectDaySwap(university_schedules, encoding_resource, curriculums, department.DepartmentID, target_semester)
+				GeneticAlgorithm.ApplyRandomSubjectTimeSlotNudge(university_schedules, encoding_resource, curriculums, department.DepartmentID, target_semester, rooms, dept_to_encode)
+				GeneticAlgorithm.ApplyRandomSubjectTimeSlotAndDayNudge(university_schedules, encoding_resource, curriculums, department.DepartmentID, target_semester)
+			}
+
+			if err_vv := university_schedules.VerticalValidation(rooms); len(err_vv) > 0 {
+				for _, e := range err_vv {
+					t.Fatal("after random mutation vertical validation error : ", e)
+				}
+			}
+
+			if err_enc_resource_v := GeneticAlgorithm.ValidateEncodingResource(university_schedules, encoding_resource, curriculums, target_semester); err_enc_resource_v != nil {
+				t.Fatal("after random mutation encoding resource error : ", err_enc_resource_v)
+			}
+
+			if err_hv := GeneticAlgorithm.HorizontalValidation(university_schedules, curriculums, nil, target_semester); len(err_hv) > 0 {
+				for _, e := range err_hv {
+					t.Fatal("after random mutation horizontal validation error : ", e)
+				}
+			}
+
+			t.Log(".")
+
 		}
 
 		if target_semester == 0 {
