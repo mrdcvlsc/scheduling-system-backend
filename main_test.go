@@ -967,6 +967,9 @@ func BenchmarkIntegrationTest(b *testing.B) {
 			total_sections[response_i.Department.DepartmentID][response_i.Semester] = 0
 		}
 
+		fmt.Printf("\ndepartment fitness progression: %v\n\n", response_i.GenerationResult.FitnessProgressionDepartment)
+		fmt.Printf("university fitness progression: %v\n\n", response_i.GenerationResult.FitnessProgressionUniversity)
+
 		total_sections[response_i.Department.DepartmentID][response_i.Semester] += response_i.TotalSections
 	}
 

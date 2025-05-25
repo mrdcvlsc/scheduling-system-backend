@@ -378,6 +378,9 @@ queue_pop_loop:
 
 		// encode a new schedule in the obtained university schedule for the specific department
 
+		var fitness_progression_department []float64
+		var fitness_progression_university []float64
+
 		var retry int // incremented by the for loop
 
 		for retry = 0; retry < MAX_GENETIC_ALGORITHM_RETRY; retry++ {
@@ -393,17 +396,23 @@ queue_pop_loop:
 
 			previous_fitness := 0.0
 
+			fitness_progression_department = make([]float64, 0)
+			fitness_progression_university = make([]float64, 0)
+
 			fittest_uni_sched, fittest_encoding_resource, err_genetic_algorithm := GeneticAlgorithm.RunGeneticAlgorithm(
 				university_schedule, curriculums, rooms, dept_id_to_department,
 				default_empty_encoding_resource, generated_encoding_resource,
 				department_to_encode, semester_to_encode,
 				POPULATION_SIZE, TOTAL_GENERATION,
-				RouteGlobals.ResourcesPersistence, func(generation int, generation_fittest_sched Schedule.UniTimeTables, fitness float64) {
+				RouteGlobals.ResourcesPersistence, func(generation int, generation_fittest_sched Schedule.UniTimeTables, fittest_university_schedule_fitness float64) {
 
 					department_schedule_fitness := GeneticAlgorithm.MeasureUniSchedBasicFitness(
 						generation_fittest_sched, curriculums,
 						department_to_encode, semester_to_encode,
 					)
+
+					fitness_progression_department = append(fitness_progression_department, department_schedule_fitness)
+					fitness_progression_university = append(fitness_progression_university, fittest_university_schedule_fitness)
 
 					RouteGlobals.SetDeptSchedGenResult(
 						RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
@@ -411,14 +420,14 @@ queue_pop_loop:
 							Status: RouteGlobals.SchedGenStatusInProgress,
 							Message: fmt.Sprintf(
 								"running genetic algorithm, generation %d/%d, population size %d, department schedule fitness at %f, overall university schedule fitness at %f",
-								generation, TOTAL_GENERATION, POPULATION_SIZE, department_schedule_fitness, fitness,
+								generation, TOTAL_GENERATION, POPULATION_SIZE, department_schedule_fitness, fittest_university_schedule_fitness,
 							),
 						},
 					)
 
 					// save genetic algorithm's generated in-between university schedule when there's new highest fit schedule
 
-					if fitness <= previous_fitness {
+					if fittest_university_schedule_fitness <= previous_fitness {
 						return
 					}
 
@@ -780,8 +789,10 @@ queue_pop_loop:
 		RouteGlobals.SetDeptSchedGenResult(
 			RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
 			RouteGlobals.SchedGenResult{
-				Status:  RouteGlobals.SchedGenStatusSuccess,
-				Message: fmt.Sprintf("schedule generation done after %s", time.Since(start)),
+				Status:                       RouteGlobals.SchedGenStatusSuccess,
+				Message:                      fmt.Sprintf("schedule generation done after %s", time.Since(start)),
+				FitnessProgressionDepartment: fitness_progression_department,
+				FitnessProgressionUniversity: fitness_progression_university,
 			},
 		)
 
