@@ -292,11 +292,11 @@ func ApplyRandomSubjectTimeSlotNudge(
 			subjects_json[i], subjects_json[j] = subjects_json[j], subjects_json[i]
 		})
 
-		for _, s := range subjects_json {
-			log.Printf("subject [usi:%d] : s(%d), i(%d), r(%d) ==> D(%d), T(%d), S(%d)\n", usi, s.SubjectID, s.InstructorID, s.RoomID, s.Day, s.TimeSlotSize, s.TimeSlotSize)
-		}
+		// for _, s := range subjects_json {
+		// 	log.Printf("subject [usi:%d] : s(%d), i(%d), r(%d) ==> D(%d), T(%d), S(%d)\n", usi, s.SubjectID, s.InstructorID, s.RoomID, s.Day, s.TimeSlotSize, s.TimeSlotSize)
+		// }
 
-		log.Println()
+		// log.Println()
 
 		if subject_count_to_try_time_slot_nudge > len(subjects_json) {
 			panic("WHUWAW VERY GOOOOD!")
@@ -413,19 +413,19 @@ func ApplyRandomSubjectTimeSlotNudge(
 
 			///////////////
 
-			log.Printf("subject time slot size = %d\n\n", rnd_subject.TimeSlotSize)
+			// log.Printf("subject time slot size = %d\n\n", rnd_subject.TimeSlotSize)
 
 			for i_ts := 0; i_ts < rnd_subject.TimeSlotSize; i_ts++ {
 
-				log.Println("==============================")
+				// log.Println("==============================")
 
-				log.Printf(
-					"\n\n[%d] Room Availability (%d, %d) = %t\n\n[%d] Inst Availability (%d, %d) = %t\n\n",
-					i_ts, rnd_subject.Day, (rnd_subject.StartingTimeSlot + nudge_value + i_ts),
-					(id_to_room[rnd_subject.RoomID].GetTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot+nudge_value+i_ts))) < uint8(id_to_room[rnd_subject.RoomID].Capacity),
-					i_ts, rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value+i_ts,
-					id_to_instructor[rnd_subject.InstructorID].Time.GetAvailability(rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value+i_ts),
-				)
+				// log.Printf(
+				// 	"\n\n[%d] Room Availability (%d, %d) = %t\n\n[%d] Inst Availability (%d, %d) = %t\n\n",
+				// 	i_ts, rnd_subject.Day, (rnd_subject.StartingTimeSlot + nudge_value + i_ts),
+				// 	(id_to_room[rnd_subject.RoomID].GetTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot+nudge_value+i_ts))) < uint8(id_to_room[rnd_subject.RoomID].Capacity),
+				// 	i_ts, rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value+i_ts,
+				// 	id_to_instructor[rnd_subject.InstructorID].Time.GetAvailability(rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value+i_ts),
+				// )
 
 				nudge_slot := sched[usi][rnd_subject.Day].GetTimeSlot(rnd_subject.StartingTimeSlot + nudge_value + i_ts)
 				nudge_slot.Set(rnd_subject.SubjectID, rnd_subject.InstructorID, rnd_subject.RoomID)
@@ -448,13 +448,13 @@ func ApplyRandomSubjectTimeSlotNudge(
 					log.Panicf("increment is wrong for normal values: previous = %d, next = %d", prev_room_val, next_room_val)
 				}
 
-				log.Printf(
-					"\n\n[%d] Room Availability (%d, %d) = %t\n\n[%d] Inst Availability (%d, %d) = %t\n\n",
-					i_ts, rnd_subject.Day, (rnd_subject.StartingTimeSlot + nudge_value + i_ts),
-					(id_to_room[rnd_subject.RoomID].GetTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot+nudge_value+i_ts))) < uint8(id_to_room[rnd_subject.RoomID].Capacity),
-					i_ts, rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value+i_ts,
-					id_to_instructor[rnd_subject.InstructorID].Time.GetAvailability(rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value+i_ts),
-				)
+				// log.Printf(
+				// 	"\n\n[%d] Room Availability (%d, %d) = %t\n\n[%d] Inst Availability (%d, %d) = %t\n\n",
+				// 	i_ts, rnd_subject.Day, (rnd_subject.StartingTimeSlot + nudge_value + i_ts),
+				// 	(id_to_room[rnd_subject.RoomID].GetTimeSlotClassCount(rnd_subject.Day, (rnd_subject.StartingTimeSlot+nudge_value+i_ts))) < uint8(id_to_room[rnd_subject.RoomID].Capacity),
+				// 	i_ts, rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value+i_ts,
+				// 	id_to_instructor[rnd_subject.InstructorID].Time.GetAvailability(rnd_subject.Day, rnd_subject.StartingTimeSlot+nudge_value+i_ts),
+				// )
 
 				///////////////////
 
@@ -468,7 +468,7 @@ func ApplyRandomSubjectTimeSlotNudge(
 						i_ts, (rnd_subject.StartingTimeSlot + nudge_value + i_ts),
 					)
 
-					log.Panicf("OPPSv-Spc2!  THERE IS SOMETHING WRONG (VARTICAL VALIDATION) - USI[%d]\n\n%v\n\n", usi, err_v2_val)
+					// log.Panicf("OPPSv-Spc2!  THERE IS SOMETHING WRONG (VARTICAL VALIDATION) - USI[%d]\n\n%v\n\n", usi, err_v2_val)
 				}
 
 				/////
