@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"reflect"
+	"slices"
 	"testing"
 	"time"
 
@@ -31,6 +32,13 @@ import (
 )
 
 var SessionStore = cookie.NewStore([]byte(os.Getenv("SESSION_SECRET")))
+
+type DepartmentGenResult struct {
+	Semester         int
+	Department       Departments.Department
+	GenerationResult RouteGlobals.SchedGenResult
+	TotalSections    int
+}
 
 func TestIntegrationEditCurriculumSectionV1(t *testing.T) {
 
@@ -637,15 +645,348 @@ func TestIntegrationEditCurriculumSectionV2(t *testing.T) {
 	}
 }
 
-type StatsKey struct {
-	Semester      int
-	DepartmentID  uint16
-	TotalSections int
+func BenchmarkIntegrationTest(b *testing.B) {
+
+	supported_semesters := make([]int, 0)
+	supported_semesters = append(supported_semesters, GeneticAlgorithm.TERM_1ST_SEMESTER)
+	supported_semesters = append(supported_semesters, GeneticAlgorithm.TERM_2ND_SEMESTER)
+	supported_semesters = append(supported_semesters, GeneticAlgorithm.TERM_MIDYEAR)
+
+	router := setup_router()
+
+	// read all curriculums
+
+	final_curriculums, err_read_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
+
+	if err_read_curriculums != nil {
+		b.Fatalf("Failed to read new curriculums: %v", err_read_curriculums)
+	}
+
+	// generate university schedules for all semesters
+
+	fmt.Println("read departments")
+
+	departments, err_read_departments := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllDepartments()
+
+	if err_read_departments != nil {
+		b.Fatalf("Failed to read departments: %v", err_read_departments)
+	}
+
+	departments_without_gen := make([]Departments.Department, 0, len(departments))
+
+	for i := range departments {
+		if departments[i].DepartmentID == 0 {
+			continue
+		}
+
+		departments_without_gen = append(departments_without_gen, departments[i])
+	}
+
+	departments = departments_without_gen
+
+	// generate schedules
+
+	fmt.Println("initial generation - generate university schedules")
+
+	for _, semester := range supported_semesters {
+		for _, department := range departments {
+
+			///////////////////////////////////////////////// lies here a memory you don't want to remember... ///////////////////
+
+			b.Logf("generating schedule for %s %s", department.Name, Curriculum.SEMESTER_INDEX_NAME[semester])
+
+			request := httptest.NewRequest(
+				http.MethodPost, fmt.Sprintf(
+					"/v1/generate_schedule?semester=%d&department_id=%d",
+					semester, department.DepartmentID,
+				),
+				http.NoBody,
+			)
+
+			response := httptest.NewRecorder()
+
+			router.ServeHTTP(response, request)
+
+			if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
+				b.Fatalf("Failed to generate schedules: status code %d, body: %s", response.Code, response.Body.String())
+			}
+		}
+	}
+
+	// wait for the schedules to be generated
+
+	fmt.Println("wait...")
+
+	for {
+		time.Sleep(30 * time.Second)
+		b.Log("Waiting for schedule generation to finish...")
+
+		request := httptest.NewRequest(http.MethodGet, "/v1/gen_status", nil)
+		response := httptest.NewRecorder()
+
+		router.ServeHTTP(response, request)
+
+		if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
+			b.Fatalf("Failed to check generation status: status code %d, body: %s", response.Code, response.Body.String())
+		}
+
+		var get_body struct {
+			IsGenerating bool `json:"status"`
+		}
+
+		if err := json.Unmarshal(response.Body.Bytes(), &get_body); err != nil {
+			b.Fatalf("Failed to parse generation status response: %v", err)
+		}
+
+		if !get_body.IsGenerating {
+			break
+		}
+	}
+
+	// generate schedules again but this time clear the schedule for each departments first
+
+	fmt.Println("final generation - generate university scehdules")
+
+	for _, semester := range supported_semesters {
+		for _, department := range departments {
+
+			{
+				b.Logf("clearing schedule for %s %s", department.Name, Curriculum.SEMESTER_INDEX_NAME[semester])
+
+				request := httptest.NewRequest(
+					http.MethodDelete, fmt.Sprintf(
+						"/v1/clear_department_schedules?semester=%d&department_id=%d",
+						semester, department.DepartmentID,
+					),
+					http.NoBody,
+				)
+
+				response := httptest.NewRecorder()
+
+				router.ServeHTTP(response, request)
+
+				if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
+					b.Fatalf("Failed to generate schedules: status code %d, body: %s", response.Code, response.Body.String())
+				}
+			}
+
+			fmt.Println("wait...")
+
+			for {
+				time.Sleep(5 * time.Second)
+				b.Log("Waiting for schedule generation to finish...")
+
+				request := httptest.NewRequest(http.MethodGet, "/v1/gen_status", nil)
+				response := httptest.NewRecorder()
+
+				router.ServeHTTP(response, request)
+
+				if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
+					b.Fatalf("Failed to check generation status: status code %d, body: %s", response.Code, response.Body.String())
+				}
+
+				var get_body struct {
+					IsGenerating bool `json:"status"`
+				}
+
+				if err := json.Unmarshal(response.Body.Bytes(), &get_body); err != nil {
+					b.Fatalf("Failed to parse generation status response: %v", err)
+				}
+
+				if !get_body.IsGenerating {
+					break
+				}
+			}
+
+			{
+				///////////////////////////////////////////////// lies here a memory you don't want to remember... ///////////////////
+
+				b.Logf("generating schedule for %s %s", department.Name, Curriculum.SEMESTER_INDEX_NAME[semester])
+
+				request := httptest.NewRequest(
+					http.MethodPost, fmt.Sprintf(
+						"/v1/generate_schedule?semester=%d&department_id=%d",
+						semester, department.DepartmentID,
+					),
+					http.NoBody,
+				)
+
+				response := httptest.NewRecorder()
+
+				router.ServeHTTP(response, request)
+
+				if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
+					b.Fatalf("Failed to generate schedules: status code %d, body: %s", response.Code, response.Body.String())
+				}
+			}
+
+			// wait for the schedules to be generated
+
+			for {
+				time.Sleep(15 * time.Second)
+				b.Log("Waiting for schedule generation to finish...")
+
+				request := httptest.NewRequest(http.MethodGet, "/v1/gen_status", nil)
+				response := httptest.NewRecorder()
+
+				router.ServeHTTP(response, request)
+
+				if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
+					b.Fatalf("Failed to check generation status: status code %d, body: %s", response.Code, response.Body.String())
+				}
+
+				var get_body struct {
+					IsGenerating bool `json:"status"`
+				}
+
+				if err := json.Unmarshal(response.Body.Bytes(), &get_body); err != nil {
+					b.Fatalf("Failed to parse generation status response: %v", err)
+				}
+
+				if !get_body.IsGenerating {
+					break
+				}
+			}
+		}
+	}
+
+	// validate each departments using schedule generation results
+
+	responses_gen := make([]DepartmentGenResult, 0)
+
+	for _, semester := range supported_semesters {
+		for _, department := range departments {
+
+			///////////////////////////////////////////////// lies here a memory you don't want to remember... ///////////////////
+
+			request := httptest.NewRequest(
+				http.MethodGet,
+				fmt.Sprintf("/v1/dept_gen_result?semester=%d&department_id=%d", semester, department.DepartmentID),
+				nil,
+			)
+
+			response := httptest.NewRecorder()
+
+			router.ServeHTTP(response, request)
+
+			if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
+				b.Fatalf("Unexpected status code %d for department %d: body: %s", response.Code, department.DepartmentID, response.Body.String())
+			} else {
+				response_body := &RouteGlobals.SchedGenResult{}
+				if err := json.Unmarshal(response.Body.Bytes(), &response_body); err != nil {
+					b.Fatalf("Failed to parse generation status response: %v", err)
+				}
+
+				if !(semester == 2 && Utils.HasSubString(response_body.Message, "empty")) {
+					if response_body.Status != RouteGlobals.SchedGenStatusSuccess {
+						b.Fatalf("Failed to generation schedule in %s, %s - %s", department.Code, response_body.Status, response_body.Message)
+					}
+
+					b.Logf("Validation %s result %s : %s", department.Code, response_body.Status, response_body.Message)
+				}
+
+				department_sections := 0
+
+				for _, curr := range final_curriculums {
+					if department.DepartmentID == curr.DepartmentID {
+						for _, yrlvl := range curr.YearLevels {
+							for sem_idx, sem := range yrlvl.Semesters {
+
+								if semester == sem_idx {
+									department_sections += sem.Sections
+								}
+							}
+						}
+					}
+				}
+
+				responses_gen = append(responses_gen, DepartmentGenResult{
+					Semester:         semester,
+					Department:       department,
+					GenerationResult: *response_body,
+					TotalSections:    department_sections,
+				})
+			}
+		}
+	}
+
+	// validate each department using the API
+
+	for _, semester := range supported_semesters {
+		for _, department := range departments {
+
+			///////////////////////////////////////////////// lies here a memory you don't want to remember... ///////////////////
+
+			request := httptest.NewRequest(
+				http.MethodGet,
+				fmt.Sprintf("/v2/validate_schedules?semester=%d&department_id=%d", semester, department.DepartmentID),
+				nil,
+			)
+
+			response := httptest.NewRecorder()
+
+			router.ServeHTTP(response, request)
+
+			switch response.Code {
+			case http.StatusNotFound, http.StatusConflict:
+				var validationResponse []string
+				if err := json.Unmarshal(response.Body.Bytes(), &validationResponse); err != nil {
+					b.Fatalf("Failed to parse validation response for department %d: %v", department.DepartmentID, err)
+				}
+
+				if len(validationResponse) > 0 {
+					b.Fatalf("Validation errors for department %d: %v", department.DepartmentID, validationResponse)
+				}
+			default:
+				if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
+					b.Fatalf("Unexpected status code %d for department %d: body: %s", response.Code, department.DepartmentID, response.Body.String())
+				}
+			}
+		}
+	}
+
+	total_sections := make(map[uint16]map[int]int)
+
+	for _, response_i := range responses_gen {
+		fmt.Printf(
+			"%s - [%s] took %s - %s\t\tfor %d sections\n",
+			response_i.Department.Code,
+			response_i.GenerationResult.Status,
+			response_i.GenerationResult.Message,
+			Curriculum.SEMESTER_INDEX_NAME[response_i.Semester],
+			response_i.TotalSections,
+		)
+
+		if _, has_department_id := total_sections[response_i.Department.DepartmentID]; !has_department_id {
+			total_sections[response_i.Department.DepartmentID] = make(map[int]int)
+		}
+
+		if _, has_semester := total_sections[response_i.Department.DepartmentID][response_i.Semester]; !has_semester {
+			total_sections[response_i.Department.DepartmentID][response_i.Semester] = 0
+		}
+
+		total_sections[response_i.Department.DepartmentID][response_i.Semester] += response_i.TotalSections
+	}
+
+	fmt.Println()
+
+	for department_id, semester_map := range total_sections {
+		for semester_idx := range semester_map {
+			fmt.Printf(
+				"department id %d - %s => total sections %d\n",
+				department_id, Curriculum.SEMESTER_INDEX_NAME[semester_idx],
+				total_sections[department_id][semester_idx],
+			)
+		}
+	}
 }
 
-func BenchmarkIntegrationStressTest(b *testing.B) {
+func AddResourcesAndSectionForBenchmarkIntegrationStressTest(b *testing.B) {
 
-	const THIS_TEST_SUPPORTED_SEMESTER int = 1
+	supported_semesters := make([]int, 0)
+	supported_semesters = append(supported_semesters, GeneticAlgorithm.TERM_1ST_SEMESTER)
+	supported_semesters = append(supported_semesters, GeneticAlgorithm.TERM_2ND_SEMESTER)
+	supported_semesters = append(supported_semesters, GeneticAlgorithm.TERM_MIDYEAR)
 
 	router := setup_router()
 
@@ -665,7 +1006,7 @@ func BenchmarkIntegrationStressTest(b *testing.B) {
 		for y, year_level := range curriculum.YearLevels {
 			for s := range year_level.Semesters {
 
-				if s >= THIS_TEST_SUPPORTED_SEMESTER {
+				if !slices.Contains(supported_semesters, s) {
 					continue
 				}
 
@@ -805,313 +1146,11 @@ func BenchmarkIntegrationStressTest(b *testing.B) {
 			break
 		}
 	}
-
-	// generate university schedules for all semesters
-
-	fmt.Println("read departments")
-
-	departments, err_read_departments := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllDepartments()
-
-	if err_read_departments != nil {
-		b.Fatalf("Failed to read departments: %v", err_read_departments)
-	}
-
-	departments_without_gen := make([]Departments.Department, 0, len(departments))
-
-	for i := range departments {
-		if departments[i].DepartmentID == 0 {
-			continue
-		}
-
-		departments_without_gen = append(departments_without_gen, departments[i])
-	}
-
-	departments = departments_without_gen
-
-	// generate schedules
-
-	fmt.Println("initial generation - generate university schedules")
-
-	for semester := range THIS_TEST_SUPPORTED_SEMESTER {
-		for _, department := range departments {
-
-			///////////////////////////////////////////////// lies here a memory you don't want to remember... ///////////////////
-
-			b.Logf("generating schedule for %s %s", department.Name, Curriculum.SEMESTER_INDEX_NAME[semester])
-
-			request := httptest.NewRequest(
-				http.MethodPost, fmt.Sprintf(
-					"/v1/generate_schedule?semester=%d&department_id=%d",
-					semester, department.DepartmentID,
-				),
-				http.NoBody,
-			)
-
-			response := httptest.NewRecorder()
-
-			router.ServeHTTP(response, request)
-
-			if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
-				b.Fatalf("Failed to generate schedules: status code %d, body: %s", response.Code, response.Body.String())
-			}
-		}
-	}
-
-	// wait for the schedules to be generated
-
-	fmt.Println("wait...")
-
-	for {
-		time.Sleep(30 * time.Second)
-		b.Log("Waiting for schedule generation to finish...")
-
-		request := httptest.NewRequest(http.MethodGet, "/v1/gen_status", nil)
-		response := httptest.NewRecorder()
-
-		router.ServeHTTP(response, request)
-
-		if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
-			b.Fatalf("Failed to check generation status: status code %d, body: %s", response.Code, response.Body.String())
-		}
-
-		var get_body struct {
-			IsGenerating bool `json:"status"`
-		}
-
-		if err := json.Unmarshal(response.Body.Bytes(), &get_body); err != nil {
-			b.Fatalf("Failed to parse generation status response: %v", err)
-		}
-
-		if !get_body.IsGenerating {
-			break
-		}
-	}
-
-	// generate schedules again but this time clear the schedule for each departments first
-
-	fmt.Println("final generation - generate university scehdules")
-
-	statistics := make(map[StatsKey]string)
-
-	for semester := range THIS_TEST_SUPPORTED_SEMESTER {
-		for _, department := range departments {
-
-			{
-				b.Logf("clearing schedule for %s %s", department.Name, Curriculum.SEMESTER_INDEX_NAME[semester])
-
-				request := httptest.NewRequest(
-					http.MethodDelete, fmt.Sprintf(
-						"/v1/clear_department_schedules?semester=%d&department_id=%d",
-						semester, department.DepartmentID,
-					),
-					http.NoBody,
-				)
-
-				response := httptest.NewRecorder()
-
-				router.ServeHTTP(response, request)
-
-				if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
-					b.Fatalf("Failed to generate schedules: status code %d, body: %s", response.Code, response.Body.String())
-				}
-			}
-
-			fmt.Println("wait...")
-
-			for {
-				time.Sleep(5 * time.Second)
-				b.Log("Waiting for schedule generation to finish...")
-
-				request := httptest.NewRequest(http.MethodGet, "/v1/gen_status", nil)
-				response := httptest.NewRecorder()
-
-				router.ServeHTTP(response, request)
-
-				if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
-					b.Fatalf("Failed to check generation status: status code %d, body: %s", response.Code, response.Body.String())
-				}
-
-				var get_body struct {
-					IsGenerating bool `json:"status"`
-				}
-
-				if err := json.Unmarshal(response.Body.Bytes(), &get_body); err != nil {
-					b.Fatalf("Failed to parse generation status response: %v", err)
-				}
-
-				if !get_body.IsGenerating {
-					break
-				}
-			}
-
-			measure_time := time.Now()
-
-			{
-				///////////////////////////////////////////////// lies here a memory you don't want to remember... ///////////////////
-
-				b.Logf("generating schedule for %s %s", department.Name, Curriculum.SEMESTER_INDEX_NAME[semester])
-
-				request := httptest.NewRequest(
-					http.MethodPost, fmt.Sprintf(
-						"/v1/generate_schedule?semester=%d&department_id=%d",
-						semester, department.DepartmentID,
-					),
-					http.NoBody,
-				)
-
-				response := httptest.NewRecorder()
-
-				router.ServeHTTP(response, request)
-
-				if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
-					b.Fatalf("Failed to generate schedules: status code %d, body: %s", response.Code, response.Body.String())
-				}
-			}
-
-			// wait for the schedules to be generated
-
-			for {
-				time.Sleep(15 * time.Second)
-				b.Log("Waiting for schedule generation to finish...")
-
-				request := httptest.NewRequest(http.MethodGet, "/v1/gen_status", nil)
-				response := httptest.NewRecorder()
-
-				router.ServeHTTP(response, request)
-
-				if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
-					b.Fatalf("Failed to check generation status: status code %d, body: %s", response.Code, response.Body.String())
-				}
-
-				var get_body struct {
-					IsGenerating bool `json:"status"`
-				}
-
-				if err := json.Unmarshal(response.Body.Bytes(), &get_body); err != nil {
-					b.Fatalf("Failed to parse generation status response: %v", err)
-				}
-
-				if !get_body.IsGenerating {
-					break
-				}
-			}
-
-			statistics_key := StatsKey{
-				Semester:     semester,
-				DepartmentID: department.DepartmentID,
-			}
-
-			if _, has_key := statistics[statistics_key]; !has_key {
-				statistics[statistics_key] = time.Since(measure_time).String()
-			}
-		}
-	}
-
-	// validate each departments using schedule generation results
-
-	responses_gen := make([]string, 0)
-
-	for semester := range THIS_TEST_SUPPORTED_SEMESTER {
-		for _, department := range departments {
-
-			///////////////////////////////////////////////// lies here a memory you don't want to remember... ///////////////////
-
-			request := httptest.NewRequest(
-				http.MethodGet,
-				fmt.Sprintf("/v1/dept_gen_result?semester=%d&department_id=%d", semester, department.DepartmentID),
-				nil,
-			)
-
-			response := httptest.NewRecorder()
-
-			router.ServeHTTP(response, request)
-
-			if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
-				b.Fatalf("Unexpected status code %d for department %d: body: %s", response.Code, department.DepartmentID, response.Body.String())
-			} else {
-				response_body := &RouteGlobals.SchedGenResult{}
-				if err := json.Unmarshal(response.Body.Bytes(), &response_body); err != nil {
-					b.Fatalf("Failed to parse generation status response: %v", err)
-				}
-
-				if !(semester == 2 && Utils.HasSubString(response_body.Message, "empty")) {
-					if response_body.Status != RouteGlobals.SchedGenStatusSuccess {
-						b.Fatalf("Failed to generation schedule in %s, %s - %s", department.Code, response_body.Status, response_body.Message)
-					}
-
-					b.Logf("Validation %s result %s : %s", department.Code, response_body.Status, response_body.Message)
-				}
-
-				responses_gen = append(responses_gen, response_body.Message)
-			}
-		}
-	}
-
-	// validate each department using the API
-
-	for semester := range THIS_TEST_SUPPORTED_SEMESTER {
-		for _, department := range departments {
-
-			///////////////////////////////////////////////// lies here a memory you don't want to remember... ///////////////////
-
-			request := httptest.NewRequest(
-				http.MethodGet,
-				fmt.Sprintf("/v2/validate_schedules?semester=%d&department_id=%d", semester, department.DepartmentID),
-				nil,
-			)
-
-			response := httptest.NewRecorder()
-
-			router.ServeHTTP(response, request)
-
-			switch response.Code {
-			case http.StatusNotFound, http.StatusConflict:
-				var validationResponse []string
-				if err := json.Unmarshal(response.Body.Bytes(), &validationResponse); err != nil {
-					b.Fatalf("Failed to parse validation response for department %d: %v", department.DepartmentID, err)
-				}
-
-				if len(validationResponse) > 0 {
-					b.Fatalf("Validation errors for department %d: %v", department.DepartmentID, validationResponse)
-				}
-			default:
-				if response.Code < http.StatusOK || response.Code >= http.StatusMultipleChoices {
-					b.Fatalf("Unexpected status code %d for department %d: body: %s", response.Code, department.DepartmentID, response.Body.String())
-				}
-			}
-		}
-	}
-
-	b.Log("\n===========================\n")
-
-	fmt.Printf("length detected %d\n", len(semester_idx_to_department_id_to_department_section_count))
-
-	total_sections := 0
-
-	for s, did_to_deptsec := range semester_idx_to_department_id_to_department_section_count {
-
-		fmt.Printf("length detected inside %d\n", len(did_to_deptsec))
-
-		for did, deptsec := range did_to_deptsec {
-			fmt.Printf(">>> department id %d - %s - total section count = %d\n", did, Curriculum.SEMESTER_INDEX_NAME[s], deptsec)
-			total_sections += deptsec
-		}
-	}
-
-	fmt.Printf("total university sections %d\n", total_sections)
-
-	b.Log("\n===========================\n")
-
-	for k, v := range statistics {
-		fmt.Printf("department id %d - %s took %s\n", k.DepartmentID, Curriculum.SEMESTER_INDEX_NAME[k.Semester], v)
-	}
-
-	b.Log("\n===========================\n")
-
-	for _, msg := range responses_gen {
-		fmt.Printf("msg : %s\n", msg)
-	}
-
+}
+
+func BenchmarkIntegrationStressTest(b *testing.B) {
+	AddResourcesAndSectionForBenchmarkIntegrationStressTest(b)
+	BenchmarkIntegrationTest(b)
 }
 
 func setup_router() *gin.Engine {
