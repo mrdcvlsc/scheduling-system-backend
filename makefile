@@ -216,7 +216,7 @@ bench:
 benchmark:
 	$(MAKE) devr_local
 	go clean -testcache
-	go test -run=BenchmarkIntegrationStressTest -bench=./ -timeout 0 > bench.txt
+	make devr_local && go test -run=BenchmarkIntegrationTest -bench=BenchmarkIntegrationTest -timeout 0
 
 todo:
 	python todo.py
