@@ -19,6 +19,7 @@ import (
 const (
 	TERM_1ST_SEMESTER int = 0 // `selected_semester` option.
 	TERM_2ND_SEMESTER int = 1 // `selected_semester` option.
+	TERM_MIDYEAR      int = 2 // `selected_semester` option.
 )
 
 const (
@@ -437,23 +438,44 @@ func EncodeIndividualGenome(
 
 							// search available gym for physical education subjects
 
-							gym := encoding_resource.DeptIdToRoomtypeToRooms[0][Rooms.ROOM_TYPE_GYM]
-							gym = append(gym, encoding_resource.DeptIdToRoomtypeToRooms[curriculum.DepartmentID][Rooms.ROOM_TYPE_GYM]...)
+							{
+								gym := encoding_resource.DeptIdToRoomtypeToRooms[0][Rooms.ROOM_TYPE_GYM]
 
-							for room_idx := range gym {
+								for room_idx := range gym {
 
-								has_available_room = true
+									has_available_room = true
 
-								for room_time_slot := time_slot; room_time_slot < (time_slot + subject_total_time_slots); room_time_slot++ {
-									has_available_room = has_available_room && gym[room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(gym[room_idx].Capacity)
+									for room_time_slot := time_slot; room_time_slot < (time_slot + subject_total_time_slots); room_time_slot++ {
+										has_available_room = has_available_room && gym[room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(gym[room_idx].Capacity)
+									}
+
+									if !has_available_room {
+										continue
+									}
+
+									selected_room = &gym[room_idx]
+									break
 								}
+							}
 
-								if !has_available_room {
-									continue
+							if !has_available_room {
+								gym := encoding_resource.DeptIdToRoomtypeToRooms[curriculum.DepartmentID][Rooms.ROOM_TYPE_GYM]
+
+								for room_idx := range gym {
+
+									has_available_room = true
+
+									for room_time_slot := time_slot; room_time_slot < (time_slot + subject_total_time_slots); room_time_slot++ {
+										has_available_room = has_available_room && gym[room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(gym[room_idx].Capacity)
+									}
+
+									if !has_available_room {
+										continue
+									}
+
+									selected_room = &gym[room_idx]
+									break
 								}
-
-								selected_room = &gym[room_idx]
-								break
 							}
 						} else {
 
@@ -603,6 +625,13 @@ func EncodeIndividualGenome(
 						//                                  EXIT THE LOOP AFTER SUCCESSFUL ASSIGNMENT
 						/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+						// fmt.Printf("assigned instructor %d|%s, %s %s\t\t\t\tassigned room %d|%s\t\t\td(%d), t(%d-%d)\n",
+						// 	selected_instructor.InstructorID,
+						// 	selected_instructor.LastName, selected_instructor.FirstName, selected_instructor.MiddleInitial,
+						// 	selected_room.RoomID, selected_room.Name,
+						// 	day, time_slot, time_slot+subject_total_time_slots,
+						// )
+
 						break
 					}
 				} // ------------- end of class_type_iter loop -------------
@@ -667,6 +696,27 @@ func EncodeIndividualGenome(
 	if is_to_return {
 		return return_uni_time_table, return_encoding_resource, return_error
 	}
+
+	flatten_room_id_to_room := make(map[uint16]*Rooms.Room)
+
+	for out_key, out_v := range encoding_resource.DeptIdToRoomtypeToRooms {
+		for in_key, in_v := range out_v {
+			for room_idx, room := range in_v {
+				flatten_room_id_to_room[room.RoomID] = &encoding_resource.DeptIdToRoomtypeToRooms[out_key][in_key][room_idx]
+			}
+		}
+	}
+
+	flatten_instructor_id_to_instructor := make(map[uint16]*Instructors.Instructor)
+
+	for k, v := range encoding_resource.DeptIdToInstructors {
+		for instructor_idx, instructor := range v {
+			flatten_instructor_id_to_instructor[instructor.InstructorID] = &encoding_resource.DeptIdToInstructors[k][instructor_idx]
+		}
+	}
+
+	encoding_resource.IdToRoom = flatten_room_id_to_room
+	encoding_resource.IdToInstructor = flatten_instructor_id_to_instructor
 
 	return university_schedules, encoding_resource, nil
 }

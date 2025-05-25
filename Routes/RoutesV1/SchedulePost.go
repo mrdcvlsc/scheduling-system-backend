@@ -19,7 +19,7 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 )
 
-const MAX_GENETIC_ALGORITHM_RETRY int = 10
+const MAX_GENETIC_ALGORITHM_RETRY int = 3
 const POPULATION_SIZE = 32
 const TOTAL_GENERATION = 16
 

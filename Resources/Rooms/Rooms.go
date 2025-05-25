@@ -71,6 +71,23 @@ func (room *Room) IncTimeSlotClassCount(day, time_slot int) {
 	room.timeSlotClassCount[limb_idx] += (0b1 << (4 * shift_multiplier))
 }
 
+// decrease by 1 the current number of classes or sections allocated in the room for a specific time slot.
+//
+// note: decrementing 0 values will not do anything.
+func (room *Room) DecTimeSlotClassCount(day, time_slot int) {
+	idx_2D_to_1D := (day * Const.N_DAILY_TIME_SLOTS) + time_slot
+	limb_idx := idx_2D_to_1D / 2
+	shift_multiplier := idx_2D_to_1D % 2
+
+	current_time_slot_allocation := int(room.GetTimeSlotClassCount(day, time_slot))
+
+	if current_time_slot_allocation == 0 {
+		return
+	}
+
+	room.timeSlotClassCount[limb_idx] -= (0b1 << (4 * shift_multiplier))
+}
+
 // get the current number of classes or sections allocated in the room for a specific time slot.
 func (room *Room) GetTimeSlotClassCount(day, time_slot int) uint8 {
 	idx_2D_to_1D := (day * Const.N_DAILY_TIME_SLOTS) + time_slot

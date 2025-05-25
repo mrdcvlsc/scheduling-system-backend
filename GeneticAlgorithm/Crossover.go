@@ -9,6 +9,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Departments"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Instructors"
@@ -74,7 +75,7 @@ func Crossover(
 
 	for department_id, is_to_encode := range department_to_encode {
 		if is_to_encode {
-			ApplyClearDepartmentSchedule(offspring, curriculums, department_id, selected_semester)
+			ClearDepartmentSchedule(offspring, curriculums, department_id, selected_semester)
 		}
 	}
 
@@ -385,7 +386,11 @@ func inherit_trait_from_a_parent(
 
 				id_to_instructor[subj_extend.InstructorID].Time.SetAvailability(false, subj_extend.Day, subj_extend.StartingTimeSlot+j)
 				id_to_room[subj_extend.RoomID].IncTimeSlotClassCount(subj_extend.Day, subj_extend.StartingTimeSlot+j)
+
 			}
+
+			id_to_instructor[subj_extend.InstructorID].AssignedSubjects++
+			id_to_instructor[subj_extend.InstructorID].TotalTeachingHours += float32(subject.TimeSlotSize+subj_extend.TimeSlotSize) / float32(Const.N_HOUR_TIME_SLOTS)
 
 			if _, has_sched_idx := offspring_encode_resource.IsSchedIdxToSubIdToSkip[uint16(usi)]; !has_sched_idx {
 				offspring_encode_resource.IsSchedIdxToSubIdToSkip[uint16(usi)] = make(map[uint16]bool)
@@ -411,6 +416,9 @@ func inherit_trait_from_a_parent(
 		if _, has_sched_idx := offspring_encode_resource.IsSchedIdxToSubIdToSkip[uint16(usi)]; !has_sched_idx {
 			offspring_encode_resource.IsSchedIdxToSubIdToSkip[uint16(usi)] = make(map[uint16]bool)
 		}
+
+		id_to_instructor[subject.InstructorID].AssignedSubjects++
+		id_to_instructor[subject.InstructorID].TotalTeachingHours += float32(subject.TimeSlotSize) / float32(Const.N_HOUR_TIME_SLOTS)
 
 		offspring_encode_resource.IsSchedIdxToSubIdToSkip[uint16(usi)][subject.SubjectID] = true
 

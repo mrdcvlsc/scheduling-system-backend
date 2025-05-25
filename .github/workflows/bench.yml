@@ -32,7 +32,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
 
-      - name: Benchmark
-        run: go test -run=BenchmarkIntegrationStressTest -bench=./ -timeout 0
+      - name: Benchmark Dev Resources Test
+        run: go test -run=BenchmarkIntegrationTest -bench=BenchmarkIntegrationTest -timeout 0
+        env:
+          GITHUB_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
+
+      - name: Benchmark Stress Test
+        run: go test -run=BenchmarkIntegrationStressTest -bench=BenchmarkIntegrationStressTest -timeout 0
         env:
           GITHUB_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}

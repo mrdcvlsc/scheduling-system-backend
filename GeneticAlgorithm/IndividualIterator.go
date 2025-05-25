@@ -171,3 +171,14 @@ curriculum_loop:
 		}
 	}
 }
+
+func ClearDepartmentSchedule(sched Schedule.UniTimeTables, all_curriculums []Curriculum.Curriculum, department_id uint16, selected_semester int) {
+	IterateSectionsWeekSchedule(sched, all_curriculums, selected_semester, nil, nil, func(indecies IterIndices, values IterValues) IterReturnType {
+
+		if values.Curriculum.DepartmentID == department_id {
+			values.Sched[indecies.Usi] = Schedule.WeekTimeTable{}
+		}
+
+		return IterProceed
+	})
+}
