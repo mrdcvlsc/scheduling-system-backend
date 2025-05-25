@@ -127,7 +127,7 @@ func RunGeneticAlgorithm(
 			return nil, nil, fmt.Errorf("genetic algorithm run error: slice elements copied %d, internal university schedule copy operation failed in generate new individual function", copied_week_time_table)
 		}
 
-		ApplyClearDepartmentSchedule(copy_uni_sched, curriculums, department_id, selected_semester)
+		ClearDepartmentSchedule(copy_uni_sched, curriculums, department_id, selected_semester)
 
 		copy_encoding_resource, err_gen_copy_encoding_resource := GenerateEncodingResourceFromUniTimeTable(copy_uni_sched, curriculums, selected_semester, default_empty_encoding_resource)
 
@@ -293,7 +293,7 @@ func RunGeneticAlgorithm(
 		remaining_missing_population = population_size - len(population)
 
 		fmt.Printf(
-			"ga: [crossover] - took %s, remaining missing population after tournament selection %d\n",
+			"ga: [crossover] - took %s, remaining missing population after crossover %d\n",
 			time.Since(start), remaining_missing_population,
 		)
 
@@ -305,13 +305,42 @@ func RunGeneticAlgorithm(
 
 		for i := 1; i < len(population); i++ {
 
+			prev_encoding_resource, err_copy_enc_re := population[i].Resources.MakeCopy()
+
+			if err_copy_enc_re != nil {
+				log.Panic("error copying encoding resource in random mutation : ", err_copy_enc_re)
+			}
+
+			err_v_val := population[i].UniSched.VerticalValidation(rooms)
+
+			if len(err_v_val) > 0 {
+				log.Panicf("OPPSv1!  THERE IS SOMETHING WRONG (VARTICAL VALIDATION) - RANDOM MUTATION INDEX [%d]", i)
+			}
+
+			err_h_val := HorizontalValidation(population[i].UniSched, curriculums, department_to_encode, selected_semester)
+
+			if len(err_h_val) > 0 {
+				log.Panicf("OPPSv1!  THERE IS SOMETHING WRONG (HORIZONTAL VALIDATION) - RANDOM MUTATION INDEX [%d]", i)
+			}
+
 			// apply random mutations to some of the CURRENT individuals in the population
 
-			// ApplyRandomSubjectErasure(population[i].UniSched, resource_persistence, curriculums, department_id, selected_semester)
-			ApplyRandomDaySwapTimeSlots(population[i].UniSched, curriculums, department_id, selected_semester, rooms, default_instructor_id_to_instructor)
-			ApplyRandomSubjectDaySwap(population[i].UniSched, rooms, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
-			ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, rooms, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
-			ApplyRandomSubjectTimeSlotAndDayNudge(population[i].UniSched, rooms, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
+			ApplyRandomDaySwapTimeSlots(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
+			ApplyRandomSubjectDaySwap(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
+			ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
+			ApplyRandomSubjectTimeSlotAndDayNudge(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
+
+			err_v2_val := population[i].UniSched.VerticalValidation(rooms)
+
+			if len(err_v2_val) > 0 {
+				log.Panicf("OPPSv2!  THERE IS SOMETHING WRONG (VARTICAL VALIDATION) - RANDOM MUTATION INDEX [%d]\n\n%v", i, err_v2_val)
+			}
+
+			err_h2_val := HorizontalValidation(population[i].UniSched, curriculums, department_to_encode, selected_semester)
+
+			if len(err_h2_val) > 0 {
+				log.Panicf("OPPSv2!  THERE IS SOMETHING WRONG (HORIZONTAL VALIDATION) - RANDOM MUTATION INDEX [%d]\n\n%v", i, err_h2_val)
+			}
 
 			// repair broken genome after mutations
 
@@ -325,13 +354,29 @@ func RunGeneticAlgorithm(
 
 				if err_generate_encoding_resource != nil {
 					log.Printf(
-						"RunGeneticAlgorithm [Random Mutation]: unable to generate encoding resource needed to repair a mutated individual on generation %d, caused by %s",
-						g, err_generate_encoding_resource.Error(),
+						"RunGeneticAlgorithm [Random Mutation][%d]: unable to generate encoding resource needed to repair a mutated individual on generation %d, caused by %s",
+						i, g, err_generate_encoding_resource.Error(),
 					)
 
 					return nil, nil, fmt.Errorf(
 						"unable to generate encoding resource needed to repair a mutated individual on generation %d, caused by %s",
 						g, err_generate_encoding_resource.Error(),
+					)
+				}
+
+				if !IsEqualEncodingResource(generated_encoding_resource, population[i].Resources) {
+
+					if IsEqualEncodingResource(prev_encoding_resource, population[i].Resources) {
+						log.Printf(
+							"RunGeneticAlgorithm: [Random Mutation][%d] PREVIOUS encoding resource after crossover should NOT be equal to the population encoding resource, why is this one equal? ERROR DETECTED!",
+							i,
+						)
+					}
+
+					// TODO: if tested many times, and there is no instance of this panic, then directly use
+					log.Panicf(
+						"RunGeneticAlgorithm: [Random Mutation][%d] encoding resource after crossover should be equal to the generated encoding resource, why is this one not? ERROR DETECTED!",
+						i,
 					)
 				}
 
@@ -355,11 +400,10 @@ func RunGeneticAlgorithm(
 							g, MAX_RE_ENCODE_REPAIR_TRIALS, err_repair_schedule.Error(),
 						)
 					} else {
-						// ApplyRandomSubjectErasure(population[i].UniSched, rooms, curriculums, department_id, selected_semester)
-						ApplyRandomDaySwapTimeSlots(population[i].UniSched, curriculums, department_id, selected_semester, rooms, default_instructor_id_to_instructor)
-						ApplyRandomSubjectDaySwap(population[i].UniSched, rooms, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
-						ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, rooms, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
-						ApplyRandomSubjectTimeSlotAndDayNudge(population[i].UniSched, rooms, curriculums, department_id, selected_semester, default_instructor_id_to_instructor)
+						ApplyRandomDaySwapTimeSlots(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
+						ApplyRandomSubjectDaySwap(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
+						ApplyRandomSubjectTimeSlotNudge(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
+						ApplyRandomSubjectTimeSlotAndDayNudge(population[i].UniSched, population[i].Resources, curriculums, department_id, selected_semester)
 					}
 
 					continue

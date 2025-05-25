@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"slices"
 	"sort"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Const"
@@ -19,6 +20,9 @@ type EncodingResource struct {
 	IsSchedIdxToSubIdToSkip map[uint16]map[uint16]bool
 	DeptIdToInstructors     map[uint16][]Instructors.Instructor
 	DeptIdToRoomtypeToRooms map[uint16]map[uint16][]Rooms.Room
+
+	IdToInstructor map[uint16]*Instructors.Instructor // flatten `DeptIdToInstructors`
+	IdToRoom       map[uint16]*Rooms.Room             // flatten `DeptIdToRoomtypeToRooms`
 }
 
 func (s *EncodingResource) MakeCopy() (*EncodingResource, error) {
@@ -64,10 +68,37 @@ func (s *EncodingResource) MakeCopy() (*EncodingResource, error) {
 		}
 	}
 
+	//////////////////////////////////////////////////////////////////////////////////////
+	//                              FLATTEN ENCODING RESOURCES
+	//////////////////////////////////////////////////////////////////////////////////////
+
+	room_id_to_room := make(map[uint16]*Rooms.Room)
+
+	for out_key, out_v := range dept_id_to_room_type_to_rooms {
+		for in_key, in_v := range out_v {
+			for room_idx, room := range in_v {
+				room_id_to_room[room.RoomID] = &dept_id_to_room_type_to_rooms[out_key][in_key][room_idx]
+			}
+		}
+	}
+
+	instructor_id_to_instructor := make(map[uint16]*Instructors.Instructor)
+
+	for k, v := range dept_id_to_instructors {
+		for instructor_idx, instructor := range v {
+			instructor_id_to_instructor[instructor.InstructorID] = &dept_id_to_instructors[k][instructor_idx]
+		}
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
 	return &EncodingResource{
 		IsSchedIdxToSubIdToSkip: is_sched_idx_to_sub_id_to_skip,
 		DeptIdToInstructors:     dept_id_to_instructors,
 		DeptIdToRoomtypeToRooms: dept_id_to_room_type_to_rooms,
+
+		IdToInstructor: instructor_id_to_instructor,
+		IdToRoom:       room_id_to_room,
 	}, nil
 }
 
@@ -75,31 +106,88 @@ func IsEqualEncodingResource(a, b *EncodingResource) bool {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	if len(a.IsSchedIdxToSubIdToSkip) != len(b.IsSchedIdxToSubIdToSkip) {
+	remove_false_subject_to_skip := func(m map[uint16]map[uint16]bool) map[uint16][]uint16 {
+		out := make(map[uint16][]uint16, len(m))
+
+		for usi, subject_id_to_skip := range m {
+
+			for subject_id, to_skip := range subject_id_to_skip {
+				if !to_skip {
+					continue
+				}
+
+				out[usi] = append(out[usi], subject_id)
+			}
+
+			slices.Sort(out[usi])
+		}
+
+		return out
+	}
+
+	skip_subjects_a := remove_false_subject_to_skip(a.IsSchedIdxToSubIdToSkip)
+	skip_subjects_b := remove_false_subject_to_skip(b.IsSchedIdxToSubIdToSkip)
+
+	if !reflect.DeepEqual(skip_subjects_a, skip_subjects_b) {
+		log.Print("IsEqualEncodingResource: not equal IsSchedIdxToSubIdToSkip")
 		return false
 	}
 
-	for a_out_k, a_out_v := range a.IsSchedIdxToSubIdToSkip {
+	////////////////////////////////////////////////////////////////////////////////////////
 
-		b_out_v, has_b_out_k := b.IsSchedIdxToSubIdToSkip[a_out_k]
+	flatten_instructors := func(m map[uint16][]Instructors.Instructor) []Instructors.Instructor {
+		out := make([]Instructors.Instructor, 0)
 
-		if !has_b_out_k {
+		for _, instructors := range m {
+			out = append(out, instructors...)
+		}
+
+		sort.Slice(out, func(i, j int) bool {
+			return out[i].InstructorID < out[j].InstructorID
+		})
+
+		return out
+	}
+
+	instructors_a := flatten_instructors(a.DeptIdToInstructors)
+	instructors_b := flatten_instructors(b.DeptIdToInstructors)
+
+	if len(instructors_a) != len(instructors_b) {
+		log.Printf("IsEqualEncodingResource: not equal instructor length a(%d) != b(%d)", len(instructors_a), len(instructors_b))
+		return false
+	}
+
+	for i := range len(instructors_a) {
+		if instructors_a[i].InstructorID != instructors_b[i].InstructorID {
 			return false
 		}
 
-		if len(a_out_v) != len(b_out_v) {
+		if instructors_a[i].DepartmentID != instructors_b[i].DepartmentID {
 			return false
 		}
 
-		for a_in_k, a_in_v := range a_out_v {
+		if instructors_a[i].FirstName != instructors_b[i].FirstName {
+			return false
+		}
 
-			b_in_v, has_b_in_k := b_out_v[a_in_k]
+		if instructors_a[i].MiddleInitial != instructors_b[i].MiddleInitial {
+			return false
+		}
 
-			if !has_b_in_k {
-				return false
-			}
+		if instructors_a[i].LastName != instructors_b[i].LastName {
+			return false
+		}
 
-			if b_in_v != a_in_v {
+		if instructors_a[i].AssignedSubjects != instructors_b[i].AssignedSubjects {
+			return false
+		}
+
+		if instructors_a[i].TotalTeachingHours != instructors_b[i].TotalTeachingHours {
+			return false
+		}
+
+		for limb_a_idx, limb := range instructors_a[i].Time {
+			if instructors_b[i].Time[limb_a_idx] != limb {
 				return false
 			}
 		}
@@ -107,82 +195,94 @@ func IsEqualEncodingResource(a, b *EncodingResource) bool {
 
 	////////////////////////////////////////////////////////////////////////////////////////
 
-	for a_out_k, a_out_v := range a.DeptIdToRoomtypeToRooms {
-		b_out_v, has_b_out_k := b.DeptIdToRoomtypeToRooms[a_out_k]
+	flatten_rooms := func(m map[uint16]map[uint16][]Rooms.Room) []Rooms.Room {
+		out := make([]Rooms.Room, 0)
 
-		if !has_b_out_k {
+		for _, room_type_to_rooms := range m {
+			for _, rooms := range room_type_to_rooms {
+				out = append(out, rooms...)
+			}
+		}
+
+		sort.Slice(out, func(i, j int) bool {
+			return out[i].RoomID < out[j].RoomID
+		})
+
+		return out
+	}
+
+	rooms_a := flatten_rooms(a.DeptIdToRoomtypeToRooms)
+	rooms_b := flatten_rooms(b.DeptIdToRoomtypeToRooms)
+
+	if len(rooms_a) != len(rooms_b) {
+		log.Printf("IsEqualEncodingResource: not equal room count a(%d) != b(%d)", len(rooms_a), len(rooms_b))
+		return false
+	}
+
+	for i := range rooms_a {
+
+		if rooms_a[i].RoomID != rooms_b[i].RoomID {
+			log.Printf(
+				"IsEqualEncodingResource: room mismatch at index %d - RoomID differs: a(%d) != b(%d)",
+				i, rooms_a[i].RoomID, rooms_b[i].RoomID,
+			)
 			return false
 		}
 
-		if len(a_out_v) != len(b_out_v) {
+		if rooms_a[i].DepartmentID != rooms_b[i].DepartmentID {
+			log.Printf(
+				"IsEqualEncodingResource: room mismatch at index %d - DepartmentID differs: a(%d) != b(%d)",
+				i, rooms_a[i].DepartmentID, rooms_b[i].DepartmentID,
+			)
 			return false
 		}
 
-		for a_in_k, a_in_v := range a_out_v {
+		if rooms_a[i].RoomType != rooms_b[i].RoomType {
+			log.Printf(
+				"IsEqualEncodingResource: room mismatch at index %d - RoomType differs: a(%d) != b(%d)",
+				i, rooms_a[i].RoomType, rooms_b[i].RoomType,
+			)
+			return false
+		}
 
-			b_in_v, has_b_in_k := b_out_v[a_in_k]
+		if rooms_a[i].Capacity != rooms_b[i].Capacity {
+			log.Printf(
+				"IsEqualEncodingResource: room mismatch at index %d - Capacity differs: a(%d) != b(%d)",
+				i, rooms_a[i].Capacity, rooms_b[i].Capacity,
+			)
+			return false
+		}
 
-			if !has_b_in_k {
-				return false
-			}
+		if rooms_a[i].Name != rooms_b[i].Name {
+			log.Printf(
+				"IsEqualEncodingResource: room mismatch at index %d - Name differs: a(%s) != b(%s)",
+				i, rooms_a[i].Name, rooms_b[i].Name,
+			)
+			return false
+		}
 
-			if len(a_in_v) != len(b_in_v) {
-				return false
-			}
+		if !reflect.DeepEqual(rooms_a[i].SharingDepartments, rooms_b[i].SharingDepartments) {
+			log.Printf(
+				"IsEqualEncodingResource: room mismatch at index %d - SharingDepartments differs: a(%v) != b(%v)",
+				i, rooms_a[i].SharingDepartments, rooms_b[i].SharingDepartments,
+			)
 
-			sort.Slice(a_in_v, func(i, j int) bool {
-				return a_in_v[i].RoomID < a_in_v[j].RoomID
-			})
+			return false
+		}
 
-			sort.Slice(b_in_v, func(i, j int) bool {
-				return b_in_v[i].RoomID < b_in_v[j].RoomID
-			})
-
-			for a_room_idx, a_room := range a_in_v {
-				if !reflect.DeepEqual(a_room, b_in_v[a_room_idx]) {
-					for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
-						for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
-							if a_room.GetTimeSlotClassCount(day, time_slot) != b_in_v[a_room_idx].GetTimeSlotClassCount(day, time_slot) {
-								fmt.Printf("RIDX: %d, room_id: %d | d(%d), t(%d) => a(%d), b(%d)\n", a_room_idx, a_room.RoomID, day, time_slot, a_room.GetTimeSlotClassCount(day, time_slot), b_in_v[a_room_idx].GetTimeSlotClassCount(day, time_slot))
-								return false
-							}
-						}
-					}
+		for day := range Const.N_WEEKLY_SCHOOL_DAYS {
+			for time_slot := range Const.N_DAILY_TIME_SLOTS {
+				if rooms_a[i].GetTimeSlotClassCount(day, time_slot) != rooms_b[i].GetTimeSlotClassCount(day, time_slot) {
+					fmt.Printf(
+						"RIDX: %d, room_id: %d | d(%d), t(%d) => a(%d), b(%d)\n\na room:\n%+v\n\nb room:\n%+v\n\n",
+						i, rooms_a[i].RoomID,
+						day, time_slot,
+						rooms_a[i].GetTimeSlotClassCount(day, time_slot),
+						rooms_b[i].GetTimeSlotClassCount(day, time_slot),
+						rooms_a[i], rooms_b[i],
+					)
 					return false
 				}
-			}
-		}
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////
-
-	if len(a.DeptIdToInstructors) != len(b.DeptIdToInstructors) {
-		return false
-	}
-
-	for a_k, a_v := range a.DeptIdToInstructors {
-
-		b_v, has_b_k := b.DeptIdToInstructors[a_k]
-
-		if !has_b_k {
-			return false
-		}
-
-		if len(a_v) != len(b_v) {
-			return false
-		}
-
-		sort.Slice(a_v, func(i, j int) bool {
-			return a_v[i].InstructorID < a_v[j].InstructorID
-		})
-
-		sort.Slice(b_v, func(i, j int) bool {
-			return b_v[i].InstructorID < b_v[j].InstructorID
-		})
-
-		for instructor_idx, instructor := range a_v {
-			if instructor != b_v[instructor_idx] {
-				return false
 			}
 		}
 	}
@@ -222,94 +322,58 @@ func GenerateEncodingResourceFromUniTimeTable(
 	//                              FLATTEN ENCODING RESOURCES
 	//////////////////////////////////////////////////////////////////////////////////////
 
-	////////////////////////////////////////////////////////////////////////////////////////
-
-	room_id_to_room := make(map[uint16]*Rooms.Room)
-
-	for out_key, out_v := range encode_resource.DeptIdToRoomtypeToRooms {
-		for in_key, in_v := range out_v {
-			for room_idx, room := range in_v {
-				room_id_to_room[room.RoomID] = &encode_resource.DeptIdToRoomtypeToRooms[out_key][in_key][room_idx]
-			}
-		}
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////
-
-	instructor_id_to_instructor := make(map[uint16]*Instructors.Instructor)
-
-	for k, v := range encode_resource.DeptIdToInstructors {
-		for instructor_idx, instructor := range v {
-			instructor_id_to_instructor[instructor.InstructorID] = &encode_resource.DeptIdToInstructors[k][instructor_idx]
-		}
-	}
+	room_id_to_room := encode_resource.IdToRoom
+	instructor_id_to_instructor := encode_resource.IdToInstructor
 
 	//////////////////////////////////////////////////////////////////////////////////////
 	//                           RE-CREATE ENCODING RESOURCE DATA
 	//////////////////////////////////////////////////////////////////////////////////////
 
-	counted_sections := 0
+	IterateSectionsWeekSchedule(university_schedules, curriculums, selected_semester, nil, nil,
+		func(indicies IterIndices, values IterValues) IterReturnType {
+			for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
+				for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
+					subject_id := university_schedules[indicies.Usi][day].GetTimeSlot(time_slot).GetSubjectID()
 
-	for _, curriculum := range curriculums {
-		for _, year_level := range curriculum.YearLevels {
+					if subject_id != 0 {
+						instructor_id := university_schedules[indicies.Usi][day].GetTimeSlot(time_slot).GetInstructorID()
+						room_id := university_schedules[indicies.Usi][day].GetTimeSlot(time_slot).GetRoomID()
 
-			if !year_level.IsActive {
-				continue // skip inactive year levels
-			}
+						selected_instructor := instructor_id_to_instructor[instructor_id]
+						selected_room := room_id_to_room[room_id]
 
-			for semester_idx, semester := range year_level.Semesters {
+						if instructor_id == 0 {
+							log.Panic("there should be an instructor allocation here, why there is none?")
+						}
 
-				if selected_semester != semester_idx {
-					continue // skip not selected semesters
-				}
+						if room_id == 0 {
+							log.Panic("there should be a room allocation here, why there is none?")
+						}
 
-				for section_idx := 0; section_idx < semester.Sections; section_idx++ {
+						selected_instructor.Time.SetAvailability(false, day, time_slot)
+						selected_room.IncTimeSlotClassCount(day, time_slot)
 
-					for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
-						for time_slot := 0; time_slot < Const.N_DAILY_TIME_SLOTS; time_slot++ {
-							subject_id := university_schedules[counted_sections][day].GetTimeSlot(time_slot).GetSubjectID()
+						_, has_sched_idx := encode_resource.IsSchedIdxToSubIdToSkip[uint16(indicies.Usi)]
 
-							if subject_id != 0 {
-								instructor_id := university_schedules[counted_sections][day].GetTimeSlot(time_slot).GetInstructorID()
-								room_id := university_schedules[counted_sections][day].GetTimeSlot(time_slot).GetRoomID()
+						if !has_sched_idx {
+							encode_resource.IsSchedIdxToSubIdToSkip[uint16(indicies.Usi)] = make(map[uint16]bool)
+						}
 
-								selected_instructor := instructor_id_to_instructor[instructor_id]
-								selected_room := room_id_to_room[room_id]
+						_, has_subject_id := encode_resource.IsSchedIdxToSubIdToSkip[uint16(indicies.Usi)][subject_id]
 
-								if instructor_id == 0 {
-									log.Panic("there should be an instructor allocation here, why there is none?")
-								}
+						if !has_subject_id {
+							encode_resource.IsSchedIdxToSubIdToSkip[uint16(indicies.Usi)][subject_id] = true
+							selected_instructor.AssignedSubjects++
+						}
 
-								if room_id == 0 {
-									log.Panic("there should be a room allocation here, why there is none?")
-								}
+						selected_instructor.TotalTeachingHours += (1.0 / Const.N_HOUR_TIME_SLOTS)
+					}
+				} // ------------- end of time_slot loop -------------
+			} // ------------- end of day loop -------------
 
-								selected_instructor.Time.SetAvailability(false, day, time_slot)
-								selected_room.IncTimeSlotClassCount(day, time_slot)
-
-								_, has_sched_idx := encode_resource.IsSchedIdxToSubIdToSkip[uint16(counted_sections)]
-
-								if !has_sched_idx {
-									encode_resource.IsSchedIdxToSubIdToSkip[uint16(counted_sections)] = make(map[uint16]bool)
-								}
-
-								_, has_subject_id := encode_resource.IsSchedIdxToSubIdToSkip[uint16(counted_sections)][subject_id]
-
-								if !has_subject_id {
-									encode_resource.IsSchedIdxToSubIdToSkip[uint16(counted_sections)][subject_id] = true
-									selected_instructor.AssignedSubjects++
-								}
-
-								selected_instructor.TotalTeachingHours += (1.0 / Const.N_HOUR_TIME_SLOTS)
-							}
-						} // ------------- end of time_slot loop -------------
-					} // ------------- end of day loop -------------
-
-					counted_sections++
-				} // ------------- end of section_idx loop -------------
-			} // ------------- end of semester_idx loop -------------
-		} // ------------- end of year_level loop -------------
-	} // ------------- end of curriculum loop -------------
+			return IterProceed
+		},
+	)
 
 	return encode_resource, nil
 }
@@ -333,9 +397,36 @@ func ReadDefaultEncodingResource(resource_persistence *StorageResources.Persiste
 
 	dept_id_to_instructors := GenerateMapDeptIdToInstructors(instructors)
 
+	//////////////////////////////////////////////////////////////////////////////////////
+	//                              FLATTEN ENCODING RESOURCES
+	//////////////////////////////////////////////////////////////////////////////////////
+
+	room_id_to_room := make(map[uint16]*Rooms.Room)
+
+	for out_key, out_v := range dept_id_to_room_type_to_rooms {
+		for in_key, in_v := range out_v {
+			for room_idx, room := range in_v {
+				room_id_to_room[room.RoomID] = &dept_id_to_room_type_to_rooms[out_key][in_key][room_idx]
+			}
+		}
+	}
+
+	instructor_id_to_instructor := make(map[uint16]*Instructors.Instructor)
+
+	for k, v := range dept_id_to_instructors {
+		for instructor_idx, instructor := range v {
+			instructor_id_to_instructor[instructor.InstructorID] = &dept_id_to_instructors[k][instructor_idx]
+		}
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
 	return &EncodingResource{
 		IsSchedIdxToSubIdToSkip: make(map[uint16]map[uint16]bool),
 		DeptIdToInstructors:     dept_id_to_instructors,
 		DeptIdToRoomtypeToRooms: dept_id_to_room_type_to_rooms,
+
+		IdToInstructor: instructor_id_to_instructor,
+		IdToRoom:       room_id_to_room,
 	}, nil
 }

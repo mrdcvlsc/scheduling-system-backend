@@ -3,6 +3,7 @@ package StorageResources
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path"
 	"sort"
@@ -15,6 +16,10 @@ func (s *JsonWriter) CreateRoom(new_room Rooms.Room) error {
 
 	if new_room.RoomID != 0 {
 		return errors.New("cannot create a new room with a non zero room ID because that would overwrite a room item")
+	}
+
+	if new_room.Capacity > uint16(Rooms.MAX_ROOM_CAPACITY) {
+		return fmt.Errorf("json.CreateRoom room to add has a capacity of %d section(s), the maximum allowed is only 15", new_room.Capacity)
 	}
 
 	RoomMutex.Lock()
@@ -48,6 +53,10 @@ func (s *JsonWriter) UpdateRoom(room_to_update Rooms.Room) error {
 
 	if room_to_update.RoomID == 0 {
 		return errors.New("parameter argument missing invalid room ID")
+	}
+
+	if room_to_update.Capacity > uint16(Rooms.MAX_ROOM_CAPACITY) {
+		return fmt.Errorf("json.UpdateRoom room to updated has a capacity of %d section(s), the maximum allowed is only 15", room_to_update.Capacity)
 	}
 
 	RoomMutex.Lock()

@@ -308,6 +308,12 @@ func GeneratePopulations(t *testing.T, target_semester int) int {
 			if !GeneticAlgorithm.IsEqualEncodingResource(encoding_resource, re_encoding_resource) {
 				t.Fatal("Test No Changes : error encoding resource equal test failed")
 			}
+
+			errs_encoding_validation := GeneticAlgorithm.ValidateEncodingResource(university_schedules, encoding_resource, curriculums, target_semester)
+
+			if errs_encoding_validation != nil {
+				t.Fatal(errs_encoding_validation)
+			}
 		}
 
 		final_uni_sched = university_schedules
@@ -520,6 +526,11 @@ new_population_loop:
 					continue
 				}
 
+				if errs := GeneticAlgorithm.ValidateEncodingResource(output_schedules, output_resources, curriculums, target_semester); errs != nil {
+					t.Logf("currently at department %s, test iteration %d", department.Code, i+1)
+					t.Fatal(errs)
+				}
+
 				track_schedules = output_schedules
 				track_resources = output_resources
 				break // department schedule generated - end retry loop
@@ -538,6 +549,12 @@ new_population_loop:
 			for _, e := range err_vertical_validations {
 				t.Error(e)
 				err_list_validation = append(err_list_validation, e)
+			}
+
+			errs_encoding_validation := GeneticAlgorithm.ValidateEncodingResource(track_schedules, track_resources, curriculums, target_semester)
+
+			if errs_encoding_validation != nil {
+				t.Fatal(errs_encoding_validation)
 			}
 
 			///////////////////////

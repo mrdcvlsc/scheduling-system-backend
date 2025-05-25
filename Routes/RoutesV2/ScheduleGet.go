@@ -293,6 +293,7 @@ func GetValidateSchedules(ctx *gin.Context) {
 	rooms, err_read_all_rooms := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllRooms()
 
 	if err_read_all_rooms != nil {
+		log.Print("GetValidateSchedules [error-rooms-read]: ", err_read_all_rooms)
 		ctx.String(http.StatusInternalServerError, "Unable to retrieve room data at this time. Please try again later.")
 		return
 	}
@@ -300,7 +301,34 @@ func GetValidateSchedules(ctx *gin.Context) {
 	curriculums, err_read_all_curriculum := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
 
 	if err_read_all_curriculum != nil {
+		log.Print("GetValidateSchedules [error-curriculums-read]: ", err_read_all_curriculum)
 		ctx.String(http.StatusInternalServerError, "Unable to load curriculum information at this time. Please refresh and try again later.")
+		return
+	}
+
+	default_empty_encoding_resource, err_read_default_encoding_resource := GeneticAlgorithm.ReadDefaultEncodingResource(RouteGlobals.ResourcesPersistence)
+
+	if err_read_default_encoding_resource != nil {
+		log.Print("GetValidateSchedules [error-encoding-resource-read]: ", err_read_default_encoding_resource)
+		ctx.String(http.StatusInternalServerError, "Unable to read the default encoding resource right now. Please try again later.")
+		return
+	}
+
+	encoding_resource, err_gen_encoding_resource := GeneticAlgorithm.GenerateEncodingResourceFromUniTimeTable(
+		university_schedules, curriculums, selected_semester, default_empty_encoding_resource,
+	)
+
+	if err_gen_encoding_resource != nil {
+		log.Print("GetValidateSchedules [error-encoding-resource-generation]: ", err_gen_encoding_resource)
+		ctx.String(http.StatusInternalServerError, "Unable to generate the university's encoding resource right now. Please try again later.")
+		return
+	}
+
+	err_encoding_resource_validation := GeneticAlgorithm.ValidateEncodingResource(university_schedules, encoding_resource, curriculums, selected_semester)
+
+	if err_encoding_resource_validation != nil {
+		log.Print("GetValidateSchedules [error-encoding-resource-validation]: ", err_encoding_resource_validation)
+		ctx.String(http.StatusInternalServerError, "An unknown error occured, please try again later. If this still persist, report to the devs")
 		return
 	}
 
