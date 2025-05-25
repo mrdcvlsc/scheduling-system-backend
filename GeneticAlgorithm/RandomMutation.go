@@ -103,6 +103,9 @@ func ApplyRandomDaySwapTimeSlots(
 						// update instructors
 
 						instructor_id_a := sched[usi][day][time_slot].GetInstructorID()
+
+						log.Printf("instructor_id_a = %d", instructor_id_a)
+
 						id_to_instructor[instructor_id_a].Time.SetAvailability(false, day_swap, time_slot)
 						id_to_instructor[instructor_id_a].Time.SetAvailability(true, day, time_slot)
 
