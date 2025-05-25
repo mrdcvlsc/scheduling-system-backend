@@ -437,23 +437,44 @@ func EncodeIndividualGenome(
 
 							// search available gym for physical education subjects
 
-							gym := encoding_resource.DeptIdToRoomtypeToRooms[0][Rooms.ROOM_TYPE_GYM]
-							gym = append(gym, encoding_resource.DeptIdToRoomtypeToRooms[curriculum.DepartmentID][Rooms.ROOM_TYPE_GYM]...)
+							{
+								gym := encoding_resource.DeptIdToRoomtypeToRooms[0][Rooms.ROOM_TYPE_GYM]
 
-							for room_idx := range gym {
+								for room_idx := range gym {
 
-								has_available_room = true
+									has_available_room = true
 
-								for room_time_slot := time_slot; room_time_slot < (time_slot + subject_total_time_slots); room_time_slot++ {
-									has_available_room = has_available_room && gym[room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(gym[room_idx].Capacity)
+									for room_time_slot := time_slot; room_time_slot < (time_slot + subject_total_time_slots); room_time_slot++ {
+										has_available_room = has_available_room && gym[room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(gym[room_idx].Capacity)
+									}
+
+									if !has_available_room {
+										continue
+									}
+
+									selected_room = &gym[room_idx]
+									break
 								}
+							}
 
-								if !has_available_room {
-									continue
+							if !has_available_room {
+								gym := encoding_resource.DeptIdToRoomtypeToRooms[curriculum.DepartmentID][Rooms.ROOM_TYPE_GYM]
+
+								for room_idx := range gym {
+
+									has_available_room = true
+
+									for room_time_slot := time_slot; room_time_slot < (time_slot + subject_total_time_slots); room_time_slot++ {
+										has_available_room = has_available_room && gym[room_idx].GetTimeSlotClassCount(day, room_time_slot) < uint8(gym[room_idx].Capacity)
+									}
+
+									if !has_available_room {
+										continue
+									}
+
+									selected_room = &gym[room_idx]
+									break
 								}
-
-								selected_room = &gym[room_idx]
-								break
 							}
 						} else {
 
