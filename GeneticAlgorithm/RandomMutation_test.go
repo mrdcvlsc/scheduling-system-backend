@@ -206,7 +206,7 @@ func TestRandomMutations(t *testing.T) {
 
 				GeneticAlgorithm.ApplyRandomDaySwapTimeSlots(university_schedules, encoding_resource, curriculums, department.DepartmentID, target_semester)
 				GeneticAlgorithm.ApplyRandomSubjectDaySwap(university_schedules, encoding_resource, curriculums, department.DepartmentID, target_semester)
-				GeneticAlgorithm.ApplyRandomSubjectTimeSlotNudge(university_schedules, encoding_resource, curriculums, department.DepartmentID, target_semester, rooms, dept_to_encode)
+				GeneticAlgorithm.ApplyRandomSubjectTimeSlotNudge(university_schedules, encoding_resource, curriculums, department.DepartmentID, target_semester)
 				GeneticAlgorithm.ApplyRandomSubjectTimeSlotAndDayNudge(university_schedules, encoding_resource, curriculums, department.DepartmentID, target_semester)
 			}
 
