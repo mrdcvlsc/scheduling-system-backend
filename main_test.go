@@ -31,6 +31,8 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
+const ADDED_RESOURCES_FOR_STRESS_TEST int = 1000
+
 var SessionStore = cookie.NewStore([]byte(os.Getenv("SESSION_SECRET")))
 
 type DepartmentGenResult struct {
@@ -965,6 +967,9 @@ func BenchmarkIntegrationTest(b *testing.B) {
 			total_sections[response_i.Department.DepartmentID][response_i.Semester] = 0
 		}
 
+		fmt.Printf("\ndepartment fitness progression: %v\n\n", response_i.GenerationResult.FitnessProgressionDepartment)
+		fmt.Printf("university fitness progression: %v\n\n", response_i.GenerationResult.FitnessProgressionUniversity)
+
 		total_sections[response_i.Department.DepartmentID][response_i.Semester] += response_i.TotalSections
 	}
 
@@ -1010,7 +1015,7 @@ func AddResourcesAndSectionForBenchmarkIntegrationStressTest(b *testing.B) {
 					continue
 				}
 
-				set_new_curriculums[c].YearLevels[y].Semesters[s].Sections = 10
+				set_new_curriculums[c].YearLevels[y].Semesters[s].Sections = 30
 
 				if _, has_semester := semester_idx_to_department_id_to_department_section_count[s]; !has_semester {
 					semester_idx_to_department_id_to_department_section_count[s] = make(map[uint16]int)
@@ -1045,7 +1050,7 @@ func AddResourcesAndSectionForBenchmarkIntegrationStressTest(b *testing.B) {
 
 		fmt.Printf("adding resources in %s\n", department.Name)
 
-		for i := range 500 {
+		for i := range ADDED_RESOURCES_FOR_STRESS_TEST {
 			err_create_room_LAB := RouteGlobals.ResourcesPersistence.WriterService.CreateRoom(Rooms.Room{
 				DepartmentID: department.DepartmentID,
 				Capacity:     1,

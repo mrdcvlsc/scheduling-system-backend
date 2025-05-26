@@ -1,12 +1,9 @@
 package RoutesV1
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"reflect"
 	"sync"
 	"time"
@@ -20,8 +17,8 @@ import (
 )
 
 const MAX_GENETIC_ALGORITHM_RETRY int = 3
-const POPULATION_SIZE = 32
-const TOTAL_GENERATION = 16
+const POPULATION_SIZE = 64
+const TOTAL_GENERATION = 32
 
 var request_gen_sched_mutex sync.Mutex
 
@@ -381,6 +378,9 @@ queue_pop_loop:
 
 		// encode a new schedule in the obtained university schedule for the specific department
 
+		var fitness_progression_department []float64
+		var fitness_progression_university []float64
+
 		var retry int // incremented by the for loop
 
 		for retry = 0; retry < MAX_GENETIC_ALGORITHM_RETRY; retry++ {
@@ -392,33 +392,27 @@ queue_pop_loop:
 				retry+1,
 			)
 
-			// initialize run statistics variables
-
-			generation_statistics := make([]float64, 0)
-
-			generation_statistics = append(
-				generation_statistics,
-				GeneticAlgorithm.MeasureUniSchedBasicFitness(
-					university_schedule, curriculums,
-					department_to_encode, semester_to_encode,
-				),
-			)
-
 			// generate the encoding resource for the obtained university schedule
 
 			previous_fitness := 0.0
+
+			fitness_progression_department = make([]float64, 0)
+			fitness_progression_university = make([]float64, 0)
 
 			fittest_uni_sched, fittest_encoding_resource, err_genetic_algorithm := GeneticAlgorithm.RunGeneticAlgorithm(
 				university_schedule, curriculums, rooms, dept_id_to_department,
 				default_empty_encoding_resource, generated_encoding_resource,
 				department_to_encode, semester_to_encode,
 				POPULATION_SIZE, TOTAL_GENERATION,
-				RouteGlobals.ResourcesPersistence, func(generation int, generation_fittest_sched Schedule.UniTimeTables, fitness float64) {
+				RouteGlobals.ResourcesPersistence, func(generation int, generation_fittest_sched Schedule.UniTimeTables, fittest_university_schedule_fitness float64) {
 
 					department_schedule_fitness := GeneticAlgorithm.MeasureUniSchedBasicFitness(
 						generation_fittest_sched, curriculums,
 						department_to_encode, semester_to_encode,
 					)
+
+					fitness_progression_department = append(fitness_progression_department, department_schedule_fitness)
+					fitness_progression_university = append(fitness_progression_university, fittest_university_schedule_fitness)
 
 					RouteGlobals.SetDeptSchedGenResult(
 						RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
@@ -426,18 +420,14 @@ queue_pop_loop:
 							Status: RouteGlobals.SchedGenStatusInProgress,
 							Message: fmt.Sprintf(
 								"running genetic algorithm, generation %d/%d, population size %d, department schedule fitness at %f, overall university schedule fitness at %f",
-								generation, TOTAL_GENERATION, POPULATION_SIZE, department_schedule_fitness, fitness,
+								generation, TOTAL_GENERATION, POPULATION_SIZE, department_schedule_fitness, fittest_university_schedule_fitness,
 							),
 						},
 					)
 
-					// record genetic algorithm run statistics
-
-					generation_statistics = append(generation_statistics, department_schedule_fitness)
-
 					// save genetic algorithm's generated in-between university schedule when there's new highest fit schedule
 
-					if fitness <= previous_fitness {
+					if fittest_university_schedule_fitness <= previous_fitness {
 						return
 					}
 
@@ -511,45 +501,6 @@ queue_pop_loop:
 
 				continue
 			}
-
-			// save genetic algorithm run statistics
-
-			generation_statistics = append(generation_statistics, time.Since(start).Seconds())
-			generation_statistics = append(generation_statistics, float64(department_id))
-
-			var read_generation_statistics [][]float64
-
-			read_generation_stats_data, err_read_statistics_data := os.ReadFile("GA-STATS.json")
-
-			is_ready_generation_statistics := true
-
-			if err_read_statistics_data != nil {
-				if !errors.Is(err_read_statistics_data, os.ErrNotExist) {
-					log.Printf("encode_schedule [error-reading-ga-statistics] : %s", err_read_statistics_data.Error())
-					is_ready_generation_statistics = false
-				}
-			} else if err_unmarshal_statistics := json.Unmarshal(read_generation_stats_data, &read_generation_statistics); err_unmarshal_statistics != nil {
-				log.Printf("encode_schedule [error-parsing-ga-statistics] : %s", err_unmarshal_statistics.Error())
-				is_ready_generation_statistics = false
-			}
-
-			if is_ready_generation_statistics {
-				read_generation_statistics = append(read_generation_statistics, generation_statistics)
-
-				updated_generation_statistics, err_ga_stats_marshal := json.MarshalIndent(read_generation_statistics, "", " ")
-
-				if err_ga_stats_marshal != nil {
-					log.Printf("encode_schedule [error-marshal-ga-statistics] : %s", err_ga_stats_marshal.Error())
-					return
-				}
-
-				if err := os.WriteFile("GA-STATS.json", updated_generation_statistics, 0644); err != nil {
-					log.Printf("encode_schedule [error-write-ga-statistics] : %s", err.Error())
-					return
-				}
-			}
-
-			/////////////////////////////////////////
 
 			log.Printf(
 				"encode_schedule: genetic algorithm has generated schedules for %s %s after %d tries",
@@ -838,8 +789,10 @@ queue_pop_loop:
 		RouteGlobals.SetDeptSchedGenResult(
 			RouteGlobals.DeptSchedGenKey{DepartmentID: department_id, Semester: semester_to_encode},
 			RouteGlobals.SchedGenResult{
-				Status:  RouteGlobals.SchedGenStatusSuccess,
-				Message: fmt.Sprintf("schedule generation done after %s", time.Since(start)),
+				Status:                       RouteGlobals.SchedGenStatusSuccess,
+				Message:                      fmt.Sprintf("schedule generation done after %s", time.Since(start)),
+				FitnessProgressionDepartment: fitness_progression_department,
+				FitnessProgressionUniversity: fitness_progression_university,
 			},
 		)
 

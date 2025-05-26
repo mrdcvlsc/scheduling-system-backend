@@ -23,8 +23,10 @@ const (
 )
 
 type SchedGenResult struct {
-	Status  SchedGenStatusType `json:"Status"` // values: "success", "failed", "internal server error", "not started", "on queue", "in progress"
-	Message string             `json:"Message"`
+	Status                       SchedGenStatusType `json:"Status"` // values: "success", "failed", "internal server error", "not started", "on queue", "in progress"
+	Message                      string             `json:"Message"`
+	FitnessProgressionDepartment []float64          `json:"FitnessProgressionDepartment,omitempty"`
+	FitnessProgressionUniversity []float64          `json:"FitnessProgressionUniversity,omitempty"`
 }
 
 var rw_map_mutex sync.RWMutex

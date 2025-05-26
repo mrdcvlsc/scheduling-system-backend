@@ -91,7 +91,7 @@ func MeasureWeekTimeTableBasicFitness(week_sched Schedule.WeekTimeTable) float64
 	return week_sched_fitness / days_with_class
 }
 
-// A basic fitness function
+// A basic fitness function, if `department_to_measure` is nil, it measures the whole university schedule
 func MeasureUniSchedBasicFitness(complete_uni_sched Schedule.UniTimeTables, all_curriculums []Curriculum.Curriculum, department_to_measure map[uint16]bool, selected_semester int) float64 {
 	if complete_uni_sched.IsEmpty() {
 		return -24.0
@@ -106,13 +106,10 @@ func MeasureUniSchedBasicFitness(complete_uni_sched Schedule.UniTimeTables, all_
 			if !department_to_measure[values.Curriculum.DepartmentID] {
 				return IterProceed
 			}
-
-			accumulated_fitness += MeasureWeekTimeTableBasicFitness(*values.WeekSched)
-			total_fitness_measurements++
-		} else {
-			total_fitness_measurements++
-			accumulated_fitness += MeasureWeekTimeTableBasicFitness(*values.WeekSched)
 		}
+
+		total_fitness_measurements++
+		accumulated_fitness += MeasureWeekTimeTableBasicFitness(*values.WeekSched)
 
 		return IterProceed
 	})

@@ -96,7 +96,6 @@ jobs:
           go clean -testcache && go test -run Test ./Tests/schedule_datastructure_basic -timeout 0
 
           go clean -testcache && go test -run Test ./Utils -timeout 0
-
         env:
           GITHUB_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
           LOG_MODE: verbose

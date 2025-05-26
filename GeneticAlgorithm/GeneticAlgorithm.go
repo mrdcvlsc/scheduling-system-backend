@@ -438,7 +438,7 @@ func RunGeneticAlgorithm(
 
 		genesis_population = population
 
-		fittest_individual_fitness := MeasureUniSchedBasicFitness(genesis_population[0].UniSched, curriculums, department_to_encode, selected_semester)
+		fittest_individual_fitness := MeasureUniSchedBasicFitness(genesis_population[0].UniSched, curriculums, nil, selected_semester)
 
 		fmt.Printf(
 			"ga: [population to transfer to next generation] - took %s, best individual fitness : %f\n",
