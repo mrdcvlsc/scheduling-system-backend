@@ -427,7 +427,7 @@ queue_pop_loop:
 
 					// save genetic algorithm's generated in-between university schedule when there's new highest fit schedule
 
-					if fittest_university_schedule_fitness <= previous_fitness {
+					if department_schedule_fitness <= previous_fitness {
 						return
 					}
 
