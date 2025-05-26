@@ -450,6 +450,16 @@ func RunGeneticAlgorithm(
 		}
 
 		if os.Getenv("LOG_MODE") == "verbose" {
+			estimated_bytes_of_encoding_resource := float64(genesis_population[0].Resources.EstimateMemoryUsageInBytes())
+
+			log.Printf(
+				"Estimated Memory Usage Of Encoding Resource [generation %d]: %d bytes, %.2fKB, %.2fMB, %.2fGB",
+				g, uint64(estimated_bytes_of_encoding_resource),
+				estimated_bytes_of_encoding_resource/1000.0,
+				(estimated_bytes_of_encoding_resource/1000.0)/1000.0,
+				((estimated_bytes_of_encoding_resource/1000.0)/1000.0)/1000.0,
+			)
+
 			for i, uni_gen_sched := range genesis_population {
 				fmt.Printf("generation %d, individual %d -> fitness : %f\n", g, i+1, MeasureUniSchedBasicFitness(
 					uni_gen_sched.UniSched, curriculums, department_to_encode, selected_semester,
