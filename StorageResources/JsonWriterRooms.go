@@ -31,6 +31,12 @@ func (s *JsonWriter) CreateRoom(new_room Rooms.Room) error {
 		return err_read
 	}
 
+	for _, room := range all_rooms {
+		if Utils.IsEqualStrCaseInsensitiveIgnoreWhiteSpace(room.Name, new_room.Name) {
+			return fmt.Errorf("another room with the name '%s' already exists", new_room.Name)
+		}
+	}
+
 	all_rooms = append(all_rooms, Rooms.Room{
 		RoomID:             all_rooms[len(all_rooms)-1].RoomID + 1,
 		DepartmentID:       new_room.DepartmentID,
@@ -66,6 +72,12 @@ func (s *JsonWriter) UpdateRoom(room_to_update Rooms.Room) error {
 
 	if err_read != nil {
 		return err_read
+	}
+
+	for _, room := range all_rooms {
+		if Utils.IsEqualStrCaseInsensitiveIgnoreWhiteSpace(room.Name, room_to_update.Name) {
+			return fmt.Errorf("another room with the name '%s' already exists", room_to_update.Name)
+		}
 	}
 
 	has_id := false
