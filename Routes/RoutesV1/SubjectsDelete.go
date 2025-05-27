@@ -1,6 +1,7 @@
 package RoutesV1
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -36,6 +37,31 @@ func DeleteSubject(ctx *gin.Context) {
 
 	RouteGlobals.ReindexUniSchedMutex.Lock()
 	defer RouteGlobals.ReindexUniSchedMutex.Unlock()
+
+	curriculums, err_read_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
+
+	if err_read_curriculums != nil {
+		log.Print("DeleteSubject: [err-read-curriculums] unable to read all curriculums during subject deletion")
+		ctx.String(http.StatusForbidden, "we're unable to read all of the curriculums necessary for the subject deletion right now, please try again later.")
+		return
+	}
+
+	for _, curriculum := range curriculums {
+		for _, year_level := range curriculum.YearLevels {
+			for _, semester := range year_level.Semesters {
+				for _, subject := range semester.Subjects {
+					if subject.ID == uint16(subject_id) {
+						log.Print("DeleteSubject: [subject-still-assigned-to-curriculum] unable to delete a subject currently assigned to a curriculum")
+						ctx.String(http.StatusForbidden, fmt.Sprintf(
+							"unable to delete %s because it is still being used by the %s in %s - %s",
+							subject.Code, curriculum.CurriculumCode, year_level.Name, semester.Name,
+						))
+						return
+					}
+				}
+			}
+		}
+	}
 
 	for semester := range Curriculum.SUPPORTED_SEMESTERS {
 		university_schedules, _ := ObtainUniversityScheduleNoContext(nil, semester)
