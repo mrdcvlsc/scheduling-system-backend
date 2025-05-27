@@ -197,6 +197,7 @@ func main() {
 	v2.GET("/class_json_schedule", RoutesV2.GetJsonClassSchedule)
 	v2.DELETE("/clear_class_schedule", RoutesV2.DeleteClearClassSchedule)
 	v1.DELETE("/clear_department_schedules", RoutesV1.DeleteClearDepartmentSchedule)
+	v1.GET("/delete_all_generated_university_schedules_for_all_semester_a_complete_reset", RoutesV1.DeleteAllUniversitySchedules)
 	v1.POST("/generate_schedule", RoutesV1.RequestGenerateSchedule)
 
 	v2.POST("/available_subject_moves", RoutesV2.GetSubjectAvailableTimeSlotMoves)
