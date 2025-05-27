@@ -299,7 +299,6 @@ func EncodeIndividualGenome(
 						is_time_slot_available := day_sched.IsTimeAvailable(time_slot, subject_total_time_slots)
 
 						if !is_time_slot_available && i == total_iterations-1 {
-							is_to_return = true
 
 							return_uni_time_table = university_schedules
 							return_encoding_resource = nil
@@ -350,7 +349,6 @@ func EncodeIndividualGenome(
 								instructor_search_iteration++
 
 								if (!is_available_instructor && ((instructor_idx == len(specialized_instructors)-1) || selected_instructor != nil)) && i == total_iterations-1 {
-									is_to_return = true
 
 									return_uni_time_table = university_schedules
 									return_encoding_resource = nil
@@ -397,7 +395,6 @@ func EncodeIndividualGenome(
 								instructor_search_iteration++
 
 								if (!is_available_instructor && ((instructor_idx == len(instructors)-1) || selected_instructor != nil)) && i == total_iterations-1 {
-									is_to_return = true
 
 									return_uni_time_table = university_schedules
 									return_encoding_resource = nil
@@ -492,7 +489,6 @@ func EncodeIndividualGenome(
 						room_search_iteration++
 
 						if !has_available_room && i == total_iterations-1 {
-							is_to_return = true
 
 							return_uni_time_table = university_schedules
 							return_encoding_resource = nil
@@ -617,7 +613,6 @@ func EncodeIndividualGenome(
 						is_time_slot_available := day_sched.IsTimeAvailable(time_slot, subject_total_time_slots)
 
 						if !is_time_slot_available && i == total_iterations-1 {
-							is_to_return = true
 
 							return_uni_time_table = university_schedules
 							return_encoding_resource = nil
@@ -668,7 +663,6 @@ func EncodeIndividualGenome(
 								instructor_search_iteration++
 
 								if (!is_available_instructor && ((instructor_idx == len(specialized_instructors)-1) || selected_instructor != nil)) && i == total_iterations-1 {
-									is_to_return = true
 
 									return_uni_time_table = university_schedules
 									return_encoding_resource = nil
@@ -715,7 +709,6 @@ func EncodeIndividualGenome(
 								instructor_search_iteration++
 
 								if (!is_available_instructor && ((instructor_idx == len(instructors)-1) || selected_instructor != nil)) && i == total_iterations-1 {
-									is_to_return = true
 
 									return_uni_time_table = university_schedules
 									return_encoding_resource = nil
@@ -815,7 +808,6 @@ func EncodeIndividualGenome(
 						room_search_iteration++
 
 						if !has_available_room && i == total_iterations-1 {
-							is_to_return = true
 
 							return_uni_time_table = university_schedules
 							return_encoding_resource = nil
@@ -1137,7 +1129,7 @@ func EncodeIndividualGenome(
 							return_uni_time_table = university_schedules
 							return_encoding_resource = nil
 							return_error = fmt.Errorf(
-								"error encode individual genome, not enough %s rooms (%d) in %s for %s, %s, %s, section %s, after generating schedules for the previous %d other sections",
+								"error encode individual genome, not enough %s rooms (%d) [flipped] in %s for %s, %s, %s, section %s, after generating schedules for the previous %d other sections",
 								Rooms.ROOM_TYPE_NAMES[room_type], len(room_type_to_rooms[room_type]), ro_dept_id_to_department[curriculum.DepartmentID].Name,
 								curriculum.CurriculumCode, semester.Name, year_level.Name, Curriculum.SECTION[section_idx], successful_generated_section_schedules,
 							)
