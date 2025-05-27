@@ -5,8 +5,11 @@ import (
 	"log"
 	"net/http"
 
+	"slices"
+
 	"github.com/gin-gonic/gin"
 	"github.com/mrdcvlsc/scheduling-system-backend/Auth"
+	"github.com/mrdcvlsc/scheduling-system-backend/GeneticAlgorithm"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
@@ -47,6 +50,44 @@ func DeleteInstructor(ctx *gin.Context) {
 
 	if is_allowed := Auth.IsDepartmentAllowed(ctx, selected_instructor.DepartmentID); !is_allowed {
 		return
+	}
+
+	departments, err_read_departments := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllDepartments()
+
+	if err_read_departments != nil {
+		log.Print("PatchInstructor: ", err_read_departments)
+		ctx.String(http.StatusInternalServerError, "we're unable to read the departments needed by the instructor update operation, please try again later.")
+		return
+	}
+
+	dept_id_to_department := GeneticAlgorithm.GenerateMapDeptIdToDepartment(departments)
+
+	curriculums, err_read_curriculums := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
+
+	if err_read_curriculums != nil {
+		log.Print("DeleteSubject: [err-read-curriculums] unable to read all curriculums during subject deletion")
+		ctx.String(http.StatusForbidden, "we're unable to read all of the curriculums necessary for the subject deletion right now, please try again later.")
+		return
+	}
+
+	for _, curriculum := range curriculums {
+		for _, year_level := range curriculum.YearLevels {
+			for _, semester := range year_level.Semesters {
+				for _, subject := range semester.Subjects {
+					if slices.Contains(subject.DesignatedInstructors, uint16(instructor_id)) {
+						log.Print("DeleteInstructor: [instructor-still-assigned-to-curriculum] unable to delete the instructor, that instructor is still designated")
+						ctx.String(http.StatusForbidden, fmt.Sprintf(
+							"unable to delete '%s %s. %s' from %s, still designated by the %s in %s, %s, subject %s",
+							selected_instructor.FirstName, selected_instructor.MiddleInitial, selected_instructor.LastName,
+							dept_id_to_department[selected_instructor.DepartmentID].Code,
+							curriculum.CurriculumCode, year_level.Name, semester.Name,
+							subject.Code,
+						))
+						return
+					}
+				}
+			}
+		}
 	}
 
 	for selected_semester := range Curriculum.SUPPORTED_SEMESTERS {
