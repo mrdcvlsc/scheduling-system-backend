@@ -2,6 +2,7 @@ package StorageSchedule
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
@@ -49,4 +50,32 @@ func (s *MongodbWriter) SaveSchedules(university_schedule Schedule.UniTimeTables
 	log.Println("SaveSchedules ReplaceOne result:", result)
 
 	return err
+}
+
+func (s *MongodbWriter) DeleteSchedules(semester int) error {
+
+	if s.Mongo.Schedules == nil {
+		s.Mongo.Schedules = s.Mongo.Client.Database("gass").Collection("schedules")
+	}
+
+	schedule_collection := s.Mongo.Schedules
+
+	result, err := schedule_collection.DeleteOne(
+		context.TODO(),
+
+		bson.D{{
+			Key:   "Semester",
+			Value: semester,
+		}},
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if result.DeletedCount == 0 {
+		return fmt.Errorf("no document found for semester %d", semester)
+	}
+
+	return nil
 }

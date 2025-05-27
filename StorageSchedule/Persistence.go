@@ -14,6 +14,7 @@ type loadRepository interface {
 
 type saveRepository interface {
 	SaveSchedules(university_schedule Schedule.UniTimeTables, semester int) error
+	DeleteSchedules(semester int) error
 }
 
 type Persistence struct {
