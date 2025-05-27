@@ -56,7 +56,7 @@ func PatchRoom(ctx *gin.Context) {
 	err := RouteGlobals.ResourcesPersistence.WriterService.UpdateRoom(update_room)
 
 	if err != nil {
-		log.Print(err)
+		log.Print("PatchRoom : ", err)
 		ctx.String(http.StatusBadRequest, err.Error())
 		return
 	}

@@ -9,6 +9,7 @@ import (
 
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -37,6 +38,16 @@ func (s *MongodbWriter) CreateRoom(new_room Rooms.Room) error {
 		SetProjection(bson.D{{Key: "_id", Value: 0}})
 
 	room_collection := s.Mongo.Rooms
+
+	var existing_room Rooms.Room
+	err_find := room_collection.FindOne(context.TODO(), bson.D{{Key: "Name", Value: new_room.Name}}).Decode(&existing_room)
+
+	if err_find == nil {
+		return fmt.Errorf("a room with the name '%s' already exists", new_room.Name)
+	} else if err_find != mongo.ErrNoDocuments {
+		return fmt.Errorf("CreateRoom FindOne error: %s", err_find.Error())
+	}
+
 	cursor_last, err_find_last := room_collection.Find(context.TODO(), bson.D{{}}, opt_find_last)
 
 	if err_find_last != nil {
@@ -93,6 +104,16 @@ func (s *MongodbWriter) UpdateRoom(updated_room Rooms.Room) error {
 	}
 
 	room_collection := s.Mongo.Rooms
+
+	var existing_room Rooms.Room
+
+	err_find := room_collection.FindOne(context.TODO(), bson.D{{Key: "Name", Value: updated_room.Name}}).Decode(&existing_room)
+
+	if err_find == nil {
+		return fmt.Errorf("a room with the name '%s' already exists", updated_room.Name)
+	} else if err_find != mongo.ErrNoDocuments {
+		return fmt.Errorf("CreateRoom FindOne error: %s", err_find.Error())
+	}
 
 	replace_result, err_replace_one := room_collection.ReplaceOne(
 		context.TODO(),
