@@ -35,8 +35,8 @@ func PostRoom(ctx *gin.Context) {
 	err := RouteGlobals.ResourcesPersistence.WriterService.CreateRoom(add_room)
 
 	if err != nil {
-		log.Print(err)
-		ctx.String(http.StatusBadRequest, "we are unable to properly add the room")
+		log.Print("PostRoom : ", err)
+		ctx.String(http.StatusBadRequest, err.Error())
 		return
 	}
 

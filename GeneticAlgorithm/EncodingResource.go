@@ -430,3 +430,83 @@ func ReadDefaultEncodingResource(resource_persistence *StorageResources.Persiste
 		IdToRoom:       room_id_to_room,
 	}, nil
 }
+
+const (
+	sizeUint16       = 2 // bytes
+	sizeBool         = 1 // bytes
+	sizeInt          = 8 // bytes on 64-bit systems
+	sizeFloat32      = 4
+	sizeStringHeader = 16 // ptr + len
+	sizeSliceHeader  = 24 // ptr + len + cap
+)
+
+func (e *EncodingResource) EstimateMemoryUsageInBytes() uint64 {
+
+	instructor_size := func(inst Instructors.Instructor) uint64 {
+		var total_instructor_byte_size uint64
+
+		total_instructor_byte_size += sizeUint16                                             // InstructorID
+		total_instructor_byte_size += sizeUint16                                             // DepartmentID
+		total_instructor_byte_size += sizeInt                                                // AssignedSubjects
+		total_instructor_byte_size += sizeFloat32                                            // TotalTeachingHours
+		total_instructor_byte_size += uint64(Instructors.INSTRUCTOR_TIME_SLOT_MAP_LIMBS) * 8 // [3]uint64
+
+		total_instructor_byte_size += uint64(len(inst.FirstName)) + sizeStringHeader
+		total_instructor_byte_size += uint64(len(inst.MiddleInitial)) + sizeStringHeader
+		total_instructor_byte_size += uint64(len(inst.LastName)) + sizeStringHeader
+
+		return total_instructor_byte_size
+	}
+
+	room_size := func(r Rooms.Room) uint64 {
+		var total_room_size uint64
+
+		total_room_size += sizeUint16 * 4                             // RoomID, DeptID, Capacity, RoomType
+		total_room_size += uint64(Rooms.TIME_SLOT_CLASS_COUNTER_SIZE) // [72]uint8
+
+		total_room_size += sizeStringHeader + uint64(len(r.Name))
+
+		total_room_size += sizeSliceHeader
+		total_room_size += uint64(len(r.SharingDepartments)) * sizeUint16
+
+		return total_room_size
+	}
+
+	total := uint64(0)
+
+	for _, sub_id_to_skip := range e.IsSchedIdxToSubIdToSkip {
+		total += sizeUint16
+		for range sub_id_to_skip {
+			total += sizeUint16 + sizeBool
+		}
+	}
+
+	for _, instructor_slice := range e.DeptIdToInstructors {
+		total += sizeUint16 + sizeSliceHeader
+		for _, instructor := range instructor_slice {
+			total += instructor_size(instructor)
+		}
+	}
+
+	for _, room_type_to_rooms := range e.DeptIdToRoomtypeToRooms {
+		total += sizeUint16
+		for _, room_slice := range room_type_to_rooms {
+			total += sizeUint16 + sizeSliceHeader
+			for _, room := range room_slice {
+				total += room_size(room)
+			}
+		}
+	}
+
+	// add key and pointer sizes for IdToInstructor and IdToRoom
+
+	total += uint64(sizeUint16+8) * uint64(len(e.IdToInstructor))
+	total += uint64(sizeUint16+8) * uint64(len(e.IdToRoom))
+
+	log.Printf("Total number of instructors: %d", len(e.IdToInstructor))
+	log.Printf("Total number of rooms: %d", len(e.IdToRoom))
+	log.Printf("Total number of classes/sections: %d", len(e.IsSchedIdxToSubIdToSkip))
+	log.Printf("Estimated memory usage of EncodingResource: %d bytes", total)
+
+	return total
+}

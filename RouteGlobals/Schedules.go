@@ -105,3 +105,9 @@ func SetCachedUniversitySchedule(semester int, university_schedule Schedule.UniT
 
 	return nil
 }
+
+func ClearCachedUniversitySchedule() {
+	for semester := range len(schedule_cache.semester_schedule) {
+		schedule_cache.semester_schedule[semester] = nil
+	}
+}

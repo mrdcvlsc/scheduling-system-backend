@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/mrdcvlsc/scheduling-system-backend/Auth"
+	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Curriculum"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 )
@@ -125,4 +126,42 @@ func DeleteClearDepartmentSchedule(ctx *gin.Context) {
 	)
 
 	ctx.String(http.StatusOK, "all department schedule was successfully cleared")
+}
+
+/*
+GET:
+
+	"/v1/delete_all_generated_university_schedules_for_all_semester_a_complete_reset"
+*/
+func DeleteAllUniversitySchedules(ctx *gin.Context) {
+
+	if is_success := Auth.IsAuthSuccess(ctx); !is_success {
+		return
+	}
+
+	if RouteGlobals.IsGeneratingSchedule.Load() {
+		log.Print("DeleteAllUniversitySchedules: [busy] you or other department(s) are still generating a schedule, please wait until the process is finished")
+		ctx.String(http.StatusForbidden, "please wait for other department to finish generating schedules")
+		return
+	}
+
+	RouteGlobals.ReindexUniSchedMutex.Lock()
+	defer RouteGlobals.ReindexUniSchedMutex.Unlock()
+
+	RouteGlobals.ClearCachedUniversitySchedule()
+
+	for semester := range Curriculum.SUPPORTED_SEMESTERS {
+
+		// delete schedule
+
+		err_delete_schedules := RouteGlobals.SchedulePersistence.SaveService.DeleteSchedules(semester)
+
+		if err_delete_schedules != nil {
+			log.Print("DeleteClearClassSchedule: (save error) ", err_delete_schedules.Error())
+			ctx.String(http.StatusOK, "we're unable to clear the department schedules")
+			return
+		}
+	}
+
+	ctx.String(http.StatusOK, "university schedules was successfully deleted")
 }
