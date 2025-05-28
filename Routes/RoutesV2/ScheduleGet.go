@@ -129,7 +129,15 @@ func GetJsonClassSchedule(ctx *gin.Context) {
 	department_to_measure := make(map[uint16]bool)
 	department_to_measure[uint16(department_id)] = true
 
-	log.Printf("measured fitness : %f", GeneticAlgorithm.MeasureWeekTimeTableBasicFitness(
+	log.Printf("university measured fitness : %f", GeneticAlgorithm.MeasureUniSchedBasicFitness(
+		university_schedules, all_curriculums, nil, selected_semester,
+	))
+
+	log.Printf("department measured fitness : %f", GeneticAlgorithm.MeasureUniSchedBasicFitness(
+		university_schedules, all_curriculums, department_to_measure, selected_semester,
+	))
+
+	log.Printf("     class measured fitness : %f", GeneticAlgorithm.MeasureWeekTimeTableBasicFitness(
 		selected_class_schedule[0],
 	))
 
