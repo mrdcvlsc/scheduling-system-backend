@@ -394,7 +394,7 @@ queue_pop_loop:
 
 			// generate the encoding resource for the obtained university schedule
 
-			previous_fitness := 0.0
+			previous_fitness := -50.0
 
 			fitness_progression_department = make([]float64, 0)
 			fitness_progression_university = make([]float64, 0)
