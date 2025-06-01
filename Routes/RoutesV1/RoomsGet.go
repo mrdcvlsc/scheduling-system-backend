@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/mrdcvlsc/scheduling-system-backend/Resources/Rooms"
 	"github.com/mrdcvlsc/scheduling-system-backend/RouteGlobals"
+	"github.com/mrdcvlsc/scheduling-system-backend/Utils"
 )
 
 type RoomTablePage struct {
@@ -16,7 +17,7 @@ type RoomTablePage struct {
 /*
 GET:
 
-	"/rooms?department_id=D&page_size=[N>0]&page[0-N>0]"
+	"/rooms?department_id=D&page_size=[N>0]&page[0-N>0]&name_match=[string]"
 */
 func GetDepartmentRooms(ctx *gin.Context) {
 	department_id, is_valid_department_id_param := IsValidParameterDepartmentID(ctx)
@@ -34,6 +35,8 @@ func GetDepartmentRooms(ctx *gin.Context) {
 		return
 	}
 
+	name_parameter := ctx.Query("name_match")
+
 	all_rooms, err_read_all_rooms := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllRooms()
 
 	if err_read_all_rooms != nil {
@@ -47,6 +50,12 @@ func GetDepartmentRooms(ctx *gin.Context) {
 	for _, room := range all_rooms {
 		if room.DepartmentID != uint16(department_id) {
 			continue
+		}
+
+		if len(name_parameter) > 0 {
+			if !Utils.HasSubString(room.Name, name_parameter) {
+				continue
+			}
 		}
 
 		total_department_rooms++
