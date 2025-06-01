@@ -55,6 +55,13 @@ func MeasureWeekTimeTableBasicFitness(week_sched Schedule.WeekTimeTable) float64
 			days_with_class += 1.0
 		}
 
+		// total class days in one week above 4 days are punished, and rewarded if not (panel revision recommendation)
+		if days_with_class > 4 {
+			week_sched_fitness -= 14.0
+		} else {
+			week_sched_fitness += 9.0
+		}
+
 		// days that don't have break time during lunch hours are punished, and rewarded if there are
 		if has_time_for_lunch {
 			week_sched_fitness += 8.0
