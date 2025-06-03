@@ -19,7 +19,7 @@ const SUBJECT_DAY_SWAP_PROBABILITY int = 90                // %
 const DAY_SWAP_PERCENT_PROBABILITY int = 10                // %
 const SECTION_WEEK_CLEAR_PERCENT_PROBABILITY int = 2       // %
 const SUBJECT_ERASURE_PROBABILITY int = 7                  // %
-const MUTATION_FITNESS_GUARD int = 15                      // prevent mutations of a weekly section schedule if it's fitness is already high enough, above this defined value
+const MUTATION_FITNESS_GUARD int = 11                      // prevent mutations of a weekly section schedule if it's fitness is already high enough, above this defined value
 
 func ApplyRandomDaySwapTimeSlots(
 	sched Schedule.UniTimeTables, encoding_resource *EncodingResource,
