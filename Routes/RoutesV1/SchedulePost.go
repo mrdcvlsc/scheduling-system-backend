@@ -17,7 +17,7 @@ import (
 )
 
 const MAX_GENETIC_ALGORITHM_RETRY int = 3
-const POPULATION_SIZE = 64
+const POPULATION_SIZE = 200
 const TOTAL_GENERATION = 32
 
 var request_gen_sched_mutex sync.Mutex

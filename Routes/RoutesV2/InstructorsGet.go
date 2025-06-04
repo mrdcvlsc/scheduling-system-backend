@@ -223,12 +223,14 @@ func get_instructor_time_allocation(base_instructor Instructors.Instructor, univ
 		}
 
 		if base_instructor.DepartmentID != 0 {
+			// if not general instructor, only include the general rooms and the department rooms
 			for _, room := range rooms {
 				if room.DepartmentID == base_instructor.DepartmentID || room.DepartmentID == 0 {
 					room_id_to_room_name[room.RoomID] = room.Name
 				}
 			}
 		} else {
+			// if general instructor, include all rooms
 			for _, room := range rooms {
 				room_id_to_room_name[room.RoomID] = room.Name
 			}

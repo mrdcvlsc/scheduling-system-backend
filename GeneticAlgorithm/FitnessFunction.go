@@ -1,3 +1,5 @@
+// the fitness function & some constants are slightly different to the paper presented during the final defense.
+// this one considers new condition(s), and some previous values are changed to hopefully improve generated schedules.
 package GeneticAlgorithm
 
 import (
@@ -8,7 +10,7 @@ import (
 	"github.com/mrdcvlsc/scheduling-system-backend/Schedule"
 )
 
-const PREFERRED_MAX_CLASS_HOUR_PER_DAY float64 = 7.0
+const PREFERRED_MAX_CLASS_HOUR_PER_DAY float64 = 10.0
 
 /*
 * Output Range:
@@ -70,7 +72,7 @@ func MeasureWeekTimeTableBasicFitness(week_sched Schedule.WeekTimeTable) float64
 		}
 
 		// class hours beyond the prefered are punished, below are rewarded
-		if day_total_hours >= PREFERRED_MAX_CLASS_HOUR_PER_DAY {
+		if day_total_hours > PREFERRED_MAX_CLASS_HOUR_PER_DAY {
 			week_sched_fitness -= 3.5
 		} else {
 			week_sched_fitness += 3.5
@@ -88,7 +90,16 @@ func MeasureWeekTimeTableBasicFitness(week_sched Schedule.WeekTimeTable) float64
 		return -24.0
 	}
 
-	return week_sched_fitness / days_with_class
+	week_sched_fitness = week_sched_fitness / days_with_class
+
+	// total class days in one week above 4 days are punished, and rewarded if not (panel revision recommendation)
+	if days_with_class > 4 {
+		week_sched_fitness -= 2
+	} else {
+		week_sched_fitness += 2.5
+	}
+
+	return week_sched_fitness
 }
 
 // A basic fitness function, if `department_to_measure` is nil, it measures the whole university schedule

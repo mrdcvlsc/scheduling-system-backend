@@ -164,6 +164,7 @@ func main() {
 	// ============= room routes and handlers =============
 
 	v1.GET("/rooms", RoutesV1.GetDepartmentRooms)
+	v1.GET("/room_allocation", RoutesV1.GetRoomSubjectAssignment)
 	v1.POST("/room_add", RoutesV1.PostRoom)
 	v1.PATCH("/room_update", RoutesV1.PatchRoom)
 	v1.DELETE("/room_remove", RoutesV1.DeleteRoom)
