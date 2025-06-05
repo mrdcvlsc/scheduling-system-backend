@@ -245,6 +245,8 @@ func HorizontalValidation(
 			is_subject_id_to_is_in_curriculum[section_subject.ID] = true
 		}
 
+		subject_id_to_instructor_id := make(map[uint16]uint16)
+
 		subject_id_to_time_slot_count := make(map[uint16]int)
 
 		for day := 0; day < Const.N_WEEKLY_SCHOOL_DAYS; day++ {
@@ -295,6 +297,27 @@ func HorizontalValidation(
 					subject_id_to_time_slot_count[subject_id] = 1
 				} else {
 					subject_id_to_time_slot_count[subject_id]++
+				}
+
+				// check if instructors are the same for same subject ids
+
+				if instructor_id, has_subject_id := subject_id_to_instructor_id[subject_id]; has_subject_id {
+					if instructor_id != university_sched[usi][day][time_slot].GetInstructorID() {
+						errs_slice = append(
+							errs_slice,
+							fmt.Errorf(
+								"different instructor id detected in %s, %s, %s, section %s, [usi:%d] - day(%d), timeslot(%d), subject id %d, instructor ids: %d & %d",
+								curriculum.CurriculumCode, year_level.Name, semester.Name,
+								Curriculum.SECTION[indicies.Section],
+								indicies.Usi, day, time_slot,
+								subject_id, instructor_id, university_sched[usi][day][time_slot].GetInstructorID(),
+							),
+						)
+
+						return IterBreakCurriculumLoop
+					}
+				} else {
+					subject_id_to_instructor_id[subject_id] = university_sched[usi][day][time_slot].GetInstructorID()
 				}
 			}
 		}
