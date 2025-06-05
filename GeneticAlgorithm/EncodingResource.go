@@ -178,10 +178,6 @@ func IsEqualEncodingResource(a, b *EncodingResource) bool {
 			return false
 		}
 
-		if instructors_a[i].AssignedSubjects != instructors_b[i].AssignedSubjects {
-			return false
-		}
-
 		if instructors_a[i].TotalTeachingHours != instructors_b[i].TotalTeachingHours {
 			return false
 		}
@@ -363,7 +359,7 @@ func GenerateEncodingResourceFromUniTimeTable(
 
 						if !has_subject_id {
 							encode_resource.IsSchedIdxToSubIdToSkip[uint16(indicies.Usi)][subject_id] = true
-							selected_instructor.AssignedSubjects++
+
 						}
 
 						selected_instructor.TotalTeachingHours += (1.0 / Const.N_HOUR_TIME_SLOTS)
@@ -445,9 +441,9 @@ func (e *EncodingResource) EstimateMemoryUsageInBytes() uint64 {
 	instructor_size := func(inst Instructors.Instructor) uint64 {
 		var total_instructor_byte_size uint64
 
-		total_instructor_byte_size += sizeUint16                                             // InstructorID
-		total_instructor_byte_size += sizeUint16                                             // DepartmentID
-		total_instructor_byte_size += sizeInt                                                // AssignedSubjects
+		total_instructor_byte_size += sizeUint16 // InstructorID
+		total_instructor_byte_size += sizeUint16 // DepartmentID
+
 		total_instructor_byte_size += sizeFloat32                                            // TotalTeachingHours
 		total_instructor_byte_size += uint64(Instructors.INSTRUCTOR_TIME_SLOT_MAP_LIMBS) * 8 // [3]uint64
 

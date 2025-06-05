@@ -389,7 +389,6 @@ func inherit_trait_from_a_parent(
 
 			}
 
-			id_to_instructor[subj_extend.InstructorID].AssignedSubjects++
 			id_to_instructor[subj_extend.InstructorID].TotalTeachingHours += float32(subject.TimeSlotSize+subj_extend.TimeSlotSize) / float32(Const.N_HOUR_TIME_SLOTS)
 
 			if _, has_sched_idx := offspring_encode_resource.IsSchedIdxToSubIdToSkip[uint16(usi)]; !has_sched_idx {
@@ -417,7 +416,6 @@ func inherit_trait_from_a_parent(
 			offspring_encode_resource.IsSchedIdxToSubIdToSkip[uint16(usi)] = make(map[uint16]bool)
 		}
 
-		id_to_instructor[subject.InstructorID].AssignedSubjects++
 		id_to_instructor[subject.InstructorID].TotalTeachingHours += float32(subject.TimeSlotSize) / float32(Const.N_HOUR_TIME_SLOTS)
 
 		offspring_encode_resource.IsSchedIdxToSubIdToSkip[uint16(usi)][subject.SubjectID] = true

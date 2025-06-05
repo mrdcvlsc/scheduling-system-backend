@@ -9,7 +9,7 @@ type Instructor struct {
 	LastName      string `json:"LastName" bson:"LastName"`
 
 	// the total number of assigned subjects to teach.
-	AssignedSubjects int
+	MaxTeachingHours float32 `json:"MaxTeachingHours,omitempty" bson:"MaxTeachingHours,omitempty"`
 
 	// the total teaching hours assigned for all assigned subjects.
 	TotalTeachingHours float32

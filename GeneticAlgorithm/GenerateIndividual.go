@@ -613,7 +613,6 @@ func EncodeIndividualGenome(
 						}
 
 						if !is_subject_type_added_once {
-							selected_instructor.AssignedSubjects++
 							is_subject_type_added_once = true
 						}
 
