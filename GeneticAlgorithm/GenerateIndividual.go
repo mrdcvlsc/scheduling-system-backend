@@ -336,28 +336,21 @@ func EncodeIndividualGenome(
 							instructor_search_iteration := 0
 
 							selected_instructor_idx := -1
-							var is_available_instructor bool
+							is_available_instructor := true
+
+							if selected_instructor == nil {
+								for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
+									is_available_instructor = is_available_instructor && target_instructor.Time.GetAvailability(day, instructor_time_slot)
+								}
+							} else {
+								for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
+									is_available_instructor = is_available_instructor && selected_instructor.Time.GetAvailability(day, instructor_time_slot)
+								}
+							}
+
+							instructor_search_iteration++
 
 							if len(subject.DesignatedInstructors) > 0 {
-
-								/////////////////////////////////////////////////////////////////////////////////////////////////////////
-								//                               find available specialized instructors
-								/////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-								is_available_instructor = true
-
-								if selected_instructor == nil {
-									for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
-										is_available_instructor = is_available_instructor && target_instructor.Time.GetAvailability(day, instructor_time_slot)
-									}
-								} else {
-									for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
-										is_available_instructor = is_available_instructor && selected_instructor.Time.GetAvailability(day, instructor_time_slot)
-									}
-								}
-
-								instructor_search_iteration++
-
 								if (!is_available_instructor && ((target_instructor_idx == len(specialized_instructors)-1) || selected_instructor != nil)) && i == total_iterations-1 {
 									is_to_return = true
 
@@ -371,36 +364,7 @@ func EncodeIndividualGenome(
 
 									return IterBreakCurriculumLoop
 								}
-
-								if !is_available_instructor && (i == (total_iterations - 1)) {
-									continue target_instructor_loop // find another instructor if not available for the time slot
-								}
-
-								if !is_available_instructor {
-									continue // find another instructor if not available for the time slot
-								}
-
-								selected_instructor_idx = target_instructor_idx
 							} else {
-								/////////////////////////////////////////////////////////////////////////////////////////////////////////
-								//                                find available department instructors
-								/////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-								is_available_instructor = true
-
-								if selected_instructor == nil {
-									for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
-										is_available_instructor = is_available_instructor && target_instructor.Time.GetAvailability(day, instructor_time_slot)
-									}
-
-								} else {
-									for instructor_time_slot := time_slot; instructor_time_slot < (time_slot + subject_total_time_slots); instructor_time_slot++ {
-										is_available_instructor = is_available_instructor && selected_instructor.Time.GetAvailability(day, instructor_time_slot)
-									}
-								}
-
-								instructor_search_iteration++
-
 								if (!is_available_instructor && ((target_instructor_idx == len(instructors)-1) || selected_instructor != nil)) && i == total_iterations-1 {
 									is_to_return = true
 
@@ -414,17 +378,17 @@ func EncodeIndividualGenome(
 
 									return IterBreakCurriculumLoop
 								}
-
-								if !is_available_instructor && (i == (total_iterations - 1)) {
-									continue target_instructor_loop // find another instructor if not available for the time slot
-								}
-
-								if !is_available_instructor {
-									continue // find another instructor if not available for the time slot
-								}
-
-								selected_instructor_idx = target_instructor_idx
 							}
+
+							if !is_available_instructor && (i == (total_iterations - 1)) {
+								continue target_instructor_loop // find another instructor if not available for the time slot
+							}
+
+							if !is_available_instructor {
+								continue // find another instructor if not available for the time slot
+							}
+
+							selected_instructor_idx = target_instructor_idx
 
 							/////////////////////////////////////////////////////////////////////////////////////////////////////////
 							//                             FIND AVAILABLE ROOM FOR THE TIME SLOT
