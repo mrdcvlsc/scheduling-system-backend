@@ -160,6 +160,7 @@ func EncodeIndividualGenome(
 			subj_assign_fail_possible_reason["not-enough-rooms"] = 0
 
 			for _, subject := range semester.Subjects {
+
 				non_final_sched_idx := uint16(usi)
 
 				if _, has_sched_idx := encoding_resource.IsSchedIdxToSubIdToSkip[non_final_sched_idx]; has_sched_idx {
@@ -231,6 +232,19 @@ func EncodeIndividualGenome(
 					})
 				}
 
+				is_double_block_subject := (subject.LecHours > 0) && (subject.LabHours > 0)
+
+				is_prev_initial_block_success := false
+				prev_initial_block_timeslot_count := -1
+				prev_initial_block_day := -1
+				prev_initial_block_timeslot := -1
+
+				var prev_initial_block_instructor *Instructors.Instructor
+				var prev_initial_block_room *Rooms.Room
+
+				is_2nd_block_tried := false
+				is_2nd_block_success := false
+
 				target_instructor_idx := -1
 
 			target_instructor_loop:
@@ -248,6 +262,19 @@ func EncodeIndividualGenome(
 						target_instructor = &instructors[target_instructor_idx]
 					}
 
+					// undo the allocation of the previous first subject block if the previous second block failed
+
+					if is_double_block_subject && is_prev_initial_block_success && prev_initial_block_instructor != nil && prev_initial_block_room != nil && is_2nd_block_tried && !is_2nd_block_success {
+						for time_slot_iter := range prev_initial_block_timeslot_count {
+							prev_initial_block_instructor.Time.SetAvailability(true, prev_initial_block_day, (prev_initial_block_timeslot + time_slot_iter))
+							prev_initial_block_room.DecTimeSlotClassCount(prev_initial_block_day, (prev_initial_block_timeslot + time_slot_iter))
+							week_time_table.GetDayTimeTable(prev_initial_block_day).GetTimeSlot(prev_initial_block_timeslot+time_slot_iter).Set(0, 0, 0)
+						}
+
+						prev_initial_block_instructor.AssignedSubjects--
+						prev_initial_block_instructor.TotalTeachingHours -= (float32(prev_initial_block_timeslot_count) / float32(Const.N_HOUR_TIME_SLOTS))
+					}
+
 					/////////////////////////////////////////////////////////////////////////////////////////////////////////
 					//                         RANDOMIZE LECTURE AND LABORATORY ASSIGNMENT ORDER
 					/////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -258,6 +285,7 @@ func EncodeIndividualGenome(
 					rand_class_type := int(rng.Int31n(2))
 
 					for class_type_iter := 0; class_type_iter < 2; class_type_iter++ {
+
 						class_type := (rand_class_type + class_type_iter) % 2
 
 						var selected_room *Rooms.Room
@@ -272,6 +300,17 @@ func EncodeIndividualGenome(
 
 						if subject_hours == 0 {
 							continue // skip subject class type if there is no contact hours
+						}
+
+						if is_double_block_subject && class_type_iter == 1 {
+							is_2nd_block_tried = true
+							is_2nd_block_success = false
+						}
+
+						if is_double_block_subject && class_type_iter == 0 {
+							is_prev_initial_block_success = false
+						} else {
+							is_prev_initial_block_success = true
 						}
 
 						subject_total_time_slots := subject_hours * Const.N_HOUR_TIME_SLOTS
@@ -550,6 +589,7 @@ func EncodeIndividualGenome(
 							time_slot_assignment_sanity_counter := 0
 
 							for selected_time_slot := time_slot; selected_time_slot < (time_slot + subject_total_time_slots); selected_time_slot++ {
+
 								if day_sched.GetTimeSlot(selected_time_slot).GetSubjectID() != 0 {
 									panic("woah woah woah! you are overwriting a subject allocated in that time slot")
 								}
@@ -577,6 +617,21 @@ func EncodeIndividualGenome(
 								day_sched.GetTimeSlot(selected_time_slot).SetRoomID(selected_room.RoomID)
 
 								time_slot_assignment_sanity_counter++
+							}
+
+							if class_type_iter == 0 && is_double_block_subject {
+								prev_initial_block_instructor = selected_instructor
+								prev_initial_block_room = selected_room
+
+								prev_initial_block_day = day
+								prev_initial_block_timeslot = time_slot
+								prev_initial_block_timeslot_count = subject_total_time_slots
+
+								is_prev_initial_block_success = true
+							}
+
+							if class_type_iter == 1 && is_double_block_subject {
+								is_2nd_block_success = true
 							}
 
 							if time_slot_assignment_sanity_counter != subject_total_time_slots {
