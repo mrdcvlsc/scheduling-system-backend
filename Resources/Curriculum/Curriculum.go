@@ -54,14 +54,11 @@ func GetTotalNumberOfSections(curriculums []Curriculum, selected_semester int) i
 				continue // skip inactive year levels
 			}
 
-			for semester_idx, semester := range year_level.Semesters {
+			if selected_semester < 0 || selected_semester >= len(year_level.Semesters) {
+				continue // skip invalid semester index
+			}
 
-				if selected_semester != semester_idx {
-					continue // skip not selected semesters
-				}
-
-				section_count += semester.Sections
-			} // ------------- end of semester_idx loop -------------
+			section_count += year_level.Semesters[selected_semester].Sections
 		} // ------------- end of year_level loop -------------
 	} // ------------- end of curriculum loop -------------
 
