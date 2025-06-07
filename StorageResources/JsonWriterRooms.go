@@ -75,6 +75,10 @@ func (s *JsonWriter) UpdateRoom(room_to_update Rooms.Room) error {
 	}
 
 	for _, room := range all_rooms {
+		if room.RoomID == room_to_update.RoomID {
+			continue
+		}
+
 		if Utils.IsEqualStrCaseInsensitiveIgnoreWhiteSpace(room.Name, room_to_update.Name) {
 			return fmt.Errorf("another room with the name '%s' already exists", room_to_update.Name)
 		}
