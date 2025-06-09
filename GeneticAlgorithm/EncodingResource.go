@@ -159,35 +159,48 @@ func IsEqualEncodingResource(a, b *EncodingResource) bool {
 
 	for i := range len(instructors_a) {
 		if instructors_a[i].InstructorID != instructors_b[i].InstructorID {
+			log.Printf("Mismatch in InstructorID at index %d: %d != %d", i, instructors_a[i].InstructorID, instructors_b[i].InstructorID)
 			return false
 		}
 
 		if instructors_a[i].DepartmentID != instructors_b[i].DepartmentID {
+			log.Printf("Mismatch in DepartmentID at index %d: %d != %d", i, instructors_a[i].DepartmentID, instructors_b[i].DepartmentID)
 			return false
 		}
 
 		if instructors_a[i].FirstName != instructors_b[i].FirstName {
+			log.Printf("Mismatch in FirstName at index %d: %s != %s", i, instructors_a[i].FirstName, instructors_b[i].FirstName)
 			return false
 		}
 
 		if instructors_a[i].MiddleInitial != instructors_b[i].MiddleInitial {
+			log.Printf("Mismatch in MiddleInitial at index %d: %s != %s", i, instructors_a[i].MiddleInitial, instructors_b[i].MiddleInitial)
 			return false
 		}
 
 		if instructors_a[i].LastName != instructors_b[i].LastName {
+			log.Printf("Mismatch in LastName at index %d: %s != %s", i, instructors_a[i].LastName, instructors_b[i].LastName)
 			return false
 		}
 
 		if instructors_a[i].AssignedSubjects != instructors_b[i].AssignedSubjects {
+			log.Printf("Mismatch in AssignedSubjects at index %d: %d != %d", i, instructors_a[i].AssignedSubjects, instructors_b[i].AssignedSubjects)
 			return false
 		}
 
 		if instructors_a[i].TotalTeachingHours != instructors_b[i].TotalTeachingHours {
+			log.Printf("Mismatch in TotalTeachingHours at index %d: %f != %f", i, instructors_a[i].TotalTeachingHours, instructors_b[i].TotalTeachingHours)
+			return false
+		}
+
+		if len(instructors_a[i].Time) != len(instructors_b[i].Time) {
+			log.Printf("Mismatch in Time length at index %d: %d != %d", i, len(instructors_a[i].Time), len(instructors_b[i].Time))
 			return false
 		}
 
 		for limb_a_idx, limb := range instructors_a[i].Time {
 			if instructors_b[i].Time[limb_a_idx] != limb {
+				log.Printf("Mismatch in Time at index %d, limb %d: %v != %v", i, limb_a_idx, limb, instructors_b[i].Time[limb_a_idx])
 				return false
 			}
 		}
@@ -273,7 +286,7 @@ func IsEqualEncodingResource(a, b *EncodingResource) bool {
 		for day := range Const.N_WEEKLY_SCHOOL_DAYS {
 			for time_slot := range Const.N_DAILY_TIME_SLOTS {
 				if rooms_a[i].GetTimeSlotClassCount(day, time_slot) != rooms_b[i].GetTimeSlotClassCount(day, time_slot) {
-					fmt.Printf(
+					log.Printf(
 						"RIDX: %d, room_id: %d | d(%d), t(%d) => a(%d), b(%d)\n\na room:\n%+v\n\nb room:\n%+v\n\n",
 						i, rooms_a[i].RoomID,
 						day, time_slot,
@@ -319,13 +332,6 @@ func GenerateEncodingResourceFromUniTimeTable(
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////
-	//                              FLATTEN ENCODING RESOURCES
-	//////////////////////////////////////////////////////////////////////////////////////
-
-	room_id_to_room := encode_resource.IdToRoom
-	instructor_id_to_instructor := encode_resource.IdToInstructor
-
-	//////////////////////////////////////////////////////////////////////////////////////
 	//                           RE-CREATE ENCODING RESOURCE DATA
 	//////////////////////////////////////////////////////////////////////////////////////
 
@@ -339,9 +345,6 @@ func GenerateEncodingResourceFromUniTimeTable(
 						instructor_id := university_schedules[indicies.Usi][day].GetTimeSlot(time_slot).GetInstructorID()
 						room_id := university_schedules[indicies.Usi][day].GetTimeSlot(time_slot).GetRoomID()
 
-						selected_instructor := instructor_id_to_instructor[instructor_id]
-						selected_room := room_id_to_room[room_id]
-
 						if instructor_id == 0 {
 							log.Panic("there should be an instructor allocation here, why there is none?")
 						}
@@ -350,8 +353,8 @@ func GenerateEncodingResourceFromUniTimeTable(
 							log.Panic("there should be a room allocation here, why there is none?")
 						}
 
-						selected_instructor.Time.SetAvailability(false, day, time_slot)
-						selected_room.IncTimeSlotClassCount(day, time_slot)
+						encode_resource.IdToInstructor[instructor_id].Time.SetAvailability(false, day, time_slot)
+						encode_resource.IdToRoom[room_id].IncTimeSlotClassCount(day, time_slot)
 
 						_, has_sched_idx := encode_resource.IsSchedIdxToSubIdToSkip[uint16(indicies.Usi)]
 
@@ -363,10 +366,10 @@ func GenerateEncodingResourceFromUniTimeTable(
 
 						if !has_subject_id {
 							encode_resource.IsSchedIdxToSubIdToSkip[uint16(indicies.Usi)][subject_id] = true
-							selected_instructor.AssignedSubjects++
+							encode_resource.IdToInstructor[instructor_id].AssignedSubjects++
 						}
 
-						selected_instructor.TotalTeachingHours += (1.0 / Const.N_HOUR_TIME_SLOTS)
+						encode_resource.IdToInstructor[instructor_id].TotalTeachingHours += (1.0 / Const.N_HOUR_TIME_SLOTS)
 					}
 				} // ------------- end of time_slot loop -------------
 			} // ------------- end of day loop -------------

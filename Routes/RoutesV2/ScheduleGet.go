@@ -279,15 +279,6 @@ func GetValidateSchedules(ctx *gin.Context) {
 		log.Println("GetClassScheduleValidate - cache error:", err_set_cache.Error())
 	}
 
-	// get all curriculums
-
-	// all_curriculums, err_read_all_curriculum := RouteGlobals.ResourcesPersistence.ReaderService.ReadAllCurriculum()
-
-	// if err_read_all_curriculum != nil {
-	// 	ctx.String(http.StatusInternalServerError, "Unable to load curriculums for the selected department.")
-	// 	return
-	// }
-
 	// extract selected schedule
 
 	validation_results := make([]any, 0)
@@ -311,6 +302,14 @@ func GetValidateSchedules(ctx *gin.Context) {
 	if err_read_all_curriculum != nil {
 		log.Print("GetValidateSchedules [error-curriculums-read]: ", err_read_all_curriculum)
 		ctx.String(http.StatusInternalServerError, "Unable to load curriculum information at this time. Please refresh and try again later.")
+		return
+	}
+
+	total_number_of_sections := Curriculum.GetTotalNumberOfSections(curriculums, selected_semester)
+
+	if total_number_of_sections != len(university_schedules) {
+		log.Print("GetValidateSchedules: curriculum sections vs schedule sections mismatch (emergency delete all schedule fix with GET: /v1/delete_all_generated_university_schedules_for_all_semester_a_complete_reset) : ", err_read_all_curriculum)
+		ctx.String(http.StatusInternalServerError, "Indexing error, curriculum section count and schedule section count mismatch. Please contact the developers")
 		return
 	}
 

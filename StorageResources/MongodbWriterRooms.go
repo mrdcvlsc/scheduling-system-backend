@@ -90,7 +90,6 @@ func (s *MongodbWriter) CreateRoom(new_room Rooms.Room) error {
 }
 
 func (s *MongodbWriter) UpdateRoom(updated_room Rooms.Room) error {
-
 	if updated_room.RoomID == 0 {
 		return errors.New("error UpdateRoom(): parameter argument missing invalid RoomID")
 	}
@@ -107,12 +106,15 @@ func (s *MongodbWriter) UpdateRoom(updated_room Rooms.Room) error {
 
 	var existing_room Rooms.Room
 
-	err_find := room_collection.FindOne(context.TODO(), bson.D{{Key: "Name", Value: updated_room.Name}}).Decode(&existing_room)
+	err_find := room_collection.FindOne(context.TODO(), bson.D{
+		{Key: "Name", Value: updated_room.Name},
+		{Key: "RoomID", Value: bson.M{"$ne": updated_room.RoomID}},
+	}).Decode(&existing_room)
 
 	if err_find == nil {
 		return fmt.Errorf("a room with the name '%s' already exists", updated_room.Name)
 	} else if err_find != mongo.ErrNoDocuments {
-		return fmt.Errorf("CreateRoom FindOne error: %s", err_find.Error())
+		return fmt.Errorf("UpdateRoom FindOne error: %s", err_find.Error())
 	}
 
 	replace_result, err_replace_one := room_collection.ReplaceOne(
@@ -121,9 +123,16 @@ func (s *MongodbWriter) UpdateRoom(updated_room Rooms.Room) error {
 		updated_room,
 	)
 
-	log.Println("UpdateRoom ReplaceOne result:", replace_result)
+	if err_replace_one != nil {
+		return fmt.Errorf("UpdateRoom ReplaceOne error: %s", err_replace_one.Error())
+	}
 
-	return err_replace_one
+	if replace_result.MatchedCount == 0 {
+		return fmt.Errorf("no room found with RoomID %d", updated_room.RoomID)
+	}
+
+	log.Println("UpdateRoom ReplaceOne result:", replace_result)
+	return nil
 }
 
 func (s *MongodbWriter) DeleteRoom(room_id uint16) error {
