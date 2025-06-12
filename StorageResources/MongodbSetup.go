@@ -2,7 +2,6 @@ package StorageResources
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 
@@ -27,17 +26,12 @@ func NewMongodbClient() *mongo.Client {
 
 	log.Println("connecting to MongoDB...")
 
-	log.Printf("MONGO_DB_USER     = %s\n", os.Getenv("MONGO_DB_USER"))
-	log.Printf("MONGO_DB_PASSWORD = %s\n", os.Getenv("MONGO_DB_PASSWORD"))
-	log.Printf("PORT              = %s\n", os.Getenv("PORT"))
+	log.Printf("MONGODB_CONNECTION_STRING = %s\n", os.Getenv("MONGODB_CONNECTION_STRING"))
+	log.Printf("PORT                      = %s\n", os.Getenv("PORT"))
 
 	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
 
-	opts := options.Client().ApplyURI(fmt.Sprintf(
-		"mongodb+srv://%s:%s@testcluster.sz6qg.mongodb.net/?retryWrites=true&w=majority&appName=TestCluster",
-		os.Getenv("MONGO_DB_USER"),
-		os.Getenv("MONGO_DB_PASSWORD"),
-	)).SetServerAPIOptions(serverAPI)
+	opts := options.Client().ApplyURI(os.Getenv("MONGODB_CONNECTION_STRING")).SetServerAPIOptions(serverAPI)
 
 	client, err := mongo.Connect(context.TODO(), opts)
 
