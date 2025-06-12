@@ -20,19 +20,19 @@
 1. **Open Command Prompt**, then enter the following commands:
 
 ```bat
-REM 1. create & enter project folder
+REM create & enter project folder
 mkdir scheduling-system
 cd scheduling-system
 
-REM 2. clone the backend and frontend repositories
+REM clone the backend and frontend repositories
 git clone https://github.com/mrdcvlsc/scheduling-system-frontend.git
 git clone https://github.com/mrdcvlsc/scheduling-system-backend.git
 
-REM 3. install frontend deps
+REM install frontend deps
 cd scheduling-system-frontend
 npm install
 
-REM 4. prepare backend
+REM prepare backend
 cd ..\scheduling-system-backend
 
 REM copy empty data folder (requires /E to include all subfolders, /I to assume destination is a folder)
@@ -53,14 +53,14 @@ cd ..\scheduling-system-frontend
 npm run build
 xcopy dist ..\scheduling-system-backend\dist\*.* /E /I /Y
 
-REM 4. restore DEV flag to “true” in basics.js
+REM restore DEV flag to “true” in basics.js
 powershell -Command ^
   "(Get-Content src\js\basics.js) -replace 'const DEV = false','const DEV = true' | Set-Content src\js\basics.js"
 
 REM go back to the backend folder
 cd ..\scheduling-system-backend
 
-REM 6. set session-only environment variables
+REM set session-only environment variables
 set GIN_MODE=debug
 set DEV_MODE=local_release
 set AUTH=enable
@@ -70,7 +70,7 @@ REM 32-char secrets (change once, then clear MASTER_KEY)
 set SESSION_SECRET=xyzxyzxyzxyzxyzxyzxyzxyzxyzxyzxy
 set MASTER_KEY=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 
-REM 7. run the backend
+REM run the backend
 app.exe
 ```
 
