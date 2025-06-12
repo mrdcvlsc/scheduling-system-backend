@@ -78,6 +78,8 @@ export MASTER_KEY=
 
 Other devices that is also connected to the same network should be able to connect to the same ip address and port (no data needed) using their browsers.
 
+(other departments can create new department if needed, but only the department itself can delete themselves).
+
 ---
 
 ### Local Development Build - File System Persistence (No Login)

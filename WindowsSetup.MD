@@ -36,15 +36,29 @@ REM 4. prepare backend
 cd ..\scheduling-system-backend
 
 REM copy empty data folder (requires /E to include all subfolders, /I to assume destination is a folder)
-xcopy ..\scheduling-system-frontend\scheduling-system-temporary-data-empty .\scheduling-system-temporary-data /E /I
+xcopy .\scheduling-system-temporary-data-empty .\scheduling-system-temporary-data /E /I
 
-REM 5. build backend & frontend
+REM build frontend backend
 go build -tags netgo -ldflags "-s -w" -o app.exe
+
+REM remove old frontend build output if there is any
+rmdir /S /Q dist
+
+REM flip DEV flag to “false” in basics.js
+powershell -Command ^
+  "(Get-Content ..\scheduling-system-frontend\src\js\basics.js) -replace 'const DEV = true','const DEV = false' | Set-Content ..\scheduling-system-frontend\src\js\basics.js"
+
+REM build frontend and copy to backend
 cd ..\scheduling-system-frontend
 npm run build
+xcopy dist ..\scheduling-system-backend\dist\*.* /E /I /Y
 
-REM copy built "dist" into backend
-xcopy dist ..\scheduling-system-backend\dist\*.* /E /I
+REM 4. restore DEV flag to “true” in basics.js
+powershell -Command ^
+  "(Get-Content src\js\basics.js) -replace 'const DEV = false','const DEV = true' | Set-Content src\js\basics.js"
+
+REM go back to the backend folder
+cd ..\scheduling-system-backend
 
 REM 6. set session-only environment variables
 set GIN_MODE=debug
@@ -57,7 +71,6 @@ set SESSION_SECRET=xyzxyzxyzxyzxyzxyzxyzxyzxyzxyzxy
 set MASTER_KEY=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 
 REM 7. run the backend
-cd ..\scheduling-system-backend
 app.exe
 ```
 
@@ -66,14 +79,19 @@ app.exe
 4. Create a new department. Remember the Department ID number, Department Code, and Password.
 5. Delete the `DEFAULT` department.
 6. Stop the `app` process (usually by pressing `Ctrl+C` in the terminal).
-7. Enter the command below in the terminal:
+
+7. Remove master key in environment variable then start the app.exe again:
 
 ```bash
 # remove the master key so it cannot be used by users
-REM Stop the app (Ctrl+C), then:
 set MASTER_KEY=
 app.exe
 ```
+
+8. Login using the new department with password (other departments can create new department if needed, but only the department itself can delete themselves).
+
+Other devices that is also connected to the same network should be able to connect to the same ip address and port (no data needed) using their browsers.
+
 ---
 
 ## Local Development Build (no login)
