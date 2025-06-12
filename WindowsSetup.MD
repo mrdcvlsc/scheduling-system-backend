@@ -63,7 +63,7 @@ cd ..\scheduling-system-backend
 REM 6. set session-only environment variables
 set GIN_MODE=debug
 set DEV_MODE=local_release
-set AUTH=on
+set AUTH=enable
 set PORT=3000
 
 REM 32-char secrets (change once, then clear MASTER_KEY)
@@ -142,7 +142,7 @@ app.exe
 Configure your host (Azure/AWS/etc.) with these environment variables:
 
 ```
-AUTH=on
+AUTH=enable
 GIN_MODE=release
 MASTER_KEY=<32-hex-chars>        REM remove after initial setup
 SESSION_SECRET=<32-hex-chars>

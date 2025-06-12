@@ -55,7 +55,7 @@ export SESSION_SECRET=xyzxyzxyzxyzxyzxyzxyzxyzxyzxyzxy
 
 # 32-character master key - can be anything
 export MASTER_KEY=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-export AUTH=on
+export AUTH=enable
 export PORT=3000
 
 # start serving the web application
@@ -137,7 +137,7 @@ export MONGODB_CONNECTION_STRING="your-go-lang-mongodb-connection-string"
 Set the following environment variables
 
 ```bash
-AUTH=on
+AUTH=enable
 GIN_MODE=release
 MASTER_KEY=a-32-hex-character-string-no-white-space-remove-after-setup
 USE_DATABASE=MongoDB
