@@ -48,7 +48,7 @@ REM flip DEV flag to “false” in basics.js
 powershell -Command ^
   "(Get-Content ..\scheduling-system-frontend\src\js\basics.js) -replace 'const DEV = true','const DEV = false' | Set-Content ..\scheduling-system-frontend\src\js\basics.js"
 
-REM build frontend and copy to backend
+REM build backend
 cd ..\scheduling-system-frontend
 npm run build
 xcopy dist ..\scheduling-system-backend\dist\*.* /E /I /Y
