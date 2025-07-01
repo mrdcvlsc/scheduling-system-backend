@@ -97,8 +97,17 @@ jobs:
       - name: run Build
         run: make build
 
+      - name: Build For Windows 64-bit Computers
+        run: |
+          go clean -testcache
+          mkdir win-64-build
+          env GOOS=windows GOARCH=amd64 go build -tags netgo -ldflags '-s -w' -o win-64-build/scheduling-backend.exe
+          cp -r dist win-64-build
+          cp -r scheduling-system-temporary-data-empty win-64-build/scheduling-system-temporary-data
+          zip -r win-64-build.zip win-64-build/
+
       - name: create github canary release
-        run: gh release create canary-build-v${{ github.run_number }} dist.zip scheduling-system-temporary-data.zip --title "Canary Build" --notes "canary build version number ${{ github.run_number }}" --draft=false --prerelease=false
+        run: gh release create canary-build-v${{ github.run_number }} dist.zip scheduling-system-temporary-data.zip win-64-build.zip --title "Canary Build" --notes "canary build version number ${{ github.run_number }}" --draft=false --prerelease=false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
