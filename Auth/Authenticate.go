@@ -11,7 +11,7 @@ import (
 )
 
 func IsAuthSuccess(ctx *gin.Context) bool {
-	if os.Getenv("AUTH") == "on" {
+	if os.Getenv("AUTH") == "enable" {
 		session := sessions.Default(ctx)
 		user := session.Get("department_user")
 
@@ -30,7 +30,7 @@ func IsAuthSuccess(ctx *gin.Context) bool {
 }
 
 func IsDepartmentAllowed(ctx *gin.Context, target_department_id uint16) bool {
-	if os.Getenv("AUTH") == "on" {
+	if os.Getenv("AUTH") == "enable" {
 		session := sessions.Default(ctx)
 		user := session.Get("department_user")
 
