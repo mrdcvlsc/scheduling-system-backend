@@ -37,8 +37,14 @@ func (s *JsonWriter) CreateRoom(new_room Rooms.Room) error {
 		}
 	}
 
+	new_id_num := uint16(1)
+
+	if len(all_rooms) > 0 {
+		new_id_num = all_rooms[len(all_rooms)-1].RoomID + 1
+	}
+
 	all_rooms = append(all_rooms, Rooms.Room{
-		RoomID:             all_rooms[len(all_rooms)-1].RoomID + 1,
+		RoomID:             new_id_num,
 		DepartmentID:       new_room.DepartmentID,
 		Capacity:           new_room.Capacity,
 		RoomType:           new_room.RoomType,

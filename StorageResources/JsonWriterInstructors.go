@@ -26,8 +26,14 @@ func (s *JsonWriter) CreateInstructor(new_instructor Instructors.Instructor) err
 		return err_read
 	}
 
+	new_id_num := uint16(1)
+
+	if len(instructors_with_time_str) > 0 {
+		new_id_num = instructors_with_time_str[len(instructors_with_time_str)-1].InstructorID + 1
+	}
+
 	instructors_with_time_str = append(instructors_with_time_str, Instructors.InstructorWithTimeString{
-		InstructorID:  instructors_with_time_str[len(instructors_with_time_str)-1].InstructorID + 1,
+		InstructorID:  new_id_num,
 		DepartmentID:  new_instructor.DepartmentID,
 		FirstName:     new_instructor.FirstName,
 		MiddleInitial: new_instructor.MiddleInitial,
