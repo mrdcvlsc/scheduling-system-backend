@@ -27,7 +27,11 @@ func (s *JsonWriter) CreateCurriculum(new_curriculum Curriculum.Curriculum) (uin
 		return 0, fmt.Errorf("error CreateCurriculum(): %s", err_read.Error())
 	}
 
-	new_curriculum_id := all_curriculums[len(all_curriculums)-1].CurriculumID + 1
+	new_curriculum_id := uint16(1)
+
+	if len(all_curriculums) > 0 {
+		new_curriculum_id = all_curriculums[len(all_curriculums)-1].CurriculumID + 1
+	}
 
 	err_save := json_save_curriculum(
 		Curriculum.Curriculum{

@@ -26,8 +26,14 @@ func (s *JsonWriter) CreateSubject(new_subject Curriculum.Subject) error {
 		return err_read
 	}
 
+	new_id_num := uint16(1)
+
+	if len(all_subject) > 0 {
+		new_id_num = all_subject[len(all_subject)-1].ID + 1
+	}
+
 	all_subject = append(all_subject, Curriculum.Subject{
-		ID:                    all_subject[len(all_subject)-1].ID + 1,
+		ID:                    new_id_num,
 		Code:                  new_subject.Code,
 		Name:                  new_subject.Name,
 		LecHours:              new_subject.LecHours,

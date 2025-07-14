@@ -26,8 +26,14 @@ func (s *JsonWriter) CreateDepartment(new_department Departments.Department) err
 		return err_read
 	}
 
+	new_id_num := uint16(1)
+
+	if len(all_departments) > 0 {
+		new_id_num = all_departments[len(all_departments)-1].DepartmentID + 1
+	}
+
 	all_departments = append(all_departments, Departments.Department{
-		DepartmentID:         all_departments[len(all_departments)-1].DepartmentID + 1,
+		DepartmentID:         new_id_num,
 		Code:                 new_department.Code,
 		Name:                 new_department.Name,
 		SaltedHashedPassword: new_department.SaltedHashedPassword,
